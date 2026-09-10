@@ -5,6 +5,8 @@ import OwnerDashboard from "../components/OwnerDashboard.jsx";
 
 const emptySummary = { personals_active: 0, personals_suspended: 0, personals_blocked: 0, students_total: 0, alerts: [] };
 const statusLabel = { active: "Ativo", suspended: "Suspenso", blocked: "Bloqueado" };
+const moduleOptions = [["workouts","Treinos"],["diet","Dietas"],["assessments","Avaliações"],["progress","Progresso"],["finance","Financeiro"],["agenda","Agenda"],["messages","Mensagens"],["reports","Relatórios"],["files","Arquivos"],["coach","Coach IA"],["calendar","Calendário"],["payments","Pagamentos"]];
+const defaultBrand = { display_name: "", slug: "", logo_url: null, icon_url: null, profile_image_url: null, banner_url: null, primary_color: "#050505", secondary_color: "#C0C0C0", background_color: "#050505", surface_color: "#121416", accent_color: "#C0C0C0", border_color: "#34373A", text_color: "#F5F5F5", muted_text_color: "#A7ABB0", font_family: "Inter", login_subtitle: "Disciplina • Foco • Propósito", modules: Object.fromEntries(moduleOptions.map(([key])=>[key,true])) };
 
 function Header({ title, subtitle, theme, setTheme }) {
   return <header className="owner-header"><div><h1>{title}</h1><p>{subtitle}</p></div><div className="owner-header-actions"><button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Alternar tema">{theme === "dark" ? <Sun /> : <Moon />}</button><span className="owner-secure"><ShieldCheck /> Sessão protegida</span></div></header>;
@@ -22,25 +24,65 @@ function Dashboard({ onNavigate }) {
 function PersonalModal({ item, onClose, onSaved }) {
   const editing = Boolean(item?.id);
   const [form, setForm] = useState({ name: item?.name || "", email: item?.email || "", phone: item?.phone || "", password: "", status: item?.status || "active" });
-  const [brand, setBrand] = useState({ display_name: item?.brand_name || "Fitland", primary_color: "#050505", secondary_color: "#C0C0C0", login_subtitle: "" });
+  const [brand, setBrand] = useState({ ...defaultBrand, display_name: item?.brand_name || (item?.name ? `Personal ${item.name}` : ""), slug: "" });
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (editing) apiRequest(`/branding/personal/${item.id}`).then(setBrand).catch(() => {});
   }, [editing, item?.id]);
 
+  useEffect(() => {
+    if (editing || !form.name.trim()) return;
+    const slug = form.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    setBrand((current) => ({ ...current, display_name: `Personal ${form.name.trim()}`, slug }));
+  }, [editing, form.name]);
+
   const save = async (event) => {
     event.preventDefault(); setBusy(true); setError("");
     try {
-      const payload = editing ? { name: form.name, email: form.email, phone: form.phone || null } : form;
+      const payload = editing ? { name: form.name, email: form.email, phone: form.phone || null } : { ...form, branding: brand };
       await apiRequest(editing ? `/owner/personals/${item.id}` : "/owner/personals", { method: editing ? "PATCH" : "POST", body: JSON.stringify(payload) });
       if (editing) await apiRequest(`/branding/personal/${item.id}`, { method: "PUT", body: JSON.stringify(brand) });
       onSaved(); onClose();
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
-  return <div className="owner-modal-backdrop" onMouseDown={onClose}><form className="owner-modal" onSubmit={save} onMouseDown={event=>event.stopPropagation()}><button className="icon-close" type="button" onClick={onClose}><X/></button><p className="eyebrow">{editing?"Editar cadastro":"Novo acesso"}</p><h2>{editing?"Personal e marca":"Cadastrar personal"}</h2>{error&&<p className="owner-alert error">{error}</p>}<label>Nome completo<input required value={form.name} onChange={event=>setForm({...form,name:event.target.value})}/></label><label>E-mail<input required type="email" value={form.email} onChange={event=>setForm({...form,email:event.target.value})}/></label><label>Telefone opcional<input value={form.phone} onChange={event=>setForm({...form,phone:event.target.value})}/></label>{!editing&&<><label>Senha temporária<input required minLength="10" type="password" value={form.password} onChange={event=>setForm({...form,password:event.target.value})}/></label><label>Status<select value={form.status} onChange={event=>setForm({...form,status:event.target.value})}><option value="active">Ativo</option><option value="suspended">Suspenso</option><option value="blocked">Bloqueado</option></select></label></>}{editing&&<fieldset className="owner-brand-fields"><legend>Marca deste personal</legend><label>Nome exibido<input value={brand.display_name||""} onChange={event=>setBrand({...brand,display_name:event.target.value})}/></label><label>Subtítulo do login<input value={brand.login_subtitle||""} onChange={event=>setBrand({...brand,login_subtitle:event.target.value})}/></label><div><label>Cor principal<input type="color" value={brand.primary_color||"#050505"} onChange={event=>setBrand({...brand,primary_color:event.target.value})}/></label><label>Cor secundária<input type="color" value={brand.secondary_color||"#C0C0C0"} onChange={event=>setBrand({...brand,secondary_color:event.target.value})}/></label></div><small>Suporte da dona. Os alunos e dados permanecem isolados.</small></fieldset>}<div className="owner-modal-actions"><button type="button" onClick={onClose}>Cancelar</button><button className="owner-primary" disabled={busy}>{busy?"Salvando...":"Salvar"}</button></div></form></div>;
+  const uploadBrandAsset = async (event, type) => {
+    const file = event.target.files?.[0];
+    if (!file || !editing) return;
+    setUploading(type); setError("");
+    try {
+      const result = await apiRequest(`/branding/personal/${item.id}/upload/${type}`, { method: "POST", body: file, headers: { "Content-Type": file.type } });
+      setBrand(result.branding);
+    } catch (err) { setError(err.message); } finally { setUploading(""); event.target.value = ""; }
+  };
+
+  return <div className="owner-modal-backdrop" onMouseDown={onClose}>
+    <form className="owner-modal owner-personalization-modal" onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
+      <button className="icon-close" type="button" onClick={onClose}><X/></button>
+      <p className="eyebrow">{editing ? "Editar cadastro" : "Novo acesso"}</p>
+      <h2>{editing ? "Personal e aplicativo" : "Cadastrar personal"}</h2>
+      {error && <p className="owner-alert error">{error}</p>}
+      <label>Nome completo<input required value={form.name} onChange={event=>setForm({...form,name:event.target.value})}/></label>
+      <label>E-mail<input required type="email" value={form.email} onChange={event=>setForm({...form,email:event.target.value})}/></label>
+      <label>Telefone opcional<input value={form.phone} onChange={event=>setForm({...form,phone:event.target.value})}/></label>
+      {!editing && <><label>Senha temporária<input required minLength="10" type="password" value={form.password} onChange={event=>setForm({...form,password:event.target.value})}/></label><label>Status<select value={form.status} onChange={event=>setForm({...form,status:event.target.value})}><option value="active">Ativo</option><option value="suspended">Suspenso</option><option value="blocked">Bloqueado</option></select></label></>}
+      <fieldset className="owner-brand-fields">
+        <legend>Personalização do aplicativo</legend>
+        <label>Nome exibido<input required value={brand.display_name || ""} onChange={event=>setBrand({...brand,display_name:event.target.value})}/></label>
+        <label>Slug<input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={brand.slug || ""} onChange={event=>setBrand({...brand,slug:event.target.value.toLowerCase()})}/></label>
+        <label>Subtítulo do login<input value={brand.login_subtitle || ""} onChange={event=>setBrand({...brand,login_subtitle:event.target.value})}/></label>
+        <label>Fonte<select value={brand.font_family} onChange={event=>setBrand({...brand,font_family:event.target.value})}>{["Inter","Poppins","Montserrat","Roboto","Open Sans"].map(font=><option key={font}>{font}</option>)}</select></label>
+        {editing && <div className="owner-brand-uploads"><label>{uploading === "logo" ? "Enviando..." : "Enviar logo"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(uploading)} onChange={event=>uploadBrandAsset(event,"logo")}/></label><label>{uploading === "icon" ? "Enviando..." : "Enviar favicon"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(uploading)} onChange={event=>uploadBrandAsset(event,"icon")}/></label></div>}
+        <div className="owner-brand-colors">{[["Fundo","background_color"],["Superfície","surface_color"],["Principal","primary_color"],["Destaque","accent_color"],["Borda","border_color"],["Texto","text_color"],["Texto secundário","muted_text_color"]].map(([label,key])=><label key={key}>{label}<input type="color" value={brand[key]} onChange={event=>setBrand({...brand,[key]:event.target.value})}/></label>)}</div>
+      </fieldset>
+      <fieldset className="owner-brand-fields"><legend>Recursos disponíveis</legend><div className="owner-module-grid">{moduleOptions.map(([key,label])=><label className="owner-module-toggle" key={key}><input type="checkbox" checked={brand.modules?.[key] !== false} onChange={event=>setBrand({...brand,modules:{...brand.modules,[key]:event.target.checked}})}/><span>{label}</span></label>)}</div></fieldset>
+      <section className="owner-brand-preview" style={{background:brand.background_color,color:brand.text_color,borderColor:brand.border_color,fontFamily:brand.font_family}}><div>{brand.logo_url ? <img src={brand.logo_url} alt=""/> : <strong>{(brand.display_name || "P").slice(0,2).toUpperCase()}</strong>}<span>{brand.display_name || "Personal"}</span></div><p style={{color:brand.muted_text_color}}>Visualização da identidade</p><button type="button" style={{background:brand.accent_color,color:brand.background_color}}>Botão de exemplo</button></section>
+      <div className="owner-modal-actions"><button type="button" onClick={onClose}>Cancelar</button><button className="owner-primary" disabled={busy}>{busy ? "Salvando..." : "Salvar"}</button></div>
+    </form>
+  </div>;
 }
 
 function Personals() {

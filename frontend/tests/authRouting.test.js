@@ -18,6 +18,8 @@ test("Fitland login is always routed to the owner endpoint", () => {
 
 test("personal login uses the regular auth endpoint", () => {
   assert.equal(isOwnerLoginPath("/personal/thiago-fillipo/login"), false);
+  assert.equal(isAuthLoginPath("/personal/login"), true);
+  assert.deepEqual(getRequestedContext("/personal/login"), { type: "personal", slug: null });
   assert.equal(getLoginEndpoint(false), "/auth/login");
 });
 
@@ -45,6 +47,17 @@ test("personal slugs remain isolated when the session exposes tenant identity", 
   const thiago = { role: "personal", personal_slug: "thiago-fillipo" };
   assert.equal(isSessionCompatibleWithContext(thiago, getRequestedContext("/personal/maria/login")), false);
   assert.equal(getContextLoginPath(getRequestedContext("/personal/maria/dashboard")), "/personal/maria/login");
+  assert.equal(getContextLoginPath({ type: "personal", slug: null }), "/personal/login");
+});
+
+test("student routes and sessions stay separate from personal context", () => {
+  const student = { role: "student" };
+  const personal = { role: "personal" };
+  const studentContext = getRequestedContext("/dashboard/aluno");
+  assert.deepEqual(studentContext, { type: "student", slug: null });
+  assert.equal(isSessionCompatibleWithContext(student, studentContext), true);
+  assert.equal(isSessionCompatibleWithContext(personal, studentContext), false);
+  assert.equal(isSessionCompatibleWithContext(student, getRequestedContext("/personal/thiago-fillipo/login")), false);
 });
 
 test("branding follows the requested URL", () => {
@@ -53,8 +66,8 @@ test("branding follows the requested URL", () => {
     favicon: "/fitland-icon.svg",
   });
   assert.deepEqual(getRouteBranding("/personal/thiago-fillipo/login"), {
-    title: "Personal Thiago Fillipo",
-    favicon: "/lion-juda-logo.png",
+    title: "Personal",
+    favicon: "/fitland-icon.svg",
   });
   assert.deepEqual(getRouteBranding("/personal/maria/login", { display_name: "Personal Maria", icon_url: "/maria.png" }), {
     title: "Personal Maria",

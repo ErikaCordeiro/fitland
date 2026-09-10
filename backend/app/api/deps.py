@@ -8,6 +8,10 @@ from starlette import status
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User, UserRole
+from app.models.personal_branding import PersonalBranding
+from app.models.student import Student
+from app.services.branding_service import DEFAULT_MODULES
+from sqlalchemy import select
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -54,3 +58,21 @@ def require_owner_password_change(current_user: User = Depends(get_current_user)
     if not current_user.must_change_password:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Password change is not pending")
     return current_user
+
+
+def require_module(module: str):
+    def dependency(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+        if current_user.role == UserRole.OWNER:
+            return current_user
+        personal_id = current_user.id
+        if current_user.role == UserRole.STUDENT:
+            student = db.scalar(select(Student).where(Student.user_id == current_user.id))
+            if not student:
+                raise HTTPException(status_code=403, detail="Student profile required")
+            personal_id = student.personal_id
+        branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal_id))
+        modules = {**DEFAULT_MODULES, **((branding.modules if branding else None) or {})}
+        if modules.get(module) is False:
+            raise HTTPException(status_code=403, detail="Module not available")
+        return current_user
+    return dependency

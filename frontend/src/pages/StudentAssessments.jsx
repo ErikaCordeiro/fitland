@@ -76,7 +76,7 @@ const quickActions = [
   ["Compartilhar evolução", Share2]
 ];
 
-export default function StudentAssessments({ student }) {
+export default function StudentAssessments({ student, branding }) {
   const name = student?.name || "Erika Gomes";
   const [detailModal, setDetailModal] = useState(null);
 
@@ -242,7 +242,7 @@ export default function StudentAssessments({ student }) {
 
         <article className="student-assessment-card personal-notes">
           <h2>Observações do seu personal</h2>
-          <span>Thiago Fillippo - 18/06/2025</span>
+          <span>{branding?.display_name || "Seu personal"} - 18/06/2025</span>
           <p>
             Excelente evolução. Redução significativa de gordura corporal e aumento de massa magra.
             Continue mantendo consistência nos treinos e na alimentação. Proximo objetivo: reduzir gordura para abaixo de 20%.

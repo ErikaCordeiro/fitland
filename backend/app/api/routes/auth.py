@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_owner_password_change
@@ -24,12 +24,17 @@ def _cookie_secure() -> bool:
     return settings.ENVIRONMENT.lower() in {"production", "prod"}
 
 
-def _set_refresh_cookie(response: Response, refresh_token: str | None) -> None:
+def _refresh_cookie_name(context: str) -> str:
+    return f"{settings.REFRESH_COOKIE_NAME}_{context}"
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str | None, context: str) -> None:
+    cookie_name = _refresh_cookie_name(context)
     if not refresh_token:
-        response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/api/auth")
+        response.delete_cookie(cookie_name, path="/api/auth")
         return
     response.set_cookie(
-        key=settings.REFRESH_COOKIE_NAME,
+        key=cookie_name,
         value=refresh_token,
         httponly=True,
         secure=_cookie_secure(),
@@ -47,14 +52,14 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     token_response, refresh_token = authenticate(db, payload)
-    _set_refresh_cookie(response, refresh_token)
+    _set_refresh_cookie(response, refresh_token, token_response.user.role.value)
     return token_response
 
 
 @router.post("/owner-login", response_model=TokenResponse)
 def owner_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     token_response, refresh_token = authenticate_owner(db, payload)
-    _set_refresh_cookie(response, refresh_token)
+    _set_refresh_cookie(response, refresh_token, "owner")
     return token_response
 
 
@@ -68,27 +73,36 @@ def change_required_password(
     if payload.new_password != payload.confirm_password:
         raise HTTPException(status_code=422, detail="As senhas não coincidem.")
     token_response, refresh_token = change_required_owner_password(db, owner, payload.new_password)
-    _set_refresh_cookie(response, refresh_token)
+    _set_refresh_cookie(response, refresh_token, "owner")
     return token_response
 
 @router.post("/refresh", response_model=SessionResponse)
 def refresh(
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
-    refresh_token: str | None = Cookie(default=None, alias=settings.REFRESH_COOKIE_NAME),
+    auth_context: str | None = Header(default=None, alias="X-Auth-Context"),
 ):
-    token_response, rotated_refresh = refresh_session(db, refresh_token or "")
-    _set_refresh_cookie(response, rotated_refresh)
+    context = (auth_context or "").strip().lower()
+    if context not in {"owner", "personal", "student"}:
+        raise HTTPException(status_code=400, detail="Invalid auth context")
+    refresh_token = request.cookies.get(_refresh_cookie_name(context), "")
+    token_response, rotated_refresh = refresh_session(db, refresh_token, context)
+    _set_refresh_cookie(response, rotated_refresh, context)
     return token_response
 
 
 @router.post("/logout", status_code=204)
 def logout(
+    request: Request,
     response: Response,
-    refresh_token: str | None = Cookie(default=None, alias=settings.REFRESH_COOKIE_NAME),
+    auth_context: str | None = Header(default=None, alias="X-Auth-Context"),
 ):
+    context = (auth_context or "").strip().lower()
+    refresh_token = request.cookies.get(_refresh_cookie_name(context)) if context else None
     revoke_refresh_token(refresh_token)
-    response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/api/auth")
+    if context in {"owner", "personal", "student"}:
+        response.delete_cookie(_refresh_cookie_name(context), path="/api/auth")
     return None
 
 

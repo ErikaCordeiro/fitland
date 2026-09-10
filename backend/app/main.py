@@ -88,7 +88,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Frontend-Build"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Frontend-Build", "X-Auth-Context"],
     expose_headers=[
         "X-Request-ID", "X-Backend-Build", "X-Backend-Deployment", "X-Fitland-Service", "X-Fitland-Build",
     ],

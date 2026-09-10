@@ -40,23 +40,12 @@ def public_branding(
     personal = None
     if slug:
         requested_slug = _brand_slug(slug)
-        rows = db.execute(
-            select(User, PersonalBranding)
-            .join(PersonalBranding, PersonalBranding.personal_id == User.id)
-            .where(User.role == UserRole.PERSONAL, User.is_active.is_(True))
-        ).all()
-        personal = next(
-            (
-                user
-                for user, brand in rows
-                if requested_slug
-                in {
-                    _brand_slug(brand.display_name),
-                    _brand_slug(user.name),
-                    _brand_slug(user.email.split("@", 1)[0]),
-                }
-            ),
-            None,
+        personal = db.scalar(
+            select(User).join(PersonalBranding, PersonalBranding.personal_id == User.id).where(
+                User.role == UserRole.PERSONAL,
+                User.is_active.is_(True),
+                PersonalBranding.slug == requested_slug,
+            )
         )
     elif email:
         normalized_email = email.strip().lower()
@@ -115,6 +104,31 @@ async def upload_brand_asset(asset_type: str, request: Request, personal: User =
     if not branding:
         branding = PersonalBranding(personal_id=personal.id, display_name=personal.name)
         db.add(branding)
+    setattr(branding, {"logo": "logo_url", "profile": "profile_image_url", "icon": "icon_url"}[asset_type], url)
+    db.commit()
+    return {"url": url, "branding": get_personal_branding(db, personal)}
+
+
+@router.post("/personal/{personal_id}/upload/{asset_type}")
+async def owner_upload_brand_asset(personal_id: uuid.UUID, asset_type: str, request: Request, _: User = Depends(require_owner), db: Session = Depends(get_db)):
+    personal = db.scalar(select(User).where(User.id == personal_id, User.role == UserRole.PERSONAL))
+    if not personal:
+        raise HTTPException(status_code=404, detail="Personal não encontrado")
+    if asset_type not in {"logo", "profile", "icon"}:
+        raise HTTPException(status_code=400, detail="Tipo de arquivo inválido")
+    mime = request.headers.get("content-type", "").split(";", 1)[0]
+    extension = ALLOWED_TYPES.get(mime)
+    if not extension:
+        raise HTTPException(status_code=415, detail="Envie uma imagem JPG, PNG ou WebP")
+    content = await request.body()
+    if not content or len(content) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="A imagem deve ter até 3 MB")
+    filename = f"{personal.id}-{asset_type}-{uuid.uuid4().hex}{extension}"
+    (UPLOAD_DIR / filename).write_bytes(content)
+    url = str(request.url_for("uploads", path=f"branding/{filename}"))
+    branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal.id))
+    if not branding:
+        raise HTTPException(status_code=409, detail="Salve a personalização antes de enviar arquivos")
     setattr(branding, {"logo": "logo_url", "profile": "profile_image_url", "icon": "icon_url"}[asset_type], url)
     db.commit()
     return {"url": url, "branding": get_personal_branding(db, personal)}

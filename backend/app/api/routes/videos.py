@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_personal
+from app.api.deps import require_module, require_personal
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.video import VideoCreate, VideoRead
 from app.services.video_service import create_video
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_module("workouts"))])
 
 
 @router.post("", response_model=VideoRead, status_code=201)

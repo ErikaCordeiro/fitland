@@ -15,6 +15,8 @@ from app.models.personal_branding import PersonalBranding
 from app.models.user import User, UserRole
 from app.models.workout import Workout
 from app.schemas.owner import OwnerPersonalCreate, OwnerPersonalUpdate
+from app.schemas.branding import BrandingUpdate
+from app.services.branding_service import brand_slug
 
 
 def audit(db: Session, actor: User | None, action: str, entity_type: str, entity_id=None, details=None, result="success"):
@@ -137,13 +139,8 @@ def create_personal(db: Session, actor: User, payload: OwnerPersonalCreate):
                 role=UserRole.PERSONAL, account_status=payload.status, is_active=payload.status == "active", must_change_password=True)
     db.add(user)
     db.flush()
-    db.add(PersonalBranding(
-        personal_id=user.id,
-        display_name=f"Personal {user.name}",
-        primary_color="#050505",
-        secondary_color="#C0C0C0",
-        login_subtitle="Disciplina • Foco • Propósito",
-    ))
+    branding = payload.branding or BrandingUpdate(display_name=f"Personal {user.name}", slug=brand_slug(user.name))
+    db.add(PersonalBranding(personal_id=user.id, **branding.model_dump()))
     audit(db, actor, "personal_created", "user", user.id, {"status": payload.status})
     db.commit()
     db.refresh(user)

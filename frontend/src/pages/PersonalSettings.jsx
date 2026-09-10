@@ -37,7 +37,7 @@ const adminNotifications = ["Novo aluno", "Consulta agendada", "Consulta remarca
 const aiSettings = ["Habilitar Coach IA", "Análise de progresso", "Análise financeira", "Recomendações inteligentes", "Insights de alunos"];
 const privacySettings = ["Consentimento obrigatorio (LGPD)", "Compartilhamento de dados", "Armazenamento de exames"];
 
-export default function PersonalSettings() {
+export default function PersonalSettings({ profile = {} }) {
   const [branding, setBranding] = useState({ display_name: "Fitland", logo_url: "", profile_image_url: "", icon_url: "", primary_color: "#050505", secondary_color: "#C0C0C0", login_subtitle: "" });
   const [toggles, setToggles] = useState({
     automaticApproval: false,
@@ -134,10 +134,9 @@ export default function PersonalSettings() {
             <div className="admin-profile-lines">
               <strong>{brandName}</strong>
               <span>CREF: 123456-G/SP</span>
-              <span>thiagofilippo@personal.com</span>
+              <span>{profile.email || "E-mail não informado"}</span>
               <span>(11) 98765-4321</span>
-              <span>@thiagofilippo.personal</span>
-              <span>www.thiagofilippo.com.br</span>
+              <span>{profile.instagram || "Instagram não informado"}</span>
             </div>
           </div>
           <button className="admin-settings-wide" type="button" onClick={() => notify("Perfil profissional preparado para edicao.")}>Editar perfil</button>

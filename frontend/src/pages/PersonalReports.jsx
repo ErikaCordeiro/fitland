@@ -65,7 +65,9 @@ const insightPrompts = [
 
 const performanceData = [52, 61, 68, 64, 72, 79, 75, 88, 91, 86, 94, 96];
 
-export default function PersonalReports({ students = [] }) {
+export default function PersonalReports({ students = [], branding }) {
+  const personalName = branding?.display_name || "Personal";
+  const personalImage = branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const [selectedReport, setSelectedReport] = useState("Relatório mensal");
   const [actionModal, setActionModal] = useState(null);
   const [period, setPeriod] = useState("Este mês (01/05/2026 - 31/05/2026)");
@@ -94,7 +96,7 @@ export default function PersonalReports({ students = [] }) {
             </select>
             <ChevronDown size={16} />
           </label>
-          <button type="button" onClick={() => openReportAction("Exportar relatório", "Seu relatório executivo será preparado em PDF com métricas, gráficos e identidade visual do Personal Thiago Fillippo.")}><Download size={18} /> Exportar relatório</button>
+          <button type="button" onClick={() => openReportAction("Exportar relatório", `Seu relatório executivo será preparado em PDF com métricas, gráficos e identidade visual de ${personalName}.`)}><Download size={18} /> Exportar relatório</button>
         </div>
       </header>
 
@@ -235,7 +237,7 @@ export default function PersonalReports({ students = [] }) {
           </div>
         </div>
         <div className="reports-ai-emblem">
-          <img src="/lion-juda-logo.png" alt="Leão de Judá" />
+          <img src={personalImage} alt={personalName} />
         </div>
       </article>
       {actionModal && (

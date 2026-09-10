@@ -27,15 +27,15 @@ const initialMessages = [
   { id: "m2", from: "personal", type: "text", text: "Bom dia! Tudo bem e com você\nMe envie um vídeo da execução para eu analisar melhor, por favor.", time: "10:32" },
   { id: "m3", from: "student", type: "video", text: "execucao_ombro.mp4", detail: "0:18", time: "10:33", read: true },
   { id: "m4", from: "personal", type: "text", text: "Ótimo! Identifiquei alguns pontos de ajuste na postura e na amplitude. Vou te enviar um vídeo explicando os detalhes e o que ajustar.", time: "10:35" },
-  { id: "m5", from: "personal", type: "video", text: "ajuste_ombro_thiago.mp4", detail: "1:24", time: "10:36" },
+  { id: "m5", from: "personal", type: "video", text: "ajuste_ombro.mp4", detail: "1:24", time: "10:36" },
   { id: "m6", from: "student", type: "text", text: "Entendi! Muito obrigada, professor. Vou ajustar e te mando outro vídeo na próxima semana.", time: "10:37", read: true }
 ];
 
 const quickActions = [
-  { id: "schedule", title: "Agendar consulta", text: "Escolha dia e horário", icon: CalendarDays, prompt: "Oi, Thiago! Quero agendar uma consulta." },
-  { id: "assessment", title: "Solicitar avaliação", text: "Pedir nova avaliação", icon: ClipboardCheck, prompt: "Oi, Thiago! Gostaria de solicitar uma nova avaliação física." },
-  { id: "workout", title: "Dúvida sobre treino", text: "Execucao, carga ou dor", icon: Dumbbell, prompt: "Oi, Thiago! Tenho uma dúvida sobre meu treino." },
-  { id: "diet", title: "Dúvida sobre dieta", text: "Refeições e substituições", icon: Utensils, prompt: "Oi, Thiago! Tenho uma dúvida sobre minha dieta." }
+  { id: "schedule", title: "Agendar consulta", text: "Escolha dia e horário", icon: CalendarDays, prompt: "Quero agendar uma consulta." },
+  { id: "assessment", title: "Solicitar avaliação", text: "Pedir nova avaliação", icon: ClipboardCheck, prompt: "Gostaria de solicitar uma nova avaliação física." },
+  { id: "workout", title: "Dúvida sobre treino", text: "Execucao, carga ou dor", icon: Dumbbell, prompt: "Tenho uma dúvida sobre meu treino." },
+  { id: "diet", title: "Dúvida sobre dieta", text: "Refeições e substituições", icon: Utensils, prompt: "Tenho uma dúvida sobre minha dieta." }
 ];
 
 const days = [
@@ -71,7 +71,7 @@ export default function StudentMessages({ student, branding }) {
       setScheduleOpen(true);
       return;
     }
-    setDraft(action.prompt.replace("Thiago", personalName));
+    setDraft(`Olá, ${personalName}! ${action.prompt}`);
   };
 
   return (

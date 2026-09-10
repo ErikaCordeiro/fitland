@@ -15,7 +15,7 @@ export default function Header({
   onApproveStudent
 }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const firstName = user?.name?.split(" ")[0] || "Thiago";
+  const firstName = user?.name?.split(" ")[0] || "Personal";
   const now = new Date();
   const currentDate = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(now);
   const currentWeekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(now);
@@ -129,7 +129,7 @@ export default function Header({
             <span>{user?.name?.slice(0, 2) || "TF"}</span>
           )}
           <div>
-            <strong>{user?.name || "Thiago"}</strong>
+            <strong>{user?.name || "Personal"}</strong>
             <small>{user?.role === "student" ? "Aluno" : "Personal"}</small>
           </div>
         </div>

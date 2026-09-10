@@ -105,15 +105,15 @@ def test_frontend_payload_matches_backend_schema():
     assert 'JSON.stringify({ email, password, keep_connected: keepConnected })' in source
 
 
-def test_owner_is_found_and_authenticates():
-    response, refresh = authenticate(FakeSession([make_user()]), payload())
-    assert response.user.role == UserRole.OWNER
+def test_personal_is_found_and_authenticates():
+    response, refresh = authenticate(FakeSession([make_user(role=UserRole.PERSONAL)]), payload())
+    assert response.user.role == UserRole.PERSONAL
     assert refresh
 
 
-def test_owner_wrong_password_is_rejected():
+def test_personal_wrong_password_is_rejected():
     with pytest.raises(DomainError) as error:
-        authenticate(FakeSession([make_user()]), payload(password="WrongPass123!"))
+        authenticate(FakeSession([make_user(role=UserRole.PERSONAL)]), payload(password="WrongPass123!"))
     assert error.value.status_code == 401
 
 
@@ -268,26 +268,26 @@ def test_http_required_password_change_returns_normal_session_and_revokes_old_to
         app.dependency_overrides.clear()
 
 
-def test_missing_owner_is_rejected():
+def test_missing_user_is_rejected():
     with pytest.raises(DomainError) as error:
         authenticate(FakeSession(), payload())
     assert error.value.status_code == 401
 
 
-def test_inactive_owner_is_rejected():
+def test_inactive_personal_is_rejected():
     with pytest.raises(DomainError) as error:
-        authenticate(FakeSession([make_user(is_active=False)]), payload())
+        authenticate(FakeSession([make_user(role=UserRole.PERSONAL, is_active=False)]), payload())
     assert error.value.status_code == 403
 
 
-def test_blocked_owner_is_rejected():
+def test_blocked_personal_is_rejected():
     with pytest.raises(DomainError) as error:
-        authenticate(FakeSession([make_user(account_status="blocked")]), payload())
+        authenticate(FakeSession([make_user(role=UserRole.PERSONAL, account_status="blocked")]), payload())
     assert error.value.status_code == 403
 
 
 def test_must_change_password_does_not_block_initial_login():
-    response, _ = authenticate(FakeSession([make_user(must_change_password=True)]), payload())
+    response, _ = authenticate(FakeSession([make_user(role=UserRole.PERSONAL, must_change_password=True)]), payload())
     assert response.user.must_change_password is True
 
 
@@ -317,7 +317,7 @@ def test_owner_login_recovers_from_stale_hash_while_reset_is_enabled(monkeypatch
     monkeypatch.setattr(settings, "OWNER_INITIAL_PASSWORD", PASSWORD)
     monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", True)
 
-    response, refresh = authenticate(db, payload())
+    response, refresh = authenticate_owner(db, payload())
 
     assert response.user.role == UserRole.OWNER
     assert refresh
@@ -332,7 +332,7 @@ def test_owner_recovery_clears_stale_attempt_lock(monkeypatch):
     monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", True)
     auth_service.FAILED_ATTEMPTS[user.email] = [time.time()] * auth_service.MAX_FAILED_ATTEMPTS
 
-    response, refresh = authenticate(db, payload())
+    response, refresh = authenticate_owner(db, payload())
 
     assert response.user.role == UserRole.OWNER
     assert refresh
@@ -346,7 +346,7 @@ def test_owner_recovery_normalizes_copy_paste_artifacts(monkeypatch):
     monkeypatch.setattr(settings, "OWNER_INITIAL_PASSWORD", f"\ufeff{PASSWORD}\u200b ")
     monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", True)
 
-    response, refresh = authenticate(db, payload())
+    response, refresh = authenticate_owner(db, payload())
 
     assert response.user.role == UserRole.OWNER
     assert refresh
@@ -360,7 +360,7 @@ def test_owner_recovery_accepts_normalized_email_and_password_atomically(monkeyp
     monkeypatch.setattr(settings, "OWNER_INITIAL_PASSWORD", f"\ufeff{PASSWORD}\u200b ")
     monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", True)
 
-    response, refresh = authenticate(
+    response, refresh = authenticate_owner(
         db,
         LoginRequest(
             email="owner@example.com",
@@ -383,14 +383,14 @@ def test_owner_recovery_removes_invisible_control_characters_and_wrapping_quotes
     monkeypatch.setattr(settings, "OWNER_INITIAL_PASSWORD", f'"{PASSWORD}\u2060"')
     monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", True)
 
-    response, refresh = authenticate(db, payload(email="owner@example.com"))
+    response, refresh = authenticate_owner(db, payload(email="owner@example.com"))
 
     assert response.user.role == UserRole.OWNER
     assert refresh
     assert verify_password(PASSWORD, user.hashed_password)
 
 
-def test_http_owner_recovery_uses_same_normalization_as_startup(monkeypatch):
+def test_http_generic_login_rejects_owner_even_during_recovery(monkeypatch):
     user = make_user(
         email="programadoraerika@gmail.com",
         hashed_password=hash_password("OldPassword123!"),
@@ -411,9 +411,8 @@ def test_http_owner_recovery_uses_same_normalization_as_startup(monkeypatch):
                     "keep_connected": True,
                 },
             )
-        assert response.status_code == 200
-        assert response.json()["user"]["role"] == "owner"
-        assert settings.REFRESH_COOKIE_NAME in response.cookies
+        assert response.status_code == 401
+        assert f"{settings.REFRESH_COOKIE_NAME}_owner" not in response.cookies
     finally:
         app.dependency_overrides.clear()
 
@@ -440,7 +439,7 @@ def test_http_dedicated_owner_login_creates_session(monkeypatch):
             )
         assert response.status_code == 200
         assert response.json()["user"]["role"] == "owner"
-        assert settings.REFRESH_COOKIE_NAME in response.cookies
+        assert f"{settings.REFRESH_COOKIE_NAME}_owner" in response.cookies
     finally:
         app.dependency_overrides.clear()
 
@@ -457,10 +456,11 @@ def test_lockout_still_blocks_non_owner_recovery(monkeypatch):
 
     assert error.value.status_code == 429
 
-def test_owner_login_does_not_require_company_id():
+def test_owner_login_does_not_require_company_id(monkeypatch):
     user = make_user()
     assert not hasattr(user, "company_id")
-    response, _ = authenticate(FakeSession([user]), payload())
+    monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", False)
+    response, _ = authenticate_owner(FakeSession([user]), payload())
     assert response.user.role == UserRole.OWNER
 
 
@@ -479,7 +479,7 @@ def test_refresh_without_cookie_is_rejected():
 def test_valid_refresh_is_rotated():
     user = make_user()
     token = create_refresh_token(str(user.id), {"role": "owner", "jti": str(uuid.uuid4())})
-    response, rotated = refresh_session(FakeSession([user]), token)
+    response, rotated = refresh_session(FakeSession([user]), token, "owner")
     assert response.user.id == user.id
     assert rotated != token
 
@@ -487,8 +487,28 @@ def test_valid_refresh_is_rotated():
 def test_login_still_works_after_expected_refresh_401():
     with pytest.raises(DomainError):
         refresh_session(FakeSession(), "")
-    response, _ = authenticate(FakeSession([make_user()]), payload())
-    assert response.user.role == UserRole.OWNER
+    response, _ = authenticate(FakeSession([make_user(role=UserRole.PERSONAL)]), payload())
+    assert response.user.role == UserRole.PERSONAL
+
+
+def test_refresh_rejects_cross_context_session():
+    owner = make_user()
+    token = create_refresh_token(str(owner.id), {"role": "owner", "jti": str(uuid.uuid4())})
+    with pytest.raises(DomainError) as error:
+        refresh_session(FakeSession([owner]), token, "personal")
+    assert error.value.status_code == 401
+
+
+@pytest.mark.parametrize("role,context", [
+    (UserRole.PERSONAL, "personal"),
+    (UserRole.STUDENT, "student"),
+])
+def test_refresh_preserves_non_owner_context(role, context):
+    user = make_user(role=role)
+    token = create_refresh_token(str(user.id), {"role": role.value, "jti": str(uuid.uuid4())})
+    response, rotated = refresh_session(FakeSession([user]), token, context)
+    assert response.user.role == role
+    assert rotated != token
 
 
 def test_owner_rbac():
@@ -518,12 +538,12 @@ def test_duplicate_normalized_accounts_are_rejected():
 
 
 def test_non_persistent_login_does_not_create_refresh_token():
-    _, refresh = authenticate(FakeSession([make_user()]), payload(keep=False))
+    _, refresh = authenticate(FakeSession([make_user(role=UserRole.PERSONAL)]), payload(keep=False))
     assert refresh is None
 
 
 def test_http_login_endpoint_creates_session_cookie():
-    app.dependency_overrides[get_db] = lambda: FakeSession([make_user()])
+    app.dependency_overrides[get_db] = lambda: FakeSession([make_user(role=UserRole.PERSONAL)])
     try:
         with TestClient(app) as client:
             response = client.post(
@@ -531,8 +551,8 @@ def test_http_login_endpoint_creates_session_cookie():
                 json={"email": "test@example.com", "password": PASSWORD, "keep_connected": True},
             )
         assert response.status_code == 200
-        assert response.json()["user"]["role"] == "owner"
-        assert settings.REFRESH_COOKIE_NAME in response.cookies
+        assert response.json()["user"]["role"] == "personal"
+        assert f"{settings.REFRESH_COOKIE_NAME}_personal" in response.cookies
         assert response.headers.get("X-Request-ID")
         assert response.headers.get("X-Fitland-Service") == "backend"
         assert response.headers.get("X-Fitland-Build")

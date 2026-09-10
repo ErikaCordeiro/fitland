@@ -36,6 +36,7 @@ import { students as mockStudents, workouts as mockWorkouts } from "./data/mockD
 import { apiRequest, clearToken, getToken, logoutSession, refreshSession } from "./services/api.js";
 import { clearDemoActivityDataOnce } from "./utils/activityData.js";
 import { getRecommendedWorkout } from "./utils/workoutSchedule.js";
+import { isPageEnabled } from "./utils/tenantBranding.js";
 import {
   applyRouteBranding,
   getContextLoginPath,
@@ -162,8 +163,8 @@ export default function App() {
     method: "Disciplina, foco e propósito",
     philosophy: "Treinar não é apenas cumprir exercícios. É construir uma versão mais forte, constante e confiante todos os dias.",
     highlights: ["Treinos personalizados", "Acompanhamento de evolução", "Ajustes por performance", "Feedback inteligente", "Estratégia individual por objetivo"],
-    email: "contato@thiagofilippo.com",
-    instagram: "@personal.thiagofilippo"
+    email: session?.email || "",
+    instagram: ""
   });
 
   const meta = pageMeta[activePage] || pageMeta.dashboard;
@@ -246,6 +247,14 @@ export default function App() {
           }));
   }, [session?.id, session?.role]);
 
+  useEffect(() => {
+    if (!session || session.role === "owner" || !branding?.modules) return;
+    if (!isPageEnabled(activePage, branding.modules)) {
+      setActivePage("dashboard");
+      window.history.replaceState(null, "", rolePath[session.role]);
+    }
+  }, [activePage, branding?.modules, session?.role]);
+
   if (!authReady) {
     return (
       <main className="login-screen login-loading-screen">
@@ -312,6 +321,7 @@ export default function App() {
   const isStudent = session.role === "student";
   const isOwner = session.role === "owner";
   const navigate = (page) => {
+    if (!isOwner && !isPageEnabled(page, branding?.modules)) page = "dashboard";
     setActivePage(page);
     setSidebarOpen(false);
     if (page !== "workout-execution") {
@@ -491,7 +501,7 @@ export default function App() {
           onFinishWorkout={() => resetWorkoutProgress(executionWorkoutId)}
         />
       )}
-      {isStudent && activePage === "progress" && <Progress student={students[0]} students={students} workouts={workouts} completed={completed} />}
+      {isStudent && activePage === "progress" && <Progress student={students[0]} students={students} workouts={workouts} completed={completed} branding={branding} />}
       {activePage === "coach" && (
         <CoachIA
           role={isStudent ? "student" : "personal"}
@@ -549,13 +559,13 @@ export default function App() {
     return (
       <>
       <StudentLayout {...commonLayoutProps}>
-        {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} />}
-        {activePage === "diet" && <StudentDiet student={students[0]} />}
-        {activePage === "assessments" && <StudentAssessments student={students[0]} />}
-        {activePage === "payments" && <StudentPayments student={students[0]} />}
+        {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} />}
+        {activePage === "diet" && <StudentDiet student={students[0]} branding={branding} />}
+        {activePage === "assessments" && <StudentAssessments student={students[0]} branding={branding} />}
+        {activePage === "payments" && <StudentPayments student={students[0]} branding={branding} />}
         {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} />}
         {activePage === "messages" && <StudentMessages student={students[0]} branding={branding} />}
-        {activePage === "files" && <StudentFiles student={students[0]} />}
+        {activePage === "files" && <StudentFiles student={students[0]} branding={branding} />}
         {activePage === "settings" && <StudentSettings student={students[0]} branding={branding} />}
         {sharedPages}
       </StudentLayout>
@@ -567,18 +577,19 @@ export default function App() {
   return (
     <>
     <PersonalLayout {...commonLayoutProps}>
-      {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} onNavigate={navigate} />}
+      {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} onNavigate={navigate} branding={branding} />}
       {activePage === "diet" && <PersonalDiet students={students} />}
-      {activePage === "finance" && <PersonalFinance students={students} />}
+      {activePage === "finance" && <PersonalFinance students={students} branding={branding} />}
       {activePage === "agenda" && <PersonalAgenda students={students} />}
-      {activePage === "chat" && <PersonalMessages students={students} />}
-      {activePage === "reports" && <PersonalReports students={students} />}
-      {activePage === "settings" && <PersonalSettings />}
+      {activePage === "chat" && <PersonalMessages students={students} branding={branding} />}
+      {activePage === "reports" && <PersonalReports students={students} branding={branding} />}
+      {activePage === "settings" && <PersonalSettings profile={personalProfile} />}
       {activePage === "assessments" && <PersonalAssessments students={students} />}
       {activePage === "progress" && <PersonalProgress students={students} onOpenStudentProgress={openStudentProgress} />}
       {activePage === "student-progress-detail" && (
         <PersonalStudentProgress
           student={students.find((student) => student.id === selectedStudentId) || students[0]}
+          branding={branding}
           onBack={() => navigate("students")}
         />
       )}

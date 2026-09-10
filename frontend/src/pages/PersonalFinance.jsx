@@ -27,7 +27,8 @@ function csvValue(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
-export default function PersonalFinance({ students = [] }) {
+export default function PersonalFinance({ students = [], branding }) {
+  const fallbackAvatar = branding?.icon_url || branding?.logo_url || "/fitland-icon.svg";
   const [modal, setModal] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
@@ -116,7 +117,7 @@ export default function PersonalFinance({ students = [] }) {
           <div className="finance-charge-list">
             {overdueStudents.length ? overdueStudents.map((student) => (
               <div key={student.id || student.email} className="finance-charge-row">
-                <img src={student.avatar || "/lion-juda-logo.png"} alt={student.name} />
+                <img src={student.avatar || fallbackAvatar} alt={student.name} />
                 <div><strong>{student.name}</strong><span>{student.plan}</span></div>
                 <div className="finance-charge-value"><strong>{money.format(student.monthlyFee)}</strong><small>{student.paymentStatus}</small></div>
                 <button type="button" aria-label={`Cobrar ${student.name}`} onClick={() => openStudent(student, "charge")}><MessageCircle size={18} /></button>
@@ -175,7 +176,7 @@ function FinanceModalContent({ modal, selectedStudent, students, overdueStudents
   if (selectedStudent) return <><h3>{selectedStudent.name}</h3><div className="finance-modal-rows"><span><small>Plano</small><strong>{selectedStudent.plan}</strong></span><span><small>Mensalidade</small><strong>{money.format(selectedStudent.monthlyFee)}</strong></span><span><small>Vencimento</small><strong>Dia {selectedStudent.dueDay}</strong></span><span><small>Status</small><strong>{selectedStudent.paymentStatus}</strong></span></div></>;
   const list = modal === "charges" ? overdueStudents : students;
   const title = modal === "charges" ? "Cobran\u00e7as pendentes" : modal === "due" ? "Pr\u00f3ximos vencimentos" : modal === "transactions" ? "Lan\u00e7amentos do m\u00eas" : "Alunos pagantes";
-  return <><h3>{title}</h3><div className="finance-modal-list">{list.length ? list.map((student) => <div key={student.id || student.email}><img src={student.avatar || "/lion-juda-logo.png"} alt="" /><span><strong>{student.name}</strong><small>{student.plan} &middot; vencimento dia {student.dueDay}</small></span><strong>{money.format(student.monthlyFee)}</strong><em>{student.paymentStatus}</em></div>) : <EmptyFinance text="Nenhum registro encontrado." />}</div></>;
+  return <><h3>{title}</h3><div className="finance-modal-list">{list.length ? list.map((student) => <div key={student.id || student.email}><img src={student.avatar || fallbackAvatar} alt="" /><span><strong>{student.name}</strong><small>{student.plan} &middot; vencimento dia {student.dueDay}</small></span><strong>{money.format(student.monthlyFee)}</strong><em>{student.paymentStatus}</em></div>) : <EmptyFinance text="Nenhum registro encontrado." />}</div></>;
 }
 
 function EmptyFinance({ text }) {

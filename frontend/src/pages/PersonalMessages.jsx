@@ -51,7 +51,7 @@ const conversations = [
   {
     id: "conv-lucas",
     name: "Lucas Almeida",
-    avatar: "/lion-juda-logo.png",
+    avatar: "",
     objective: "Ganho de massa",
     startDate: "04/02/2024",
     nextAssessment: "01/07/2026",
@@ -89,7 +89,7 @@ const conversations = [
   {
     id: "conv-rafael",
     name: "Rafael Santos",
-    avatar: "/lion-juda-logo.png",
+    avatar: "",
     objective: "Força e recomposicao",
     startDate: "11/05/2024",
     nextAssessment: "04/07/2026",
@@ -127,7 +127,7 @@ const conversations = [
   {
     id: "conv-bruno",
     name: "Bruno Oliveira",
-    avatar: "/lion-juda-logo.png",
+    avatar: "",
     objective: "Hipertrofia",
     startDate: "03/04/2024",
     nextAssessment: "12/07/2026",
@@ -153,7 +153,8 @@ const quickActions = [
   ["Enviar arquivo", Paperclip]
 ];
 
-export default function PersonalMessages() {
+export default function PersonalMessages({ branding }) {
+  const fallbackAvatar = branding?.icon_url || branding?.logo_url || "/fitland-icon.svg";
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(conversations[0].id);
@@ -241,7 +242,7 @@ export default function PersonalMessages() {
                 type="button"
                 onClick={() => openConversation(conversation)}
               >
-                <img src={conversation.avatar} alt="" />
+                <img src={conversation.avatar || fallbackAvatar} alt="" />
                 <span>
                   <strong>{conversation.name}</strong>
                   <small>{conversation.lastMessage}</small>
@@ -262,7 +263,7 @@ export default function PersonalMessages() {
         <main className="messages-chat-panel">
           <header className="messages-chat-header">
             <button className="messages-mobile-back" type="button" onClick={() => setMobileView("list")}>Voltar</button>
-            <img src={selected.avatar} alt="" />
+            <img src={selected.avatar || fallbackAvatar} alt="" />
             <div>
               <h3>{selected.name} <Star size={16} /></h3>
               <p><i className={selected.status === "Online" ? "online" : ""} /> {selected.status}</p>
@@ -292,7 +293,7 @@ export default function PersonalMessages() {
 
           <div className="messages-thread">
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} avatar={selected.avatar} />
+              <MessageBubble key={message.id} message={message} avatar={selected.avatar || fallbackAvatar} />
             ))}
           </div>
 
@@ -311,7 +312,7 @@ export default function PersonalMessages() {
 
         <aside className="messages-profile-panel">
           <button className="messages-mobile-back" type="button" onClick={() => setMobileView("chat")}>Voltar</button>
-          <img className="messages-profile-avatar" src={selected.avatar} alt="" />
+          <img className="messages-profile-avatar" src={selected.avatar || fallbackAvatar} alt="" />
           <h3>{selected.name}</h3>
           <p>{selected.objective}</p>
           <div className="messages-profile-details">

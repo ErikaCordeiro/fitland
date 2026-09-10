@@ -213,7 +213,7 @@ function readStorage(key, fallback) {
   }
 }
 
-export default function StudentDiet({ student }) {
+export default function StudentDiet({ student, branding }) {
   const [water, setWater] = useState(() => Number(readStorage(WATER_LOG_KEY, 0)) || 0);
   const [waterAmount, setWaterAmount] = useState("300");
   const [foods, setFoods] = useState([]);
@@ -498,7 +498,7 @@ export default function StudentDiet({ student }) {
               </ul>
               <button type="button">Abrir Coach IA</button>
             </div>
-            <img src="/lion-juda-logo.png" alt="" />
+            <img src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt="" />
           </article>
 
           <article className="nutrition-card recipe-panel">

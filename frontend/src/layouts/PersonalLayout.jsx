@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Header from "../components/Header.jsx";
 import Sidebar, { personalNavItems } from "../components/Sidebar.jsx";
+import { tenantThemeStyle } from "../utils/tenantBranding.js";
 
 export default function PersonalLayout({
   activePage,
@@ -31,7 +32,7 @@ export default function PersonalLayout({
   };
 
   return (
-    <div className={`app-shell personal-layout ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`} style={{ "--brand-primary": branding?.primary_color || "#050505", "--brand-secondary": branding?.secondary_color || "#C0C0C0" }}>
+    <div className={`app-shell personal-layout ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`} style={tenantThemeStyle(branding)}>
       <Sidebar
         activePage={activePage}
         navItems={personalNavItems}
@@ -41,8 +42,9 @@ export default function PersonalLayout({
         onCollapsedChange={setSidebarCollapsed}
         profileName={branding?.display_name || session?.name || "Personal"}
         branding={branding}
+        modules={branding?.modules}
         profileRole="Personal trainer"
-        profileInitials="TF"
+        profileInitials={branding?.initials || (session?.name || "Personal").split(/\s+/).slice(0,2).map(part=>part[0]).join("").toUpperCase()}
         onLogout={onLogout}
       />
       <main className="main-panel personal-main" onClickCapture={handleCoachCapture}>

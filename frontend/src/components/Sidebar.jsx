@@ -21,6 +21,7 @@ import {
   Users
 } from "lucide-react";
 import LionLogo from "./LionLogo.jsx";
+import { filterNavigation } from "../utils/tenantBranding.js";
 
 export const personalNavItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
@@ -64,7 +65,8 @@ export default function Sidebar({
   profileRole = "Personal trainer",
   profileInitials = "TF",
   onLogout,
-  branding
+  branding,
+  modules
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const effectiveCollapsed = collapsed && !mobileOpen;
@@ -108,7 +110,7 @@ export default function Sidebar({
         </div>
 
         <nav className="nav-list">
-          {navItems.map((item) => {
+          {filterNavigation(navItems, modules).map((item) => {
             const Icon = item.icon;
             return (
               <button

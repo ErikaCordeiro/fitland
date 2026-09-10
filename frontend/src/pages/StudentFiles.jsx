@@ -123,7 +123,9 @@ const initialFiles = [
 
 const allowedTypes = ["Exames e laudos", "Fotos e vídeos", "PDFs e documentos", "Receitas médicas", "Avaliações e relatórios", "Outros arquivos"];
 
-export default function StudentFiles({ student }) {
+export default function StudentFiles({ student, branding }) {
+  const personalName = branding?.display_name || "Seu personal";
+  const personalImage = branding?.profile_image_url || branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const inputRef = useRef(null);
   const [files, setFiles] = useState(initialFiles);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -272,8 +274,8 @@ export default function StudentFiles({ student }) {
             <article className="student-file-comments">
               <div><h3>Comentários do personal</h3><button type="button">Ver todos</button></div>
               <div className="student-file-comment">
-                <img src="/lion-juda-logo.png" alt="Thiago Fillippo" />
-                <span><strong>Thiago Fillippo <CheckCircle2 size={15} /></strong><small>24/05/2026 as 14:32</small><p>{selectedFile.comment}</p></span>
+                <img src={personalImage} alt={personalName} />
+                <span><strong>{personalName} <CheckCircle2 size={15} /></strong><small>24/05/2026 as 14:32</small><p>{selectedFile.comment}</p></span>
               </div>
               <label>
                 <input value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Adicionar comentário..." />

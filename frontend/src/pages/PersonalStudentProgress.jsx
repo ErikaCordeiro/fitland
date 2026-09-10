@@ -54,7 +54,7 @@ const alerts = [
   ["Excelente evolução", "Massa magra aumentando"]
 ];
 
-export default function PersonalStudentProgress({ student, onBack }) {
+export default function PersonalStudentProgress({ student, onBack, branding }) {
   const athlete = student || {};
   const name = athlete.name || "Erika Gomes";
 
@@ -86,7 +86,7 @@ export default function PersonalStudentProgress({ student, onBack }) {
           <div><Star size={17} /><Star size={17} /><Star size={17} /><Star size={17} /><Star size={17} /></div>
         </div>
         <div className="hero-lion-medal">
-          <img src="/lion-juda-logo.png" alt="" />
+          <img src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt="" />
         </div>
         <div className="athlete-training-facts">
           <div><span>Tempo treinando</span><strong>8 meses</strong><small>Desde 03/10/2024</small></div>

@@ -3,13 +3,13 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_student_or_personal
+from app.api.deps import require_module, require_student_or_personal
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.progress import ProgressLogCreate, ProgressLogRead
 from app.services.progress_service import create_progress, list_progress
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_module("progress"))])
 
 
 @router.get("/{student_id}", response_model=list[ProgressLogRead])

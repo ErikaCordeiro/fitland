@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { BarChart3, CalendarDays, Dumbbell, Home, Utensils } from "lucide-react";
 import Header from "../components/Header.jsx";
 import Sidebar, { studentNavItems } from "../components/Sidebar.jsx";
+import { filterNavigation, tenantThemeStyle } from "../utils/tenantBranding.js";
 
 export default function StudentLayout({
   activePage,
@@ -31,7 +32,7 @@ export default function StudentLayout({
   };
 
   return (
-    <div className={`app-shell student-layout-shell ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`} style={{ "--brand-primary": branding?.primary_color || "#050505", "--brand-secondary": branding?.secondary_color || "#C0C0C0" }}>
+    <div className={`app-shell student-layout-shell ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`} style={tenantThemeStyle(branding)}>
       <Sidebar
         activePage={activePage}
         navItems={studentNavItems}
@@ -41,6 +42,7 @@ export default function StudentLayout({
         onCollapsedChange={setSidebarCollapsed}
         profileName={student?.name || session?.name || "Aluno"}
         branding={branding}
+        modules={branding?.modules}
         profileRole="Aluno"
         profileInitials={(student?.name || session?.name || "Aluno").slice(0, 2)}
         onLogout={onLogout}
@@ -60,13 +62,13 @@ export default function StudentLayout({
         />
         {children}
         <nav className="bottom-nav student-bottom-nav" aria-label="Navegação principal do aluno">
-          {[
-            ["dashboard", "Início", Home],
-            ["student-view", "Treinos", Dumbbell],
-            ["diet", "Dieta", Utensils],
-            ["calendar", "Calendário", CalendarDays],
-            ["progress", "Progresso", BarChart3]
-          ].map(([page, label, Icon]) => (
+          {filterNavigation([
+            { id: "dashboard", label: "Início", icon: Home },
+            { id: "student-view", label: "Treinos", icon: Dumbbell },
+            { id: "diet", label: "Dieta", icon: Utensils },
+            { id: "calendar", label: "Calendário", icon: CalendarDays },
+            { id: "progress", label: "Progresso", icon: BarChart3 }
+          ], branding?.modules).map(({ id: page, label, icon: Icon }) => (
             <button
               key={page}
               className={activePage === page ? "active" : ""}

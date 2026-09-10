@@ -55,7 +55,7 @@ function getInitialTheme() {
   return localStorage.getItem("ptf_theme") || "dark";
 }
 
-export default function PersonalDashboard({ students = [], workouts = [], onNavigate }) {
+export default function PersonalDashboard({ students = [], workouts = [], onNavigate, branding }) {
   const [modal, setModal] = useState(null);
   const [theme, setTheme] = useState(getInitialTheme);
   const firstStudent = students[0];
@@ -153,7 +153,7 @@ export default function PersonalDashboard({ students = [], workouts = [], onNavi
             {agenda.map(([time, title, detail], index) => (
               <button key={`${time}-${title}`} type="button" onClick={() => go("agenda")}>
                 <time>{time}</time>
-                <img src={firstStudent?.avatar || "/lion-juda-logo.png"} alt="" />
+                <img src={firstStudent?.avatar || branding?.icon_url || "/fitland-icon.svg"} alt="" />
                 <span><strong>{title}</strong>{detail}</span>
                 <i className={index === 0 ? "active" : ""} />
               </button>
@@ -175,7 +175,7 @@ export default function PersonalDashboard({ students = [], workouts = [], onNavi
             </div>
             {studentsRows.map(([name, objective, adherence, last, progress, payment]) => (
               <div className="admin-table-row" key={name}>
-                <span className="student-cell"><img src={firstStudent?.avatar || "/lion-juda-logo.png"} alt="" />{name}</span>
+                <span className="student-cell"><img src={firstStudent?.avatar || branding?.icon_url || "/fitland-icon.svg"} alt="" />{name}</span>
                 <span>{objective}</span>
                 <span>{adherence}</span>
                 <span>{last}</span>
@@ -245,7 +245,7 @@ export default function PersonalDashboard({ students = [], workouts = [], onNavi
             <h2>Seu assistente inteligente para gestão de alunos.</h2>
             <button type="button" onClick={() => go("coach")}>Abrir Coach IA</button>
           </div>
-          <img src="/lion-juda-logo.png" alt="" />
+          <img src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt="" />
         </article>
       </section>
 

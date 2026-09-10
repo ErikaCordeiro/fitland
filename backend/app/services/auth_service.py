@@ -113,39 +113,9 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
         flush=True,
     )
 
-    # Allow the explicitly configured one-time owner recovery to clear a stale
-    # in-memory lockout. This never applies to other users.
-    owner_reset_email = normalize_owner_email(settings.OWNER_INITIAL_EMAIL)
-    owner_reset_password = normalize_owner_password(settings.OWNER_INITIAL_PASSWORD)
-    submitted_owner_password = normalize_owner_password(password)
-    owner_email_matches = bool(owner_reset_email) and secrets.compare_digest(email, owner_reset_email)
-    owner_password_matches = bool(owner_reset_password) and secrets.compare_digest(
-        submitted_owner_password,
-        owner_reset_password,
-    )
-    owner_recovery_matches = (
-        settings.OWNER_FORCE_PASSWORD_RESET
-        and user is not None
-        and len(users) == 1
-        and user.role == UserRole.OWNER
-        and owner_email_matches
-        and owner_password_matches
-    )
-    if owner_email_matches or (user is not None and user.role == UserRole.OWNER):
-        print(
-            f"[auth] owner_recovery_check request_id={correlation_id} "
-            f"force_reset={str(settings.OWNER_FORCE_PASSWORD_RESET).lower()} "
-            f"email_match={str(owner_email_matches).lower()} "
-            f"password_match={str(owner_password_matches).lower()} "
-            f"submitted_password_len={len(password)} configured_password_len={len(owner_reset_password)}",
-            flush=True,
-        )
-
-    if _is_locked(email) and not owner_recovery_matches:
+    if _is_locked(email):
         print(f"[auth] login_failed request_id={correlation_id} reason=blocked_account", flush=True)
         raise DomainError("Muitas tentativas. Aguarde alguns minutos e tente novamente.", status.HTTP_429_TOO_MANY_REQUESTS)
-    if owner_recovery_matches:
-        FAILED_ATTEMPTS.pop(email, None)
 
     if len(users) > 1:
         print(f"[auth] login_failed request_id={correlation_id} reason=internal_auth_error duplicate_accounts=true", flush=True)
@@ -154,30 +124,15 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
         _register_failure(email)
         print(f"[auth] login_failed request_id={correlation_id} reason=user_not_found", flush=True)
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
+    if user.role == UserRole.OWNER:
+        _register_failure(email)
+        print(f"[auth] login_failed request_id={correlation_id} reason=owner_context_required", flush=True)
+        raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
 
     try:
-        password_valid = verify_password(submitted_owner_password, user.hashed_password)
+        password_valid = verify_password(password, user.hashed_password)
     except (TypeError, ValueError):
         password_valid = False
-    # Production recovery is deliberately narrow: it only applies to the
-    # configured owner while the one-time reset flag is explicitly enabled.
-    # Re-hashing here makes the reset and the first successful login atomic,
-    # even when a deployment starts more than one application replica.
-
-    if owner_recovery_matches:
-        user.hashed_password = hash_password(owner_reset_password)
-        user.is_active = True
-        user.account_status = "active"
-        user.must_change_password = True
-        # The environment credential was already compared in constant time.
-        # Accept this one-time recovery atomically instead of depending on a
-        # second bcrypt check against stale ORM/database state.
-        password_valid = True
-        print(
-            f"[auth] owner_recovery_applied request_id={correlation_id} "
-            "password_valid=true",
-            flush=True,
-        )
     print(
         f"[auth] password_verification request_id={correlation_id} "
         f"password_valid={str(password_valid).lower()}",
@@ -205,8 +160,6 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
             flush=True,
         )
         _register_success(email, user)
-        if user.role == UserRole.OWNER:
-            db.add(AuditLog(actor_user_id=user.id, action="owner_login", entity_type="user", entity_id=str(user.id), details={}))
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -382,7 +335,7 @@ def change_required_owner_password(
         db.rollback()
         raise DomainError("Unable to change password", status.HTTP_500_INTERNAL_SERVER_ERROR) from exc
 
-def refresh_session(db: Session, refresh_token: str) -> tuple[TokenResponse, str]:
+def refresh_session(db: Session, refresh_token: str, expected_context: str | None = None) -> tuple[TokenResponse, str]:
     try:
         payload = decode_refresh_token(refresh_token)
         user_id = uuid.UUID(str(payload.get("sub")))
@@ -398,6 +351,13 @@ def refresh_session(db: Session, refresh_token: str) -> tuple[TokenResponse, str
         raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
     if int(payload.get("token_version", 0)) != int(user.token_version or 0):
         raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
+    expected_roles = {
+        "owner": {UserRole.OWNER},
+        "personal": {UserRole.PERSONAL},
+        "student": {UserRole.STUDENT},
+    }
+    if expected_context and user.role not in expected_roles.get(expected_context, set()):
+        raise DomainError("Sessão incompatível com este acesso.", status.HTTP_401_UNAUTHORIZED)
 
     REVOKED_REFRESH_JTIS.add(jti)
     return build_token_response(user), build_refresh_token(user)

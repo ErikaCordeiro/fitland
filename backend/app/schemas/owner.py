@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
+from app.schemas.branding import BrandingUpdate
 
 
 class OwnerPersonalCreate(BaseModel):
@@ -10,6 +11,7 @@ class OwnerPersonalCreate(BaseModel):
     phone: str | None = Field(default=None, max_length=32)
     password: str = Field(min_length=10, max_length=128)
     status: str = Field(default="active", pattern="^(active|suspended|blocked)$")
+    branding: BrandingUpdate | None = None
 
 
 class OwnerPersonalUpdate(BaseModel):
@@ -56,4 +58,3 @@ class AuditLogRead(BaseModel):
     result: str
     details: dict
     created_at: datetime
-

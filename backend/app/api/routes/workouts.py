@@ -3,13 +3,13 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_personal, require_student_or_personal
+from app.api.deps import require_module, require_personal, require_student_or_personal
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.workout import WorkoutCreate, WorkoutRead, WorkoutUpdate
 from app.services.workout_service import create_workout, list_workouts, update_workout
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_module("workouts"))])
 
 
 @router.get("", response_model=list[WorkoutRead])

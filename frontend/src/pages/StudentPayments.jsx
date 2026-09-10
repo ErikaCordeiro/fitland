@@ -38,7 +38,9 @@ const planBenefits = [
   "Suporte premium"
 ];
 
-export default function StudentPayments({ student }) {
+export default function StudentPayments({ student, branding }) {
+  const personalName = branding?.display_name || "Seu personal";
+  const personalImage = branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const [modal, setModal] = useState(null);
   const studentName = student?.name || "Erika Gomes";
 
@@ -117,7 +119,7 @@ export default function StudentPayments({ student }) {
           </div>
 
           <div className="payment-lion">
-            <img src="/lion-juda-logo.png" alt="Leao de Juda" />
+            <img src={personalImage} alt={personalName} />
           </div>
         </div>
 
@@ -234,8 +236,8 @@ export default function StudentPayments({ student }) {
             <button type="button" className="payment-modal-close" aria-label="Fechar" onClick={() => setModal(null)}>
               <X size={18} />
             </button>
-            <img src="/lion-juda-logo.png" alt="" />
-            <span className="eyebrow">Personal Thiago Fillippo</span>
+            <img src={personalImage} alt="" />
+            <span className="eyebrow">{personalName}</span>
             <h3>{modalContent.title}</h3>
             <p>{modalContent.text}</p>
             <button type="button" className="metal-button" onClick={() => setModal(null)}>

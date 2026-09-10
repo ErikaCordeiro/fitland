@@ -1,3 +1,5 @@
+import re
+import unicodedata
 import uuid
 
 from sqlalchemy import func, select
@@ -20,6 +22,18 @@ FITLAND_BRANDING = {
     "icon_url": None,
     "login_subtitle": "Performance, gestão e evolução em um só lugar.",
 }
+DEFAULT_MODULES = {key: True for key in ("workouts", "diet", "assessments", "progress", "finance", "agenda", "messages", "reports", "files", "coach", "calendar", "payments")}
+THEME_DEFAULTS = {
+    "background_color": "#050505", "surface_color": "#121416", "accent_color": "#C0C0C0",
+    "border_color": "#34373A", "text_color": "#F5F5F5", "muted_text_color": "#A7ABB0",
+    "font_family": "Inter", "banner_url": None,
+}
+
+
+def brand_slug(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+    normalized = re.sub(r"^personal[\s-]+", "", normalized)
+    return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
 
 
 def fallback_branding(personal: User) -> dict:
@@ -29,11 +43,14 @@ def fallback_branding(personal: User) -> dict:
     return {
         "id": None,
         "personal_id": personal.id,
+        "slug": brand_slug(clean_name),
         **FITLAND_BRANDING,
         "display_name": display_name,
         "login_subtitle": "Disciplina • Foco • Propósito",
         "initials": initials,
         "is_fallback": True,
+        "modules": DEFAULT_MODULES.copy(),
+        **THEME_DEFAULTS,
         "created_at": None,
         "updated_at": None,
     }
@@ -52,6 +69,16 @@ def branding_to_dict(branding: PersonalBranding | None, personal: User) -> dict:
         "secondary_color": branding.secondary_color,
         "icon_url": branding.icon_url,
         "login_subtitle": branding.login_subtitle,
+        "slug": branding.slug,
+        "banner_url": branding.banner_url,
+        "background_color": branding.background_color,
+        "surface_color": branding.surface_color,
+        "accent_color": branding.accent_color,
+        "border_color": branding.border_color,
+        "text_color": branding.text_color,
+        "muted_text_color": branding.muted_text_color,
+        "font_family": branding.font_family,
+        "modules": {**DEFAULT_MODULES, **(branding.modules or {})},
         "initials": "".join(part[0] for part in personal.name.split()[:2]).upper(),
         "is_fallback": False,
         "created_at": branding.created_at,
@@ -93,7 +120,7 @@ def get_branding_for_owner(db: Session, personal_id: uuid.UUID) -> dict:
     return get_personal_branding(db, personal)
 
 
-def ensure_thiago_branding(db: Session, email: str | None) -> None:
+def ensure_personal_branding(db: Session, email: str | None) -> None:
     if not email:
         return
     personal = db.scalar(select(User).where(func.lower(User.email) == email.strip().lower(), User.role == UserRole.PERSONAL))
@@ -101,21 +128,18 @@ def ensure_thiago_branding(db: Session, email: str | None) -> None:
         return
     existing = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal.id))
     if existing:
-        if existing.display_name in {"Fitland", "Personal Thiago Fillipo", "Personal Thiago Fillippo"}:
-            existing.display_name = "Personal Thiago Fillipo"
-            existing.login_subtitle = "Disciplina • Foco • Propósito"
-            existing.logo_url = existing.logo_url or "/lion-juda-logo.png"
-            existing.icon_url = existing.icon_url or "/lion-juda-logo.png"
-            db.commit()
         return
     db.add(PersonalBranding(
         personal_id=personal.id,
-        display_name="Personal Thiago Fillipo",
-        logo_url="/lion-juda-logo.png",
+        display_name=f"Personal {personal.name}",
+        slug=brand_slug(personal.name),
+        logo_url=None,
         profile_image_url=personal.avatar_url,
         primary_color="#050505",
         secondary_color="#C0C0C0",
-        icon_url="/lion-juda-logo.png",
+        icon_url=None,
         login_subtitle="Disciplina • Foco • Propósito",
+        modules=DEFAULT_MODULES.copy(),
+        **THEME_DEFAULTS,
     ))
     db.commit()

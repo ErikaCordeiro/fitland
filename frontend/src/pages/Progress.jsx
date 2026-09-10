@@ -51,7 +51,7 @@ function buildExerciseLoads(history) {
   return [...map.values()].slice(0, 4).map((item) => ({ ...item, percent: Math.min(100, Math.round((item.current / Math.max(item.start, 1)) * 70)) }));
 }
 
-export default function Progress({ student, students = [] }) {
+export default function Progress({ student, students = [], branding }) {
   const [modal, setModal] = useState(null);
   const [history, setHistory] = useState(() => loadWorkoutHistory());
   const currentStudent = student || students[0] || {};
@@ -98,7 +98,7 @@ export default function Progress({ student, students = [] }) {
             <button type="button" onClick={() => setModal("coach")}>Falar com Coach IA</button>
           </div>
         </div>
-        <img className="student-progress-lion" src="/lion-juda-logo.png" alt="Leão de Judá" />
+        <img className="student-progress-lion" src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt={branding?.display_name || "Personal"} />
         <div className="student-progress-profile">
           <img src={avatar} alt={currentStudent.name || "Aluno"} />
           <strong>{currentStudent.name || "Erika Gomes"}</strong>

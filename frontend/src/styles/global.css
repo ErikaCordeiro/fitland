@@ -4322,7 +4322,7 @@ body {
   height: 112px;
   justify-self: center;
   margin-bottom: 8px;
-  background: url("/lion-juda-logo.png") center / contain no-repeat;
+  background: var(--personal-logo-url, url("/fitland-icon.svg")) center / contain no-repeat;
   filter: drop-shadow(0 0 22px rgba(229, 229, 229, 0.20));
 }
 
@@ -10192,8 +10192,8 @@ body,
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.74);
-  backdrop-filter: blur(14px);
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(10px);
 }
 
 .signup-modal {
@@ -10201,15 +10201,80 @@ body,
   max-height: 90dvh;
   overflow-y: auto;
   display: grid;
-  gap: 18px;
-  padding: 26px;
-  border: 1px solid rgba(245, 245, 245, 0.16);
-  border-radius: 26px;
+  gap: 22px;
+  padding: 28px;
+  color: #f8f8f7;
+  border: 1px solid #62666b;
+  border-radius: 8px;
   background:
-    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.13), transparent 28%),
-    linear-gradient(145deg, rgba(21, 22, 23, 0.98), rgba(3, 3, 3, 0.98));
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    linear-gradient(145deg, #202225, #08090a 72%);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
+
+.signup-modal .section-heading { align-items: flex-start; margin-bottom: 0; }
+.signup-modal .section-heading > div { min-width: 0; }
+.signup-modal .eyebrow { margin: 0 0 8px; color: #d8dadd; font-size: 0.9rem; font-weight: 800; }
+.signup-modal .section-heading h2 { margin: 0 0 10px; color: #fff; font-size: 1.65rem; line-height: 1.2; }
+.signup-modal .section-heading > div > span { display: block; max-width: 590px; color: #d1d3d6; font-size: 1rem; line-height: 1.55; }
+.signup-modal .form-grid { gap: 18px; }
+.signup-modal label > span { color: #f1f2f3; font-size: 1rem; font-weight: 700; }
+
+.signup-modal input,
+.signup-modal textarea {
+  min-height: 56px;
+  color: #fff;
+  caret-color: #fff;
+  border: 1px solid #7b8087;
+  border-radius: 7px;
+  background: #15171a;
+  padding: 15px 16px;
+  font-size: 1rem;
+  line-height: 1.35;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.signup-modal textarea { min-height: 124px; resize: vertical; }
+.signup-modal input::placeholder,
+.signup-modal textarea::placeholder { color: #aeb2b7; opacity: 1; }
+.signup-modal input:focus-visible,
+.signup-modal textarea:focus-visible { border-color: #f4f5f6; outline: 2px solid #f4f5f6; outline-offset: 2px; box-shadow: 0 0 0 5px rgba(225, 228, 232, 0.15); }
+.signup-modal input[aria-invalid="true"],
+.signup-modal textarea[aria-invalid="true"] { border-color: #ff9e9e; }
+
+.signup-modal input:-webkit-autofill,
+.signup-modal input:-webkit-autofill:hover,
+.signup-modal input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  box-shadow: 0 0 0 1000px #15171a inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.signup-unit-field { position: relative; }
+.signup-unit-field input { padding-right: 54px; }
+.signup-unit-field > span { position: absolute; top: 50%; right: 16px; margin: 0; color: #d8dadd; font-size: 1rem; font-weight: 800; transform: translateY(-50%); pointer-events: none; }
+.signup-field-error,
+.signup-field-hint { display: block; margin-top: 8px; font-size: 0.9rem; line-height: 1.4; }
+.signup-field-error { color: #ffd1d1; font-weight: 700; }
+.signup-field-error::before { content: "! "; }
+.signup-field-hint { color: #c2c5c9; }
+
+.signup-close-button {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #f5f6f7;
+  border: 1px solid #656a70;
+  border-radius: 7px;
+  background: #17191c;
+}
+
+.signup-close-button:hover { border-color: #f0f1f2; background: #292c30; }
+.signup-close-button:focus-visible,
+.signup-modal .metal-button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.signup-modal > .metal-button { width: 100%; min-height: 56px; font-size: 1rem; }
 
 .pending-students-section {
   border-color: rgba(245, 245, 245, 0.18);
@@ -10911,9 +10976,19 @@ body,
   }
 
   .signup-modal {
-    width: min(94vw, 430px);
+    width: min(calc(100vw - 24px), 430px);
+    max-height: calc(100dvh - 24px);
     padding: 20px;
   }
+
+  .signup-modal-backdrop { padding: 12px; }
+  .signup-modal .section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    align-items: start;
+    gap: 12px;
+  }
+  .signup-modal .section-heading h2 { font-size: 1.4rem; }
 
   .signup-modal .form-grid,
   .pending-student-card dl {
@@ -20400,6 +20475,350 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
   .required-password-panel input { color: #111315; }
   .required-password-submit { background: #111315; color: #fff; }
 }
+
+/* Personal workspace identity: scoped to avoid changing Owner and Student shells. */
+.personal-layout {
+  color-scheme: dark;
+  --personal-background: #050607;
+  --personal-surface: #111315;
+  --personal-surface-elevated: #181a1d;
+  --personal-border: #3f4348;
+  --personal-border-strong: #777c82;
+  --personal-text-primary: #f7f7f6;
+  --personal-text-secondary: #d5d8db;
+  --personal-text-muted: #afb4b9;
+  --personal-silver: #dfe2e5;
+  --personal-focus: #f5f6f7;
+  --personal-hover: #24272b;
+  --personal-disabled: #777b80;
+  --personal-success: #73d995;
+  --personal-warning: #f0c66a;
+  --personal-danger: #ff9e9e;
+  --black: var(--personal-background);
+  --card: var(--personal-surface);
+  --card-strong: var(--personal-surface-elevated);
+  --silver: var(--personal-silver);
+  --muted: var(--personal-text-muted);
+  --blue: #d7dade;
+  --cyan: #f5f6f7;
+  --line: var(--personal-border);
+  --line-strong: var(--personal-border-strong);
+  --glow-blue: none;
+  --premium-card: linear-gradient(145deg, #191b1e, #0d0f11);
+  color: var(--personal-text-primary);
+  background: var(--personal-background);
+}
+
+.personal-layout .personal-main {
+  color: var(--personal-text-primary);
+  background:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(145deg, #08090a, var(--personal-background) 65%) !important;
+  background-size: 96px 96px, 96px 96px, auto !important;
+}
+
+.personal-layout .sidebar {
+  color: var(--personal-text-primary);
+  border-color: var(--personal-border);
+  background: linear-gradient(180deg, #151719, #070809 74%) !important;
+  box-shadow: 10px 0 32px rgba(0,0,0,.28);
+}
+
+.personal-layout .sidebar .lion-mark {
+  filter: drop-shadow(0 0 14px rgba(223,226,229,.2));
+}
+
+.personal-layout .nav-item {
+  min-height: 48px;
+  color: var(--personal-text-secondary);
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+
+.personal-layout .nav-item:hover {
+  color: #fff;
+  border-color: var(--personal-border);
+  background: var(--personal-hover);
+  box-shadow: none;
+}
+
+.personal-layout .nav-item.active {
+  color: #fff;
+  border-color: var(--personal-border-strong);
+  background: linear-gradient(135deg, #363a3f, #1b1e21);
+  box-shadow: inset 3px 0 0 var(--personal-silver);
+}
+
+.personal-layout .sidebar-toggle,
+.personal-layout .sidebar-account-menu button,
+.personal-layout .sidebar-profile,
+.personal-layout .coach-card {
+  color: var(--personal-text-primary);
+  border-color: var(--personal-border);
+  border-radius: 7px;
+  background: var(--personal-surface);
+  box-shadow: none;
+}
+
+.personal-layout .sidebar-profile small,
+.personal-layout .coach-card span,
+.personal-layout .sidebar .brand-lockup small {
+  color: var(--personal-text-muted);
+  font-size: .9rem;
+}
+
+.personal-layout .coach-card svg { color: var(--personal-silver); }
+.personal-layout .coach-card button {
+  color: #08090a;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #fff, #aeb3b8);
+  box-shadow: none;
+}
+
+.personal-layout .topbar h1,
+.personal-layout .topbar h1 strong,
+.personal-layout h2,
+.personal-layout h3,
+.personal-layout h4 {
+  color: var(--personal-text-primary);
+  text-shadow: none;
+}
+
+.personal-layout .topbar h1 { font-size: 2.35rem; line-height: 1.12; }
+.personal-layout .topbar > div:first-child > span,
+.personal-layout p,
+.personal-layout small,
+.personal-layout .chart-legend span,
+.personal-layout .header-date small {
+  color: var(--personal-text-secondary);
+}
+
+.personal-layout .eyebrow {
+  color: var(--personal-silver);
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+.personal-layout .compact-search,
+.personal-layout .header-date,
+.personal-layout .profile-chip,
+.personal-layout .icon-button,
+.personal-layout .ghost-button,
+.personal-layout .theme-toggle-button,
+.personal-layout .panel-head button,
+.personal-layout .table-actions button {
+  min-height: 46px;
+  color: var(--personal-text-primary);
+  border: 1px solid var(--personal-border);
+  border-radius: 7px;
+  background: var(--personal-surface);
+  box-shadow: none;
+}
+
+.personal-layout .icon-button { min-width: 46px; }
+.personal-layout .compact-search { min-height: 48px; }
+.personal-layout .notification-popover {
+  color: var(--personal-text-primary);
+  border-color: var(--personal-border-strong);
+  border-radius: 8px;
+  background: #111315;
+  box-shadow: 0 24px 64px rgba(0,0,0,.55);
+}
+
+.personal-layout .notification-item {
+  border-color: var(--personal-border);
+  background: var(--personal-surface-elevated);
+}
+
+.personal-layout :is(
+  .admin-kpi-card, .admin-panel, .reports-card, .reports-kpi-card,
+  .nutrition-admin-stat, .nutrition-admin-panel, .assessment-admin-card,
+  .progress-admin-card, .student-progress-card, .finance-health-card,
+  .finance-kpi-card, .finance-chart-card, .finance-card, .finance-ai-card,
+  .finance-flow-card, .finance-risk-card, .agenda-calendar-card,
+  .agenda-summary-card, .agenda-side-card, .messages-metric-card,
+  .messages-conversations-panel, .messages-chat-panel, .settings-card,
+  .settings-section, .coach-hero-premium, .coach-chat-card, .coach-tools-card,
+  .about-card-large, .about-contact-card, .form-panel, .workout-list,
+  .content-section, .student-card, .pending-student-card
+) {
+  color: var(--personal-text-primary);
+  border: 1px solid var(--personal-border);
+  border-radius: 8px;
+  background: linear-gradient(145deg, var(--personal-surface-elevated), var(--personal-surface)) !important;
+  box-shadow: none;
+}
+
+.personal-layout :is(.admin-kpi-card, .admin-panel, .finance-kpi-card, .agenda-summary-card) strong {
+  color: #fff;
+}
+
+.personal-layout :is(.admin-kpi-card, .finance-kpi-card, .reports-kpi-card) strong {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.personal-layout :is(
+  .admin-kpi-card, .admin-panel, .admin-feature-strip button,
+  .business-panel button, .agenda-list button, .alert-row,
+  .nutrition-student-row, .finance-charge-row
+):hover {
+  border-color: var(--personal-border-strong);
+  box-shadow: none;
+}
+
+.personal-layout .admin-feature-strip button,
+.personal-layout .business-panel button,
+.personal-layout .agenda-list button,
+.personal-layout .alert-row,
+.personal-layout .quick-actions-panel button {
+  color: var(--personal-text-primary);
+  border-color: var(--personal-border);
+  border-radius: 8px;
+  background: var(--personal-surface);
+  box-shadow: none;
+}
+
+.personal-layout label > span,
+.personal-layout .field-block > span,
+.personal-layout legend {
+  color: var(--personal-text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.personal-layout input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+.personal-layout select,
+.personal-layout textarea {
+  min-height: 52px;
+  color: #fff;
+  caret-color: #fff;
+  border: 1px solid var(--personal-border-strong);
+  border-radius: 7px;
+  background: #15171a;
+  padding: 13px 15px;
+  font-size: 1rem;
+}
+
+.personal-layout textarea { min-height: 112px; }
+.personal-layout .input-shell input,
+.personal-layout .search-shell input,
+.personal-layout .compact-search input {
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+.personal-layout input::placeholder,
+.personal-layout textarea::placeholder { color: #aeb2b7; opacity: 1; }
+.personal-layout input:-webkit-autofill,
+.personal-layout input:-webkit-autofill:hover,
+.personal-layout input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  box-shadow: 0 0 0 1000px #15171a inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.personal-layout :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--personal-focus);
+  outline-offset: 3px;
+}
+
+.personal-layout button:disabled,
+.personal-layout input:disabled,
+.personal-layout select:disabled,
+.personal-layout textarea:disabled {
+  color: var(--personal-disabled);
+  cursor: not-allowed;
+  opacity: .62;
+}
+
+.personal-layout .metal-button,
+.personal-layout .agenda-metal-button,
+.personal-layout .agenda-primary-action,
+.personal-layout .nutrition-admin-button,
+.personal-layout .reports-primary-button,
+.personal-layout .settings-primary-button {
+  min-height: 50px;
+  color: #08090a;
+  border: 1px solid #f3f4f5;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #fff, #aeb3b8);
+  box-shadow: none;
+  font-weight: 850;
+}
+
+.personal-layout :is(.admin-table-row, .nutrition-student-row, .reports-table-row, .finance-charge-row) {
+  color: var(--personal-text-primary);
+  border-color: var(--personal-border);
+}
+
+.personal-layout :is(.admin-table-row.head, .nutrition-table-head, .reports-table-head) {
+  color: var(--personal-text-secondary);
+  background: #1a1c1f;
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+.personal-layout :is(.student-cell small, .nutrition-student-row small, .finance-charge-row small) {
+  color: var(--personal-text-muted);
+  font-size: .9rem;
+}
+
+.personal-layout :is(.student-modal, .admin-action-modal, .agenda-modal, .finance-modal, .messages-schedule-modal) {
+  color: var(--personal-text-primary);
+  border: 1px solid var(--personal-border-strong);
+  border-radius: 8px;
+  background: linear-gradient(145deg, #202225, #08090a 72%);
+  box-shadow: 0 30px 90px rgba(0,0,0,.68);
+}
+
+.personal-layout :is(.modal-backdrop, .admin-action-modal-backdrop, .agenda-modal-backdrop, .finance-modal-backdrop, .messages-modal-backdrop) {
+  background: rgba(0,0,0,.68);
+  backdrop-filter: blur(10px);
+}
+
+.personal-layout .agenda-week-head,
+.personal-layout .agenda-hours,
+.personal-layout .agenda-day-column {
+  color: var(--personal-text-secondary);
+  border-color: var(--personal-border);
+}
+
+.personal-layout .agenda-day-column.today,
+.personal-layout .agenda-day-column.selected {
+  color: #fff;
+  border-color: var(--personal-border-strong);
+  background: #26292d;
+}
+
+.personal-layout .status-success { color: var(--personal-success); }
+.personal-layout .status-warning { color: var(--personal-warning); }
+.personal-layout .status-danger,
+.personal-layout .error { color: var(--personal-danger); }
+
+@media (max-width: 760px) {
+  .personal-layout .topbar h1 { font-size: 1.85rem; }
+  .personal-layout .personal-main { padding-inline: 16px; }
+  .personal-layout :is(.student-modal, .admin-action-modal, .agenda-modal, .finance-modal, .messages-schedule-modal) {
+    width: min(calc(100vw - 24px), 640px);
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .personal-layout *,
+  .personal-layout *::before,
+  .personal-layout *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 /* Structured workout techniques and progression alerts */
 .technique-entry {
   display: grid;
@@ -20440,3 +20859,33 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
   .technique-entry { grid-template-columns: 1fr; }
   .technique-entry legend { grid-column: 1; }
 }
+/* Controlled tenant theme tokens. Values come from validated branding settings. */
+.personal-layout,
+.student-layout-shell {
+  background: var(--personal-bg, #050505);
+  color: var(--personal-text, #f5f5f5);
+  font-family: var(--personal-font, Inter), Arial, sans-serif;
+}
+
+.personal-layout .sidebar,
+.student-layout-shell .sidebar,
+.personal-layout .main-panel,
+.student-layout-shell .main-panel {
+  border-color: var(--personal-border, #34373a);
+}
+
+.personal-layout .nav-item.active,
+.student-layout-shell .nav-item.active {
+  color: var(--personal-text, #f5f5f5);
+  border-color: var(--personal-accent, #c0c0c0);
+}
+
+.owner-personalization-modal { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; }
+.owner-brand-colors, .owner-module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.owner-module-toggle { min-height: 44px; display: flex; align-items: center; gap: 10px; }
+.owner-module-toggle input { width: 20px; height: 20px; }
+.owner-brand-preview { display: grid; gap: 12px; padding: 18px; border: 1px solid; border-radius: 8px; }
+.owner-brand-preview div { display: flex; align-items: center; gap: 12px; }
+.owner-brand-preview img { width: 48px; height: 48px; object-fit: contain; }
+.owner-brand-preview button { width: fit-content; min-height: 44px; padding: 0 18px; border: 0; border-radius: 6px; font-weight: 700; }
+@media (max-width: 700px) { .owner-brand-colors, .owner-module-grid { grid-template-columns: 1fr; } }

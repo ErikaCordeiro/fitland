@@ -189,7 +189,7 @@ def diagnostic_post():
 
 
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
-UPLOADS_DIR = Path(__file__).resolve().parents[1] / "uploads"
+UPLOADS_DIR = settings.UPLOADS_DIR
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 

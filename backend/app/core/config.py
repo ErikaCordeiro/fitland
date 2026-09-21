@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str | None = None
     SMTP_FROM_EMAIL: str | None = None
     SMTP_USE_TLS: bool = True
+    UPLOADS_DIR: Path = Path(__file__).resolve().parents[2] / "uploads"
 
     @field_validator("DATABASE_URL")
     @classmethod

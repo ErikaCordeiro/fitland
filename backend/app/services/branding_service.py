@@ -11,6 +11,7 @@ from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.branding import BrandingUpdate
+from app.services.upload_storage import relative_upload_reference
 
 
 FITLAND_BRANDING = {
@@ -101,12 +102,15 @@ def personal_for_user(db: Session, user: User) -> User | None:
 
 
 def save_branding(db: Session, personal: User, payload: BrandingUpdate) -> dict:
+    values = payload.model_dump()
+    for field in ("logo_url", "profile_image_url", "icon_url", "banner_url"):
+        values[field] = relative_upload_reference(values.get(field))
     branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal.id))
     if not branding:
-        branding = PersonalBranding(personal_id=personal.id, **payload.model_dump())
+        branding = PersonalBranding(personal_id=personal.id, **values)
         db.add(branding)
     else:
-        for key, value in payload.model_dump().items():
+        for key, value in values.items():
             setattr(branding, key, value)
     db.commit()
     db.refresh(branding)

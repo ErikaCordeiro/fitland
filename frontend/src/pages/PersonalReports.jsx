@@ -72,10 +72,12 @@ export default function PersonalReports({ students = [], branding }) {
   const [actionModal, setActionModal] = useState(null);
   const [period, setPeriod] = useState("Este mês (01/05/2026 - 31/05/2026)");
   const [reportType, setReportType] = useState("Relatório mensal");
-  const studentCount = students.length || 128;
+  const studentCount = students.length;
   const openReportAction = (title, text) => setActionModal({ title, text });
 
   const bars = useMemo(() => performanceData.map((value, index) => ({ label: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][index], value })), []);
+
+  return <section className="reports-admin-page"><div className="tenant-data-state"><strong>Nenhum relatório disponível</strong><span>Os relatórios serão gerados quando houver métricas persistidas.</span></div></section>;
 
   return (
     <section className="reports-admin-page">

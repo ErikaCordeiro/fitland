@@ -133,14 +133,20 @@ export async function refreshSession() {
   );
 }
 
-export async function changeRequiredPassword(newPassword, confirmPassword) {
-  const data = await apiRequest("/auth/change-required-password", {
+export async function requestPasswordReset(email) {
+  return apiRequest("/auth/password-reset/request", {
     method: "POST",
-    body: JSON.stringify({ new_password: newPassword, confirm_password: confirmPassword }),
+    body: JSON.stringify({ email }),
     skipAuthRefresh: true,
   });
-  setToken(data.access_token, true, "owner");
-  return data;
+}
+
+export async function confirmPasswordReset(token, newPassword, confirmPassword) {
+  return apiRequest("/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password: newPassword, confirm_password: confirmPassword }),
+    skipAuthRefresh: true,
+  });
 }
 
 export async function logoutSession() {

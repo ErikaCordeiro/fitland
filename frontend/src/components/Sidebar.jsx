@@ -4,8 +4,6 @@ import {
   BarChart3,
   Bot,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   ClipboardCheck,
   CreditCard,
   Dumbbell,
@@ -17,8 +15,8 @@ import {
   Menu,
   MessageCircle,
   Settings,
-  UserCircle,
-  Users
+  Users,
+  X
 } from "lucide-react";
 import LionLogo from "./LionLogo.jsx";
 import { filterNavigation } from "../utils/tenantBranding.js";
@@ -72,10 +70,6 @@ export default function Sidebar({
   const effectiveCollapsed = collapsed && !mobileOpen;
   const isStudentMenu = navItems.some((item) => item.id === "payments");
   const inactive = new Set(["profile"]);
-  const assistantName = isStudentMenu ? "Assistente Fitness" : "Coach IA";
-  const assistantText = isStudentMenu
-    ? "Tire dúvidas sobre execução, músculos, dieta e avaliação."
-    : "Pergunte sobre treinos, dieta, evolução e mais.";
   const handleNavigate = (item) => {
     onNavigate(inactive.has(item.id) ? "dashboard" : item.id);
   };
@@ -98,18 +92,20 @@ export default function Sidebar({
       />
       <aside className={`sidebar ${effectiveCollapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
+          <LionLogo compact={effectiveCollapsed} branding={branding} />
           <button
             className="sidebar-toggle menu-toggle"
             type="button"
-            aria-label="Alternar menu"
-            onClick={toggleCollapsed}
+            title={mobileOpen ? "Fechar menu" : effectiveCollapsed ? "Expandir menu" : "Recolher menu"}
+            aria-label={mobileOpen ? "Fechar menu" : effectiveCollapsed ? "Expandir menu" : "Recolher menu"}
+            aria-expanded={!effectiveCollapsed}
+            onClick={mobileOpen ? onClose : toggleCollapsed}
           >
-            <Menu size={20} />
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
-          <LionLogo compact={effectiveCollapsed} branding={branding} />
         </div>
 
-        <nav className="nav-list">
+        <nav className="nav-list" aria-label={isStudentMenu ? "Navegação do aluno" : "Navegação do personal"}>
           {filterNavigation(navItems, modules).map((item) => {
             const Icon = item.icon;
             return (
@@ -119,6 +115,7 @@ export default function Sidebar({
                 onClick={() => handleNavigate(item)}
                 type="button"
                 title={effectiveCollapsed ? item.label : undefined}
+                aria-current={activePage === item.id ? "page" : undefined}
               >
                 <Icon size={19} />
                 <span>{item.label}</span>
@@ -130,40 +127,16 @@ export default function Sidebar({
         <div className="sidebar-spacer" />
 
         <div className="sidebar-footer">
-          <div className="sidebar-profile">
-            <span>{profileInitials}</span>
-            <div>
-              <strong>{profileName}</strong>
-              <small>{profileRole}</small>
-            </div>
-          </div>
-
-          <div className="sidebar-account-menu" aria-label="Menu do perfil">
-            <button type="button" onClick={() => onNavigate("about-personal")}><UserCircle size={17} /><span>Meu Perfil</span></button>
-            <button type="button" onClick={() => onNavigate("settings")}><Settings size={17} /><span>Configurações</span></button>
-            <button type="button" onClick={() => onNavigate("coach")}><Bot size={17} /><span>Ajuda</span></button>
-            <button type="button" onClick={() => onNavigate("about-personal")}><Info size={17} /><span>Sobre</span></button>
-            <button className="logout-menu-button" type="button" onClick={onLogout}><LogOut size={17} /><span>Sair da conta</span></button>
-          </div>
-
-          <div className="coach-card">
-            <Bot size={20} />
-            <div>
-              <strong>{assistantName}</strong>
-              <span>{assistantText}</span>
-            </div>
-            <button type="button" onClick={() => onNavigate("coach")}>Conversar</button>
-          </div>
-
           <button
-            className="sidebar-toggle collapse-toggle"
+            className="sidebar-logout"
             type="button"
-            onClick={toggleCollapsed}
-            aria-label={effectiveCollapsed ? "Expandir menu" : "Recolher menu"}
+            onClick={onLogout}
+            title="Sair da conta"
           >
-            {effectiveCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            <span>{effectiveCollapsed ? "Expandir" : "Recolher"}</span>
+            <LogOut size={20} />
+            <span>Sair da conta</span>
           </button>
+          <small className="sidebar-copyright">Fitland Platform<br />© 2026 Todos os direitos reservados.</small>
         </div>
       </aside>
     </>

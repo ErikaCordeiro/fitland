@@ -43,6 +43,15 @@ def create_refresh_token(subject: str, claims: dict[str, Any] | None = None) -> 
     )
 
 
+def create_password_reset_token(subject: str, token_version: int) -> str:
+    return _create_token(
+        subject,
+        timedelta(minutes=settings.PASSWORD_RESET_EXPIRE_MINUTES),
+        "password_reset",
+        {"token_version": token_version},
+    )
+
+
 def decode_token(token: str, expected_type: str | None = None) -> dict[str, Any]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -60,3 +69,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
 
 def decode_refresh_token(token: str) -> dict[str, Any]:
     return decode_token(token, "refresh")
+
+
+def decode_password_reset_token(token: str) -> dict[str, Any]:
+    return decode_token(token, "password_reset")

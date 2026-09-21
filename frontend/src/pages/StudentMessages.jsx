@@ -49,6 +49,7 @@ const days = [
 const times = ["08:00", "09:00", "10:00", "14:00", "16:00", "18:00", "19:00"];
 
 export default function StudentMessages({ student, branding }) {
+  return <section className="student-messages-page"><div className="tenant-data-state"><strong>Nenhuma mensagem disponível</strong><span>As conversas aparecerão quando houver integração persistida.</span></div></section>;
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);

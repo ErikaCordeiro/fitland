@@ -27,7 +27,7 @@ export default function OwnerLayout({ session, activePage, onNavigate, onLogout,
       </div>
       <button className="owner-close-mobile" aria-label="Fechar menu" onClick={() => setMobileOpen(false)}><X /></button>
       <div className="owner-identity">
-        {session.avatar_url ? <img src={session.avatar_url} alt="Erika Cordeiro" /> : <span>EC</span>}
+        {session.avatar_url ? <img src={session.avatar_url} alt={session.name || "Owner"} /> : <span>{(session.name || "O").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>}
         <div><strong>{session.name}</strong><small>SUPER USER</small></div>
       </div>
       <div className="owner-platform-brand"><strong>FITLAND</strong><small>Plataforma de gestão fitness</small></div>

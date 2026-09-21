@@ -19,8 +19,6 @@ class Workout(Base):
     duration_minutes: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(40), default="active", nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
-    set_type: Mapped[str] = mapped_column(String(24), default="standard", nullable=False)
-    technique_config: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -40,6 +38,16 @@ class WorkoutExercise(Base):
     rest_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
     load: Mapped[float | None] = mapped_column(Numeric(7, 2))
     notes: Mapped[str | None] = mapped_column(Text)
+    set_type: Mapped[str] = mapped_column(String(24), default="standard", nullable=False)
+    technique_config: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     workout = relationship("Workout", back_populates="exercises")
     exercise = relationship("Exercise", back_populates="workout_links")
+
+    @property
+    def name(self) -> str:
+        return self.exercise.name
+
+    @property
+    def explanation(self) -> str | None:
+        return self.exercise.explanation

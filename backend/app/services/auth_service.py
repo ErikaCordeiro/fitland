@@ -1,6 +1,8 @@
 import time
 import uuid
 import secrets
+import smtplib
+from urllib.parse import urlencode
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -14,7 +16,9 @@ from app.core.observability import request_id
 from app.core.owner_bootstrap import normalize_owner_email, normalize_owner_password
 from app.core.security import (
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
+    decode_password_reset_token,
     decode_refresh_token,
     hash_password,
     verify_password,
@@ -23,6 +27,7 @@ from app.models.audit_log import AuditLog
 from app.models.user import User, UserRole
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.user import UserCreate
+from app.services.email_service import send_password_reset_email
 
 DEFAULT_PERSONAL_EMAIL = "thiago.iron.filippo@gmail.com"
 DEFAULT_STUDENT_NAME = "Erika Gomes Cordeiro"
@@ -93,6 +98,44 @@ def build_token_response(user: User) -> TokenResponse:
 
 def build_refresh_token(user: User) -> str:
     return create_refresh_token(str(user.id), {**_token_payload(user), "jti": str(uuid.uuid4())})
+
+
+def request_password_reset(db: Session, email_value: str) -> None:
+    email = normalize_owner_email(email_value)
+    user = db.scalar(select(User).where(func.lower(func.trim(User.email)) == email))
+    if not user or not user.is_active or user.deleted_at is not None:
+        return
+    token = create_password_reset_token(str(user.id), int(user.token_version or 0))
+    reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?{urlencode({'token': token})}"
+    try:
+        send_password_reset_email(user.email, reset_url)
+    except (OSError, RuntimeError, smtplib.SMTPException):
+        print("[auth] password_reset_delivery_failed", flush=True)
+
+
+def confirm_password_reset(db: Session, token: str, new_password: str) -> str:
+    try:
+        payload = decode_password_reset_token(token)
+        user_id = uuid.UUID(str(payload.get("sub")))
+    except (ValueError, TypeError) as exc:
+        raise DomainError("Token invalido ou expirado.", status.HTTP_400_BAD_REQUEST) from exc
+    user = db.get(User, user_id)
+    if not user or not user.is_active or user.deleted_at is not None:
+        raise DomainError("Token invalido ou expirado.", status.HTTP_400_BAD_REQUEST)
+    if int(payload.get("token_version", -1)) != int(user.token_version or 0):
+        raise DomainError("Token invalido ou ja utilizado.", status.HTTP_400_BAD_REQUEST)
+    user.hashed_password = hash_password(new_password)
+    user.must_change_password = False
+    user.token_version = int(user.token_version or 0) + 1
+    db.add(AuditLog(
+        actor_user_id=user.id,
+        action="password_reset_by_email",
+        entity_type="user",
+        entity_id=str(user.id),
+        details={},
+    ))
+    db.commit()
+    return user.role.value
 
 
 def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str | None]:

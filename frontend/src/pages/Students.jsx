@@ -5,6 +5,9 @@ import StudentCard from "../components/StudentCard.jsx";
 
 export default function Students({
   students,
+  dataStatus = "success",
+  dataError = "",
+  onRetry,
   pendingStudents = [],
   workouts,
   onSaveStudent,
@@ -19,6 +22,8 @@ export default function Students({
   const [editingStudent, setEditingStudent] = useState(null);
   const [pendingDetail, setPendingDetail] = useState(null);
   const [approvalChecked, setApprovalChecked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const filtered = useMemo(
     () => students.filter((student) => `${student.name} ${student.objective}`.toLowerCase().includes(query.toLowerCase())),
     [students, query]
@@ -34,35 +39,42 @@ export default function Students({
     }
   }, [focusedPendingStudentId, pendingStudents, onPendingStudentViewed]);
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
+    if (saving) return;
     const form = new FormData(event.currentTarget);
-    onSaveStudent({
-      id: editingStudent?.id,
-      name: form.get("name"),
-      email: form.get("email"),
-      age: Number(form.get("age")),
-      weight: Number(form.get("weight")),
-      height: Number(form.get("height")),
-      objective: form.get("objective"),
-      notes: form.get("notes"),
-      accessApproved: form.get("accessApproved") === "on",
-      status: form.get("accessApproved") === "on" ? "active" : "pending",
-      workoutId: form.getAll("workoutIds")[0] || null,
-      workoutIds: form.getAll("workoutIds")
-    });
-    setIsModalOpen(false);
-    setEditingStudent(null);
-    event.currentTarget.reset();
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSaveStudent({
+        id: editingStudent?.id,
+        name: form.get("name"),
+        email: form.get("email"),
+        age: Number(form.get("age")),
+        weight: Number(form.get("weight")),
+        height: Number(form.get("height")),
+        objective: form.get("objective"),
+        notes: form.get("notes"),
+      });
+      setIsModalOpen(false);
+      setEditingStudent(null);
+      event.currentTarget.reset();
+    } catch (error) {
+      setSaveError(error?.message || "Não foi possível salvar o aluno.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openNewStudent = () => {
     setEditingStudent(null);
+    setSaveError("");
     setIsModalOpen(true);
   };
 
   const openEditStudent = (student) => {
     setEditingStudent(student);
+    setSaveError("");
     setIsModalOpen(true);
   };
 
@@ -84,7 +96,13 @@ export default function Students({
             </button>
           </div>
         </div>
-        <div className="students-grid">
+        {dataStatus === "loading" ? (
+          <div className="tenant-data-state" role="status"><strong>Carregando alunos...</strong><span>Aguarde enquanto buscamos os dados deste Personal.</span></div>
+        ) : dataStatus === "error" ? (
+          <div className="tenant-data-state error" role="alert"><strong>Nao foi possivel carregar os alunos</strong><span>{dataError || "Tente novamente."}</span><button className="ghost-button inline" type="button" onClick={onRetry}>Tentar novamente</button></div>
+        ) : filtered.length === 0 ? (
+          <div className="tenant-data-state"><strong>{query ? "Nenhum aluno encontrado" : "Nenhum aluno cadastrado"}</strong><span>{query ? "Revise o termo pesquisado." : "Quando voce adicionar seu primeiro aluno, ele aparecera aqui."}</span>{!query ? <button className="metal-button inline" type="button" onClick={openNewStudent}><Plus size={18} /> Adicionar aluno</button> : null}</div>
+        ) : <div className="students-grid">
           {filtered.map((student) => (
             <StudentCard
               key={student.id}
@@ -94,7 +112,7 @@ export default function Students({
               onDelete={onDeleteStudent}
             />
           ))}
-        </div>
+        </div>}
       </section>
 
       {pendingStudents.length > 0 && (
@@ -208,42 +226,21 @@ export default function Students({
               <label><span>Peso</span><input name="weight" type="number" min="30" step="0.1" required defaultValue={editingStudent?.weight || ""} /></label>
               <label><span>Altura</span><input name="height" type="number" min="1" max="2.5" step="0.01" required defaultValue={editingStudent?.height || ""} /></label>
               <label><span>Objetivo</span><input name="objective" required placeholder="Hipertrofia, definição, performance..." defaultValue={editingStudent?.objective || ""} /></label>
-              <div className="wide field-block">
-                <span>Treinos do aluno</span>
-                <div className="multi-workout-picker">
-                  {workouts.map((workout) => (
-                    <label key={workout.id}>
-                      <input
-                        type="checkbox"
-                        name="workoutIds"
-                        value={workout.id}
-                        defaultChecked={(editingStudent?.workoutIds || [editingStudent?.workoutId]).filter(Boolean).includes(workout.id)}
-                      />
-                      <span>{workout.name}</span>
-                      <small>{workout.focus}</small>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <label className="wide access-toggle-card">
-                <input
-                  type="checkbox"
-                  name="accessApproved"
-                  defaultChecked={editingStudent ? editingStudent.accessApproved !== false && editingStudent.status !== "pending" : false}
-                />
+              <div className="wide access-toggle-card">
                 <span>
-                  <strong>Liberar acesso ao app do aluno</strong>
-                  <small>Quando ativo, o aluno consegue entrar na área dele. Cadastros novos podem ficar Aguardando aprovacao.</small>
+                  <strong>Acesso ao app do aluno</strong>
+                  <small>Este cadastro cria o perfil do aluno. A criação de login e o envio de convite ainda não estão disponíveis.</small>
                 </span>
-              </label>
+              </div>
               <label className="wide">
                 <span>Observações</span>
                 <textarea name="notes" rows="4" placeholder="Lesões, limitações, rotina, preferências e estratégia." defaultValue={editingStudent?.notes || ""} />
               </label>
             </div>
             <div className="modal-actions">
-              <button className="ghost-button" type="button" onClick={() => { setIsModalOpen(false); setEditingStudent(null); }}>Cancelar</button>
-              <button className="metal-button inline" type="submit"><Save size={18} /> {editingStudent ? "Salvar edicao" : "Salvar aluno"}</button>
+              {saveError ? <p className="form-error" role="alert">{saveError}</p> : null}
+              <button className="ghost-button" type="button" disabled={saving} onClick={() => { setIsModalOpen(false); setEditingStudent(null); }}>Cancelar</button>
+              <button className="metal-button inline" type="submit" disabled={saving}><Save size={18} /> {saving ? "Salvando..." : editingStudent ? "Salvar edicao" : "Salvar aluno"}</button>
             </div>
           </form>
         </div>

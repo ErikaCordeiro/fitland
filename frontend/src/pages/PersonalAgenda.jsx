@@ -57,6 +57,8 @@ export default function PersonalAgenda({ students }) {
 
   const nextEvents = useMemo(() => events.slice(0, 5), []);
 
+  return <section className="agenda-page"><div className="tenant-data-state"><strong>Nenhum compromisso cadastrado</strong><span>A agenda ficará disponível quando houver eventos reais.</span></div></section>;
+
   return (
     <section className="agenda-page">
       <div className="agenda-header">

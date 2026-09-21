@@ -33,7 +33,8 @@ function sumSeries(history) {
 
     return sum + (item.exercises || []).reduce((exerciseTotal, exercise) => {
       const exerciseSets = Number(exercise.completedSets ?? exercise.series ?? exercise.sets);
-      return exerciseTotal + (Number.isFinite(exerciseSets) && exerciseSets > 0 ? exerciseSets : 0);
+      if (Number.isFinite(exerciseSets) && exerciseSets > 0) return exerciseTotal + exerciseSets;
+      return exerciseTotal + (Array.isArray(exercise.sets) ? exercise.sets.filter((set) => set.status === "concluida").length : 0);
     }, 0);
   }, 0);
 }
@@ -51,9 +52,9 @@ function buildExerciseLoads(history) {
   return [...map.values()].slice(0, 4).map((item) => ({ ...item, percent: Math.min(100, Math.round((item.current / Math.max(item.start, 1)) * 70)) }));
 }
 
-export default function Progress({ student, students = [], branding }) {
+export default function Progress({ student, students = [], branding, scope }) {
   const [modal, setModal] = useState(null);
-  const [history, setHistory] = useState(() => loadWorkoutHistory());
+  const [history, setHistory] = useState(() => loadWorkoutHistory(scope));
   const currentStudent = student || students[0] || {};
   const avatar = currentStudent.avatar || "/erika-gomes.jpeg";
   const hasHistory = history.length > 0;
@@ -62,18 +63,19 @@ export default function Progress({ student, students = [], branding }) {
   const totalVolume = sumVolume(history);
   const totalSeries = sumSeries(history);
   const loadProgress = useMemo(() => buildExerciseLoads(history), [history]);
-  const score = hasHistory ? Math.min(100, 60 + history.length * 4 + Math.min(streak * 3, 24)) : 0;
 
   useEffect(() => {
-    const refresh = () => syncWorkoutHistory().then(() => setHistory(loadWorkoutHistory())).catch(() => setHistory(loadWorkoutHistory()));
+    const refresh = () => syncWorkoutHistory({ scope }).then(() => setHistory(loadWorkoutHistory(scope))).catch(() => setHistory(loadWorkoutHistory(scope)));
     refresh();
     window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
     window.addEventListener("storage", refresh);
     return () => {
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
       window.removeEventListener("storage", refresh);
     };
-  }, []);
+  }, [scope?.personalId, scope?.userId]);
 
   const metricCards = [
     { label: "Treinos concluídos", value: String(history.length), diff: `${monthWorkouts.length} este mês`, note: "dados reais", icon: TrendingUp },
@@ -83,7 +85,7 @@ export default function Progress({ student, students = [], branding }) {
     { label: "Peso atual", value: "A definir", diff: "Avaliação pendente", note: "aguardando registro do personal", icon: Scale },
     { label: "Gordura corporal", value: "A definir", diff: "Avaliação pendente", note: "aguardando registro do personal", icon: HeartPulse },
     { label: "Massa magra", value: "A definir", diff: "Avaliação pendente", note: "aguardando registro do personal", icon: Activity },
-    { label: "Score do Leão", value: `${score}/100`, diff: hasHistory ? "Em evolução" : "Começando", note: "baseado em treinos concluídos", icon: Trophy }
+    { label: "Score do Leão", value: "Não disponível", diff: "Sem fonte persistida", note: "aguardando métrica real", icon: Trophy }
   ];
 
   return (
@@ -102,7 +104,7 @@ export default function Progress({ student, students = [], branding }) {
         <div className="student-progress-profile">
           <img src={avatar} alt={currentStudent.name || "Aluno"} />
           <strong>{currentStudent.name || "Erika Gomes"}</strong>
-          <small>Score do Leão {score}/100</small>
+          <small>Score do Leão não disponível</small>
         </div>
       </header>
 

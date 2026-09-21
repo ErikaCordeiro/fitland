@@ -53,6 +53,8 @@ export default function PersonalDiet({ students }) {
     { student: "Erika Gomes", name: "Plano definição premium", calories: "2.200", meals: "6", status: "Ativo" }
   ]);
 
+  return <section className="nutrition-admin-page"><div className="tenant-data-state"><strong>Nenhum plano alimentar cadastrado</strong><span>Os planos aparecerão quando houver registros reais disponíveis.</span></div></section>;
+
   const generateAiDiet = () => {
     setAiMeals([
       { time: "07:00", name: "Café da manhã", foods: "Ovos mexidos, aveia, banana e chia", macros: "520 kcal - 35P / 58C / 16G" },

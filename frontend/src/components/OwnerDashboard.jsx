@@ -36,23 +36,18 @@ export default function OwnerDashboard({ onNavigate, theme, setTheme }) {
     ["Personais suspensos", summary.personals_suspended, CircleOff, "Acompanhar contas", "warning"],
     ["Alunos totais", summary.students_total, GraduationCap, "Base atual", "up"],
     ["Treinos realizados", workouts, Dumbbell, "Dados dos personais", "up"],
-    ["Uso de armazenamento", "0%", HardDrive, "Monitoramento disponível", "neutral"],
+    ["Uso de armazenamento", "—", HardDrive, "Sem dados disponíveis", "neutral"],
     ["Pendências", pending, ClipboardList, "Ver detalhes", "danger"],
   ];
-  const alerts = summary.alerts?.length ? summary.alerts : [
-    "Nenhuma solicitação de personal aguardando análise",
-    "Armazenamento dentro do limite da conta",
-    "Sistema atualizado e disponível",
-    "Backup da plataforma verificado",
-  ];
+  const alerts = summary.alerts || [];
 
   return <div className="owner-dashboard">
     <header className="owner-dashboard-topbar">
       <div><h1>Dashboard</h1><p>Visão geral da plataforma Fitland</p></div>
       <div className="owner-dashboard-actions">
-        <span className="owner-date-range">01/08/2026 - 13/08/2026</span>
+        <span className="owner-date-range">Dados atuais</span>
         <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Alternar tema">◐</button>
-        <button className="owner-notification" aria-label="Notificações"><Bell/><b>3</b></button>
+        <button className="owner-notification" aria-label="Notificações"><Bell/></button>
         <button><HelpCircle/><span>Ajuda</span></button>
       </div>
     </header>
@@ -67,22 +62,14 @@ export default function OwnerDashboard({ onNavigate, theme, setTheme }) {
     <section className="owner-overview-grid">
       <article className="owner-panel owner-activity-chart">
         <div className="owner-panel-title"><h2>Atividade da plataforma</h2><button>Últimos 7 dias</button></div>
-        <div className="owner-chart-area">
-          <svg viewBox="0 0 700 220" role="img" aria-label="Atividade da plataforma">
-            <defs><linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8b5cf6" stopOpacity=".38"/><stop offset="1" stopColor="#8b5cf6" stopOpacity="0"/></linearGradient></defs>
-            <path className="fill" d="M20 170 L130 142 L240 128 L350 100 L460 68 L565 80 L680 42 L680 210 L20 210 Z"/>
-            <polyline points="20,170 130,142 240,128 350,100 460,68 565,80 680,42"/>
-            {[20,130,240,350,460,565,680].map((cx, index) => <circle key={cx} cx={cx} cy={[170,142,128,100,68,80,42][index]} r="5"/>)}
-          </svg>
-          <div className="owner-chart-dates"><span>07/08</span><span>08/08</span><span>09/08</span><span>10/08</span><span>11/08</span><span>12/08</span><span>13/08</span></div>
-        </div>
+        <div className="owner-chart-area"><p className="owner-empty">Sem dados de atividade disponíveis.</p></div>
         <div className="owner-chart-tabs"><button className="active">Alunos ativos</button><button>Treinos realizados</button><button>Novos personais</button></div>
       </article>
       <article className="owner-panel owner-alerts">
         <div className="owner-panel-title"><h2>Alertas importantes</h2><button onClick={() => onNavigate("logs")}>Ver todos</button></div>
-        {alerts.slice(0, 4).map((alert, index) => <button className="owner-alert-row" key={`${alert}-${index}`} onClick={() => index === 0 && onNavigate("personals")}>
-          <span className={`alert-icon tone-${index}`}><AlertTriangle/></span><span><strong>{alert}</strong><small>{index === 0 ? "Acesse para revisar os cadastros." : index === 1 ? "Uso monitorado em tempo real." : index === 2 ? "Nova versão e correções aplicadas." : "Última verificação concluída."}</small></span><time>{index === 0 ? "agora" : index === 1 ? "1 hora atrás" : index === 2 ? "3 horas atrás" : "hoje"}</time>
-        </button>)}
+        {alerts.length ? alerts.slice(0, 4).map((alert, index) => <button className="owner-alert-row" key={`${alert}-${index}`} onClick={() => onNavigate("personals")}>
+          <span className={`alert-icon tone-${index}`}><AlertTriangle/></span><span><strong>{alert}</strong></span>
+        </button>) : <p className="owner-empty">Nenhum alerta disponível.</p>}
       </article>
     </section>
 
@@ -92,7 +79,7 @@ export default function OwnerDashboard({ onNavigate, theme, setTheme }) {
         <div className="owner-recent-head"><span>Nome</span><span>Alunos</span><span>Cadastro</span><span>Status</span></div>
         {personals.length ? personals.map((person) => <button key={person.id} onClick={() => onNavigate("personals")}><span className="owner-person"><Avatar person={person}/><span><strong>{person.name}</strong><small>{person.email}</small></span></span><span>{person.student_count}</span><span>{new Date(person.created_at).toLocaleDateString("pt-BR")}</span><span className={`owner-status ${person.status}`}>{statusLabel[person.status] || person.status}</span></button>) : <p className="owner-empty">Nenhum personal cadastrado.</p>}
       </article>
-      <article className="owner-panel owner-distribution"><h2>Distribuição de alunos</h2><div className="owner-donut"><strong>{summary.students_total}</strong><span>Total</span></div><p><i className="active"/> Ativos <strong>{summary.students_total}</strong></p><p><i className="inactive"/> Inativos <strong>0</strong></p><p><i className="suspended"/> Suspensos <strong>0</strong></p></article>
+      <article className="owner-panel owner-distribution"><h2>Distribuição de alunos</h2><p>Total de alunos: <strong>{summary.students_total}</strong></p><p>Detalhamento por status indisponível.</p></article>
       <article className="owner-panel owner-quick-actions"><h2>Ações rápidas</h2><button onClick={() => onNavigate("personals")}><Plus/><span><strong>Novo personal</strong><small>Cadastrar um personal na plataforma</small></span><ChevronRight/></button><button onClick={() => onNavigate("personals")}><Search/><span><strong>Revisar solicitações</strong><small>Ver cadastros e acessos pendentes</small></span><ChevronRight/></button><button onClick={() => onNavigate("logs")}><Activity/><span><strong>Ver logs de atividades</strong><small>Acessar logs e auditoria</small></span><ChevronRight/></button><button onClick={() => onNavigate("settings")}><Settings/><span><strong>Configurações da plataforma</strong><small>Editar configurações gerais</small></span><ChevronRight/></button></article>
     </section>
   </div>;

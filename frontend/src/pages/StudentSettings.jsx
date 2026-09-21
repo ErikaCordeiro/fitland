@@ -44,14 +44,14 @@ const integrations = [
   { label: "Smartwatch", icon: Smartphone }
 ];
 
-export default function StudentSettings({ student, branding }) {
+export default function StudentSettings({ student, branding, theme = "dark", setTheme }) {
   const personalName = branding?.display_name || "Seu personal";
   const personalImage = branding?.profile_image_url || branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const [profile, setProfile] = useState({
-    name: student?.name || "Erika Gomes",
-    email: "erika.gomes@email.com",
-    phone: "(11) 98765-4321",
-    birthday: "15/08/1996"
+    name: student?.name || "Aluno",
+    email: student?.email || "E-mail não informado",
+    phone: student?.phone || "Telefone não informado",
+    birthday: student?.birthday || "Data não informada"
   });
   const [editing, setEditing] = useState(false);
   const [notifications, setNotifications] = useState(() => loadNotificationSettings());
@@ -100,7 +100,7 @@ export default function StudentSettings({ student, branding }) {
           <SectionTitle icon={UserRound} title="Perfil" />
           <div className="settings-profile-body">
             <div className="settings-avatar-wrap">
-              <img src={student?.avatar || "/erika-gomes.jpeg"} alt={profile.name} />
+              {student?.avatar ? <img src={student.avatar} alt={profile.name} /> : <UserRound size={32} aria-label={profile.name || "Aluno"} />}
               <button type="button" aria-label="Alterar foto"><Camera size={16} /></button>
             </div>
             <div className="settings-profile-fields">
@@ -119,10 +119,10 @@ export default function StudentSettings({ student, branding }) {
           <SectionTitle icon={Trophy} title="Minha Jornada" />
           <div className="settings-journey-body">
             <div className="settings-journey-list">
-              <JourneyItem icon={CalendarDays} label="Aluno desde" value="10/03/2026" />
-              <JourneyItem icon={Dumbbell} label="Objetivo atual" value="Hipertrofia" />
+              <JourneyItem icon={CalendarDays} label="Aluno desde" value="Sem dados" />
+              <JourneyItem icon={Dumbbell} label="Objetivo atual" value={student?.objective || "Não informado"} />
               <JourneyItem icon={UserRound} label="Personal" value={personalName} />
-              <JourneyItem icon={Target} label="Dias de acompanhamento" value="187 dias" />
+              <JourneyItem icon={Target} label="Dias de acompanhamento" value="Sem dados" />
             </div>
             <img src={personalImage} alt={personalName} />
           </div>
@@ -130,10 +130,10 @@ export default function StudentSettings({ student, branding }) {
 
         <article className="student-settings-card objectives-card span-6">
           <SectionTitle icon={Target} title="Objetivos" />
-          <div className="settings-goal-chip"><Dumbbell size={18} /> Hipertrofia</div>
+          <div className="settings-goal-chip"><Dumbbell size={18} /> {student?.objective || "Objetivo não informado"}</div>
           <div className="settings-two-cols">
-            <span><small>Meta</small><strong>82 kg</strong><em>Peso desejado</em></span>
-            <span><small>Data estimada</small><strong>30/09/2026</strong><em>Data da meta</em></span>
+            <span><small>Meta</small><strong>Sem dados</strong><em>Peso desejado</em></span>
+            <span><small>Data estimada</small><strong>Sem dados</strong><em>Data da meta</em></span>
           </div>
           <button className="settings-wide-button" type="button" onClick={() => requestChange("Solicitacao enviada ao personal.")}>Solicitar alteracao ao personal</button>
           <p>A alteracao do objetivo deve ser feita com o seu personal.</p>
@@ -173,8 +173,8 @@ export default function StudentSettings({ student, branding }) {
 
         <article className="student-settings-card span-4 hydration-card">
           <SectionTitle icon={Droplets} title="Hidratação" />
-          <span className="settings-big-number">2,5 L</span>
-          <p>Meta diária de água calculada com base na sua avaliação física.</p>
+          <span className="settings-big-number">—</span>
+          <p>Sem meta de hidratação registrada.</p>
           <button className="settings-wide-button" type="button" onClick={() => requestChange("Pedido de recalculo de meta enviado.")}>Solicitar recalcular meta</button>
         </article>
 
@@ -192,7 +192,7 @@ export default function StudentSettings({ student, branding }) {
         <article className="student-settings-card span-4 app-card">
           <SectionTitle icon={Smartphone} title="Aplicativo" />
           <span className="settings-label">Tema</span>
-          <div className="settings-segment"><button className="active" type="button"><Moon size={17} /> Escuro</button><button type="button"><Sun size={17} /> Claro</button></div>
+          <div className="settings-segment"><button className={theme === "dark" ? "active" : ""} type="button" onClick={() => setTheme?.("dark")}><Moon size={17} /> Escuro</button><button className={theme === "light" ? "active" : ""} type="button" onClick={() => setTheme?.("light")}><Sun size={17} /> Claro</button></div>
           <label className="settings-select-label"><span>Idioma</span><select defaultValue="pt"><option value="pt">Português (Brasil)</option></select></label>
         </article>
 
@@ -209,9 +209,9 @@ export default function StudentSettings({ student, branding }) {
         <article className="student-settings-card span-4 account-card">
           <SectionTitle icon={CreditCard} title="Conta" />
           <div className="settings-account-lines">
-            <span><small>Plano atual</small><strong>Premium</strong></span>
-            <span><small>Próxima renovação</small><strong>10/06/2026</strong></span>
-            <span><small>Próximo pagamento</small><strong>R$ 89,90</strong></span>
+            <span><small>Plano atual</small><strong>Sem dados</strong></span>
+            <span><small>Próxima renovação</small><strong>Sem dados</strong></span>
+            <span><small>Próximo pagamento</small><strong>Sem dados</strong></span>
           </div>
           <button className="settings-wide-button" type="button" onClick={() => requestChange("Area de assinatura preparada para integracao.")}>Gerenciar assinatura <ChevronRight size={17} /></button>
         </article>

@@ -1,19 +1,26 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_owner_password_change
+from app.api.deps import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RequiredPasswordChange, SessionResponse, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    SessionResponse,
+    TokenResponse,
+)
 from app.schemas.user import UserCreate, UserRead
 from app.services.auth_service import (
     authenticate,
     authenticate_owner,
-    change_required_owner_password,
+    confirm_password_reset,
     get_connected_devices,
     refresh_session,
     register_user,
+    request_password_reset,
     revoke_refresh_token,
 )
 
@@ -63,18 +70,19 @@ def owner_login(payload: LoginRequest, response: Response, db: Session = Depends
     return token_response
 
 
-@router.post("/change-required-password", response_model=TokenResponse)
-def change_required_password(
-    payload: RequiredPasswordChange,
-    response: Response,
-    owner: User = Depends(require_owner_password_change),
-    db: Session = Depends(get_db),
-):
+@router.post("/password-reset/request", status_code=202)
+def password_reset_request(payload: PasswordResetRequest, db: Session = Depends(get_db)):
+    request_password_reset(db, str(payload.email))
+    return {"detail": "Se o e-mail estiver cadastrado, enviaremos um link de redefinicao."}
+
+
+@router.post("/password-reset/confirm")
+def password_reset_confirm(payload: PasswordResetConfirm, db: Session = Depends(get_db)):
     if payload.new_password != payload.confirm_password:
-        raise HTTPException(status_code=422, detail="As senhas não coincidem.")
-    token_response, refresh_token = change_required_owner_password(db, owner, payload.new_password)
-    _set_refresh_cookie(response, refresh_token, "owner")
-    return token_response
+        raise HTTPException(status_code=422, detail="As senhas nao coincidem.")
+    context = confirm_password_reset(db, payload.token, payload.new_password)
+    return {"context": context}
+
 
 @router.post("/refresh", response_model=SessionResponse)
 def refresh(

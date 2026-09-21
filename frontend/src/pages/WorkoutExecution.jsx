@@ -17,11 +17,10 @@ import {
   X
 } from "lucide-react";
 import { loadNotificationSettings, loadWorkoutHistory } from "../utils/activityData.js";
-import { backendToExecution, discardWorkoutSession, fetchActiveWorkout, saveWorkoutSession } from "../services/workoutSessions.js";
+import { backendToExecution, discardWorkoutSession, fetchActiveWorkout, persistFinishedWorkout, saveWorkoutSession, selectLatestExercisePerformance, syncWorkoutHistory } from "../services/workoutSessions.js";
+import { executionKey } from "../utils/storageScope.js";
+import { workoutTechniqueDetails } from "../utils/workoutTechnique.js";
 
-const EXECUTION_PREFIX = "ptf_workout_execution_v2";
-const HISTORY_KEY = "ptf_workout_history_v2";
-const STUDENT_ID = "student-erika";
 
 function nowIso() {
   return new Date().toISOString();
@@ -157,13 +156,27 @@ function NumberPickerSheet({ title, value, unit, values, onCancel, onConfirm }) 
     </div>
   );
 }
+
+function NumberStepper({ label, value, min = 0, step = 1, unit = "", onChange }) {
+  const numericValue = parseFirstNumber(value);
+  const adjust = (delta) => onChange(String(Math.max(min, Math.round((numericValue + delta) * 10) / 10)));
+  return (
+    <div className="workout-number-field">
+      <label>{label}</label>
+      <div className="workout-number-control">
+        <button type="button" onClick={() => adjust(-step)} aria-label={`Diminuir ${label.toLowerCase()}`}><Minus size={18} /></button>
+        <div>
+          <input type="number" min={min} step={step} inputMode="decimal" value={value} onChange={(event) => onChange(event.target.value)} />
+          {unit && <span>{unit}</span>}
+        </div>
+        <button type="button" onClick={() => adjust(step)} aria-label={`Aumentar ${label.toLowerCase()}`}><Plus size={18} /></button>
+      </div>
+    </div>
+  );
+}
 function parseSeriesCount(sets) {
   const match = String(sets || "3").match(/\d+/);
   return Math.max(1, match ?Number(match[0]) : 3);
-}
-
-function getExecutionKey(workoutId) {
-  return `${EXECUTION_PREFIX}:${STUDENT_ID}:${workoutId}`;
 }
 
 function toYoutubeWatchUrl(videoUrl) {
@@ -182,7 +195,7 @@ function toYoutubeEmbedUrl(videoUrl) {
 function buildInitialExecution(workout) {
   return {
     id: `exec-${workout.id}-${Date.now()}`,
-    studentId: STUDENT_ID,
+    studentId: workout.studentId,
     workoutId: workout.id,
     status: "nao_iniciado",
     startedAt: null,
@@ -218,11 +231,22 @@ function buildInitialExecution(workout) {
           duration: 0,
           setType: exercise.setType || exercise.set_type || "standard",
           components: (exercise.techniqueConfig?.components || exercise.technique_config?.components || []).map((item, componentIndex) => ({
-            ...item, order: item.order ?? componentIndex, load: "", repetitions: "", completed: false
+            ...item,
+            order: item.order ?? componentIndex,
+            load: item.prescribedLoad || item.load || "",
+            repetitions: item.prescribedRepetitions || item.repetitions || "",
+            completed: false
           })),
-          drops: Array.from({ length: exercise.techniqueConfig?.dropCount || exercise.technique_config?.drop_count || 0 }, (_, dropIndex) => ({
-            order: dropIndex, load: "", repetitions: "", completed: false
-          }))
+          drops: (() => {
+            const config = exercise.techniqueConfig || exercise.technique_config || {};
+            const prescribed = Array.isArray(config.drops) ? config.drops : [];
+            return Array.from({ length: config.dropCount || config.drop_count || prescribed.length || 0 }, (_, dropIndex) => ({
+              order: dropIndex,
+              load: prescribed[dropIndex]?.prescribedLoad || "",
+              repetitions: prescribed[dropIndex]?.prescribedRepetitions || "",
+              completed: false
+            }));
+          })()
         }))
       };
     })
@@ -231,7 +255,7 @@ function buildInitialExecution(workout) {
 
 function normalizeExecution(saved, workout) {
   const initial = buildInitialExecution(workout);
-  if (!saved || saved.workoutId !== workout.id) return initial;
+  if (!saved || String(saved.workoutId) !== String(workout.id) || String(saved.studentId) !== String(workout.studentId)) return initial;
   const savedMap = new Map((saved.exercises || []).map((item) => [item.exerciseId, item]));
   return {
     ...initial,
@@ -243,15 +267,37 @@ function normalizeExecution(saved, workout) {
       return {
         ...initialExercise,
         ...savedExercise,
-        sets: initialExercise.sets.map((set) => ({ ...set, ...(savedSets.get(set.setNumber) || {}) }))
+        sets: initialExercise.sets.map((set) => {
+          const savedSet = savedSets.get(set.setNumber) || {};
+          return {
+            ...set,
+            ...savedSet,
+            prescribedLoad: savedSet.prescribedLoad || set.prescribedLoad,
+            prescribedReps: savedSet.prescribedReps || set.prescribedReps,
+            components: set.components.map((component, index) => ({
+              ...component,
+              ...(savedSet.components?.[index] || {}),
+              load: savedSet.components?.[index]?.load || component.load,
+              repetitions: savedSet.components?.[index]?.repetitions || component.repetitions
+            })),
+            drops: set.drops.map((drop, index) => ({
+              ...drop,
+              ...(savedSet.drops?.[index] || {}),
+              load: savedSet.drops?.[index]?.load || drop.load,
+              repetitions: savedSet.drops?.[index]?.repetitions || drop.repetitions
+            }))
+          };
+        })
       };
     })
   };
 }
 
-function loadExecution(workout) {
+function loadExecution(workout, scope) {
+  const key = executionKey(scope, workout);
+  if (!key) return buildInitialExecution(workout);
   try {
-    const raw = window.localStorage.getItem(getExecutionKey(workout.id));
+    const raw = window.localStorage.getItem(key);
     return normalizeExecution(raw ?JSON.parse(raw) : null, workout);
   } catch {
     return buildInitialExecution(workout);
@@ -262,13 +308,8 @@ function hasRecoverableExecution(execution) {
   return execution && !["nao_iniciado", "concluido", "incompleto"].includes(execution.status);
 }
 
-function findLastExercisePerformance(exerciseId) {
-  for (const record of loadWorkoutHistory()) {
-    const exercise = (record.exercises || []).find((item) => item.exerciseId === exerciseId);
-    const set = [...(exercise?.sets || [])].reverse().find((item) => item.status === "concluida");
-    if (set) return { usedLoad: set.usedLoad || "", completedReps: set.completedReps || "" };
-  }
-  return null;
+function findLastExercisePerformance(exerciseId, scope) {
+  return selectLatestExercisePerformance(loadWorkoutHistory(scope), exerciseId);
 }
 
 function liveElapsed(execution) {
@@ -297,7 +338,7 @@ function maxLoadText(exerciseExecution) {
   return values[values.length - 1] || "-";
 }
 
-function saveHistory(execution, workout, duration, finishStatus) {
+function buildHistoryRecord(execution, workout, duration, finishStatus) {
   const exerciseSummary = execution.exercises.map((item) => {
     const source = workout.exercises.find((exercise) => exercise.id === item.exerciseId);
     return {
@@ -340,23 +381,16 @@ function saveHistory(execution, workout, duration, finishStatus) {
     maxLoad: numericLoads.length ?`${Math.max(...numericLoads).toLocaleString("pt-BR")} kg` : "-",
     averageLoad: numericLoads.length ?Math.round(numericLoads.reduce((sum, value) => sum + value, 0) / numericLoads.length) : 0,
     repsTotal,
-    estimatedCalories: Math.max(120, Math.round((duration / 60) * 7)),
     feedback: execution.feedback,
     exercises: exerciseSummary
   };
-  try {
-    const current = JSON.parse(window.localStorage.getItem(HISTORY_KEY) || "[]");
-    const deduped = current.filter((item) => item.executionId !== execution.id && item.id !== record.id);
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify([record, ...deduped].slice(0, 40)));
-  } catch {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify([record]));
-  }
   return record;
 }
 
-export default function WorkoutExecution({ workout, onBack, onToggleExercise, onFinishWorkout }) {
-  const [execution, setExecution] = useState(() => loadExecution(workout));
-  const [recoveryOpen, setRecoveryOpen] = useState(() => hasRecoverableExecution(loadExecution(workout)));
+export default function WorkoutExecution({ workout, scope, onBack, onToggleExercise, onFinishWorkout }) {
+  const key = executionKey(scope, workout);
+  const [execution, setExecution] = useState(() => loadExecution(workout, scope));
+  const [recoveryOpen, setRecoveryOpen] = useState(() => hasRecoverableExecution(loadExecution(workout, scope)));
   const [tick, setTick] = useState(Date.now());
   const [setModal, setSetModal] = useState(null);
   const [videoExercise, setVideoExercise] = useState(null);
@@ -366,6 +400,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
   const [restFinishedNotice, setRestFinishedNotice] = useState(false);
   const [activePicker, setActivePicker] = useState(null);
   const [speakingId, setSpeakingId] = useState(null);
+  const [, setHistoryRevision] = useState(0);
   const saveSequence = React.useRef(0);
   const [feedback, setFeedback] = useState({
     feeling: "Bem",
@@ -378,13 +413,18 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
   });
 
   useEffect(() => {
-    const restored = loadExecution(workout);
+    const restored = loadExecution(workout, scope);
     setExecution(restored);
     setRecoveryOpen(hasRecoverableExecution(restored));
-  }, [workout.id]);
+  }, [key]);
+
+  useEffect(() => {
+    if (key) syncWorkoutHistory({ scope }).then(() => setHistoryRevision((value) => value + 1)).catch(() => {});
+  }, [key]);
 
   useEffect(() => {
     let active = true;
+    if (!key) return undefined;
     fetchActiveWorkout(String(workout.id)).then((remote) => {
       if (!active || !remote) return;
       setExecution((local) => {
@@ -397,7 +437,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
       });
     }).catch(() => {});
     return () => { active = false; };
-  }, [workout.id]);
+  }, [key]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setTick(Date.now()), 1000);
@@ -405,19 +445,20 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
   }, []);
 
   useEffect(() => {
+    if (!key || ["concluido", "incompleto"].includes(execution.status)) return undefined;
     try {
       setSaving("Salvando...");
-      window.localStorage.setItem(getExecutionKey(workout.id), JSON.stringify({ ...execution, updatedAt: nowIso() }));
+      window.localStorage.setItem(key, JSON.stringify({ ...execution, updatedAt: nowIso() }));
       const id = window.setTimeout(() => setSaving(navigator.onLine ?"Salvo" : "Sem conexão - os dados serão sincronizados"), 250);
       return () => window.clearTimeout(id);
     } catch {
       setSaving("Sem conexão - os dados serão sincronizados");
     }
     return undefined;
-  }, [execution, workout.id]);
+  }, [execution, key]);
 
   useEffect(() => {
-    if (execution.status === "nao_iniciado") return undefined;
+    if (!key || execution.status === "nao_iniciado") return undefined;
     const sequence = ++saveSequence.current;
     const timer = window.setTimeout(async () => {
       try {
@@ -428,12 +469,13 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
       }
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [execution, workout]);
+  }, [execution, workout, key]);
 
   useEffect(() => {
+    if (!key || ["concluido", "incompleto"].includes(execution.status)) return undefined;
     const persist = () => {
       try {
-        window.localStorage.setItem(getExecutionKey(workout.id), JSON.stringify({ ...execution, updatedAt: nowIso() }));
+        window.localStorage.setItem(key, JSON.stringify({ ...execution, updatedAt: nowIso() }));
       } catch {
         // localStorage can fail in privaté browsing; the UI keeps the in-memory state.
       }
@@ -446,7 +488,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
       window.removeEventListener("beforeunload", persist);
       document.removeEventListener("visibilitychange", persist);
     };
-  }, [execution, workout.id]);
+  }, [execution, key]);
 
   const elapsed = liveElapsed(execution);
   const exercises = exerciseTotals(execution);
@@ -455,7 +497,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
   const currentExecution = execution.exercises.find((item) => item.exerciseId === execution.currentExerciseId) || execution.exercises[0];
   const currentExercise = workout.exercises.find((item) => item.id === currentExecution?.exerciseId) || workout.exercises[0];
   const currentSet = currentExecution?.sets.find((set) => set.status === "em_andamento") || currentExecution?.sets.find((set) => set.status === "pendente") || currentExecution?.sets.at(-1);
-  const lastPerformance = findLastExercisePerformance(currentExecution?.exerciseId);
+  const lastPerformance = findLastExercisePerformance(currentExecution?.exerciseId, scope);
   const restSeconds = execution.rest?.status === "em_andamento" ?Math.max(0, Math.ceil((new Date(execution.rest?.restEndsAt).getTime() - Date.now()) / 1000)) : 0;
 
   useEffect(() => {
@@ -533,10 +575,11 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
     }));
     if (options.openModal) {
       window.setTimeout(() => {
+        const previous = findLastExercisePerformance(targetExercise.exerciseId, scope);
         setSetModal({
           exerciseId: targetExercise.exerciseId,
           setNumber: targetSet.setNumber,
-          usedLoad: targetSet.usedLoad || targetSet.prescribedLoad || "",
+          usedLoad: targetSet.usedLoad || previous?.usedLoad || targetSet.prescribedLoad || "",
           completedReps: targetSet.completedReps || parseRepsSuggestion(targetSet.prescribedReps) || "",
           observation: targetSet.observation || "",
           setType: targetSet.setType || "standard",
@@ -583,10 +626,11 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
     const targetExercise = execution.exercises.find((item) => item.exerciseId === targetExerciseId);
     const targetSet = targetExercise?.sets.find((set) => set.setNumber === targetSetNumber);
     if (!targetExercise || !targetSet || targetSet.status !== "em_andamento") return;
+    const previous = findLastExercisePerformance(targetExercise.exerciseId, scope);
     setSetModal({
       exerciseId: targetExercise.exerciseId,
       setNumber: targetSet.setNumber,
-      usedLoad: targetSet.usedLoad || targetSet.prescribedLoad || "",
+      usedLoad: targetSet.usedLoad || previous?.usedLoad || targetSet.prescribedLoad || "",
       completedReps: targetSet.completedReps || parseRepsSuggestion(targetSet.prescribedReps) || "",
       observation: targetSet.observation || "",
       setType: targetSet.setType || "standard",
@@ -652,7 +696,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
 
   async function discardRecoveredExecution() {
     if (execution.backendId) await discardWorkoutSession(execution.backendId).catch(() => {});
-    window.localStorage.removeItem(getExecutionKey(workout.id));
+    if (key) window.localStorage.removeItem(key);
     setExecution(buildInitialExecution(workout));
     setRecoveryOpen(false);
   }
@@ -692,6 +736,10 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
   }
 
   async function submitFinish() {
+    if (!key) {
+      setSaving("Não foi possível identificar este aluno e treino.");
+      return;
+    }
     const complete = execution.exercises.every((item) => item.status === "concluido");
     const status = complete ?"concluido" : "incompleto";
     const finalDuration = liveElapsed(execution);
@@ -704,17 +752,26 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
       feedback,
       updatedAt: nowIso()
     };
+    setExecution(finished);
+    const localRecord = buildHistoryRecord(finished, workout, finalDuration, status);
     setSaving("Salvando no servidor...");
+    let result;
     try {
-      await saveWorkoutSession(finished, workout);
+      result = await persistFinishedWorkout(finished, workout, localRecord, { scope });
     } catch {
-      setExecution(finished);
-      setSaving("Não foi possível finalizar no servidor. Tente novamente.");
+      setSaving("Não foi possível salvar neste dispositivo. Tente novamente.");
       return;
     }
-    setExecution(finished);
-    saveHistory(finished, workout, finalDuration, status);
-    window.localStorage.removeItem(getExecutionKey(workout.id));
+    if (result.syncStatus === "not_saved") {
+      setSaving("Não foi possível identificar este aluno e treino.");
+      return;
+    }
+    try { window.localStorage.removeItem(key); } catch { /* The queued or server copy remains authoritative. */ }
+    if (result.syncStatus === "synced") {
+      setSaving("Treino salvo");
+    } else {
+      setSaving("Treino salvo neste dispositivo - sincronização pendente");
+    }
     setFinishOpen(false);
     onFinishWorkout?.(status);
     onBack?.();
@@ -726,6 +783,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
     ["Séries", `${sets.done}/${sets.total}`, CheckCircle2],
     ["Progresso", `${percent}%`, Save]
   ];
+  const currentTechnique = workoutTechniqueDetails(currentExercise);
 
   return (
     <main className="workout-execution-v2 app-page student-mobile-safe">
@@ -763,6 +821,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
             <span className="eyebrow">Exercício atual</span>
             <h3>{currentExecution?.position || 1} de {workout.exercises.length}</h3>
             <h2>{currentExercise?.name}</h2>
+            <span className={`technique-badge technique-${currentTechnique.type}`}>{currentTechnique.label}</span>
             <p>{currentSet ?`Série ${currentSet.setNumber} de ${currentExecution.sets.length} • ${currentSet.prescribedReps || currentExercise?.reps || "repetições"}` : "Selecione um exercício"}</p>
             <div className="current-prescription">
               <span>Descanso: {currentExercise?.rest || "60s"}</span>
@@ -795,6 +854,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
             </div>
             {execution.exercises.map((exerciseExecution) => {
               const source = workout.exercises.find((exercise) => exercise.id === exerciseExecution.exerciseId);
+              const technique = workoutTechniqueDetails(source);
               const localSets = setTotals({ exercises: [exerciseExecution] });
               const isCurrent = execution.currentExerciseId === exerciseExecution.exerciseId;
               const complete = exerciseExecution.status === "concluido";
@@ -804,6 +864,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
                     <span className="exercise-check">{complete ?<CheckCircle2 size={22} /> : exerciseExecution.position}</span>
                     <span>
                       <strong>{source?.name}</strong>
+                      <span className={`technique-badge technique-${technique.type}`}>{technique.label}</span>
                       <small>{complete ?`${localSets.done}/${localSets.total} séries concluídas • Carga máxima: ${maxLoadText(exerciseExecution)}` : formatPrescription(source?.sets, source?.reps)}</small>
                     </span>
                     {exerciseExecution.expanded ?<ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -816,6 +877,17 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
                         <span>Descanso: {source?.rest || "60s"}</span>
                         <span>Carga sugerida: {source?.load || "Livre"}</span>
                       </div>
+                      {technique.items.length > 0 && (
+                        <div className="technique-summary" aria-label={`Estrutura ${technique.label}`}>
+                          {technique.items.map((item, index) => (
+                            <span key={`${technique.type}-${index}`}>
+                              <strong>{item.name}</strong>
+                              {item.repetitions && <small>{item.repetitions} reps</small>}
+                              {item.load !== "" && <small>{item.load} kg</small>}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {source?.videoUrl && (
                         <button className="video-link-button" type="button" onClick={() => setVideoExercise(source)}><Video size={16} /> Ver execução do exercício</button>
                       )}
@@ -874,15 +946,12 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
             <button className="icon-button modal-close" type="button" onClick={() => setSetModal(null)} aria-label="Fechar"><X size={18} /></button>
             <span className="eyebrow">{setModal.editing ? "Editar série" : "Concluir série"}</span>
             <h3>{setModal.editing ? "Corrija os dados registrados" : "Registre o que você fez"}</h3>
-            <label>Carga usada</label>
-            <input type="number" min="0" step="0.5" inputMode="decimal" value={setModal.usedLoad} onChange={(event) => setSetModal((prev) => ({ ...prev, usedLoad: event.target.value }))} placeholder="Ex: 22,5" />
-            <label>Repetições realizadas</label>
-            <input type="number" min="1" step="1" inputMode="numeric" value={setModal.completedReps} onChange={(event) => setSetModal((prev) => ({ ...prev, completedReps: event.target.value }))} placeholder="Ex: 12" />
+            <NumberStepper label="Carga usada" value={setModal.usedLoad} min={0} step={0.5} unit="kg" onChange={(value) => setSetModal((prev) => ({ ...prev, usedLoad: value }))} />
+            <NumberStepper label="Repetições realizadas" value={setModal.completedReps} min={1} step={1} onChange={(value) => setSetModal((prev) => ({ ...prev, completedReps: value }))} />
             {setModal.setType === "biset" && setModal.components.map((component, index) => (
               <fieldset className="technique-entry" key={`${component.exerciseId}-${index}`}>
                 <legend>{component.exerciseName || `Componente ${index + 1}`}</legend>
-                <label>Peso</label>
-                <input type="number" min="0" step="0.5" value={component.load} onChange={(event) => setSetModal((prev) => ({ ...prev, components: prev.components.map((item, itemIndex) => itemIndex === index ? { ...item, load: event.target.value } : item) }))} />
+                <NumberStepper label="Peso" value={component.load} min={0} step={0.5} unit="kg" onChange={(value) => setSetModal((prev) => ({ ...prev, components: prev.components.map((item, itemIndex) => itemIndex === index ? { ...item, load: value } : item) }))} />
                 <label>Repetições</label>
                 <input type="number" min="1" step="1" value={component.repetitions} onChange={(event) => setSetModal((prev) => ({ ...prev, components: prev.components.map((item, itemIndex) => itemIndex === index ? { ...item, repetitions: event.target.value, completed: true } : item) }))} />
               </fieldset>
@@ -890,8 +959,7 @@ export default function WorkoutExecution({ workout, onBack, onToggleExercise, on
             {setModal.setType === "drop_set" && setModal.drops.map((drop, index) => (
               <fieldset className="technique-entry" key={`drop-${drop.order}-${index}`}>
                 <legend>{index === 0 ? "Carga inicial" : `Drop ${index}`}</legend>
-                <label>Peso</label>
-                <input type="number" min="0" step="0.5" value={drop.load} onChange={(event) => setSetModal((prev) => ({ ...prev, drops: prev.drops.map((item, itemIndex) => itemIndex === index ? { ...item, load: event.target.value } : item) }))} />
+                <NumberStepper label="Peso" value={drop.load} min={0} step={0.5} unit="kg" onChange={(value) => setSetModal((prev) => ({ ...prev, drops: prev.drops.map((item, itemIndex) => itemIndex === index ? { ...item, load: value } : item) }))} />
                 <label>Repetições</label>
                 <input type="number" min="1" step="1" value={drop.repetitions} onChange={(event) => setSetModal((prev) => ({ ...prev, drops: prev.drops.map((item, itemIndex) => itemIndex === index ? { ...item, repetitions: event.target.value, completed: true } : item) }))} />
               </fieldset>

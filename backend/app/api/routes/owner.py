@@ -9,9 +9,10 @@ from app.api.deps import require_owner
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
-from app.schemas.owner import OwnerPasswordChange, OwnerPersonalCreate, OwnerPersonalUpdate, OwnerSettingsUpdate, OwnerStatusChange
-from app.services.owner_service import (audit, change_owner_password, change_status, create_personal, dashboard_summary,
-    get_personal, list_personals, personal_to_dict, reset_access, soft_delete, update_personal)
+from app.schemas.owner import OwnerPersonalCreate, OwnerPersonalUpdate, OwnerSettingsUpdate, OwnerStatusChange
+from app.services.auth_service import request_password_reset
+from app.services.owner_service import (audit, change_status, create_personal, dashboard_summary,
+    get_personal, list_personals, personal_to_dict, soft_delete, update_personal)
 
 router = APIRouter()
 AVATAR_DIR = Path(__file__).resolve().parents[3] / "uploads" / "owners"
@@ -73,7 +74,10 @@ def block(personal_id: uuid.UUID, payload: OwnerStatusChange, owner: User = Depe
 @router.post("/personals/{personal_id}/reset-access")
 def reset(personal_id: uuid.UUID, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
     user, _, _ = get_personal(db, personal_id)
-    return {"temporary_password": reset_access(db, owner, user), "must_change_password": True}
+    request_password_reset(db, user.email)
+    audit(db, owner, "personal_password_reset_requested", "user", user.id)
+    db.commit()
+    return {"detail": "Link de redefinicao enviado para o e-mail cadastrado."}
 
 
 @router.delete("/personals/{personal_id}", status_code=204)
@@ -125,8 +129,3 @@ async def upload_avatar(request: Request, owner: User = Depends(require_owner), 
     db.commit()
     db.refresh(owner)
     return {"avatar_url": owner.avatar_url}
-
-
-@router.patch("/change-password", status_code=204)
-def password(payload: OwnerPasswordChange, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
-    change_owner_password(db, owner, payload.current_password, payload.new_password)

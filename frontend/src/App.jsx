@@ -4,7 +4,6 @@ import PersonalLayout from "./layouts/PersonalLayout.jsx";
 import StudentLayout from "./layouts/StudentLayout.jsx";
 import OwnerLayout from "./layouts/OwnerLayout.jsx";
 import Login from "./pages/Login.jsx";
-import RequiredPasswordChange from "./pages/RequiredPasswordChange.jsx";
 import StudentDashboard from "./pages/Dashboard.jsx";
 import PersonalDashboard from "./pages/PersonalDashboard.jsx";
 import Students from "./pages/Students.jsx";
@@ -12,31 +11,22 @@ import WorkoutBuilder from "./pages/WorkoutBuilder.jsx";
 import ExerciseDetail from "./pages/ExerciseDetail.jsx";
 import StudentPortal from "./pages/StudentPortal.jsx";
 import WorkoutExecution from "./pages/WorkoutExecution.jsx";
-import Progress from "./pages/Progress.jsx";
-import StudentDiet from "./pages/StudentDiet.jsx";
-import StudentAssessments from "./pages/StudentAssessments.jsx";
-import StudentPayments from "./pages/StudentPayments.jsx";
 import StudentCalendar from "./pages/StudentCalendar.jsx";
-import StudentMessages from "./pages/StudentMessages.jsx";
-import StudentFiles from "./pages/StudentFiles.jsx";
 import StudentSettings from "./pages/StudentSettings.jsx";
-import PersonalDiet from "./pages/PersonalDiet.jsx";
-import PersonalAssessments from "./pages/PersonalAssessments.jsx";
-import PersonalFinance from "./pages/PersonalFinance.jsx";
-import PersonalAgenda from "./pages/PersonalAgenda.jsx";
-import PersonalMessages from "./pages/PersonalMessages.jsx";
-import PersonalReports from "./pages/PersonalReports.jsx";
 import PersonalSettings from "./pages/PersonalSettings.jsx";
+import Progress from "./pages/Progress.jsx";
 import PersonalProgress from "./pages/PersonalProgress.jsx";
-import PersonalStudentProgress from "./pages/PersonalStudentProgress.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
 import OwnerPortal from "./pages/OwnerPortal.jsx";
-import { students as mockStudents, workouts as mockWorkouts } from "./data/mockData.js";
+import UnavailableDataPage from "./pages/UnavailableDataPage.jsx";
 import { apiRequest, clearToken, getToken, logoutSession, refreshSession } from "./services/api.js";
 import { clearDemoActivityDataOnce } from "./utils/activityData.js";
 import { getRecommendedWorkout } from "./utils/workoutSchedule.js";
 import { isPageEnabled } from "./utils/tenantBranding.js";
+import { createTenantDataState, tenantDataError, tenantDataFromResponses } from "./utils/tenantData.js";
+import { buildWorkoutPayload } from "./utils/workoutPayload.js";
+import { readPendingStudents, savePendingStudents, studentScope, executionKey } from "./utils/storageScope.js";
 import {
   applyRouteBranding,
   getContextLoginPath,
@@ -44,6 +34,9 @@ import {
   isAuthLoginPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
+  readPublicAuthContext,
+  rememberPublicAuthContext,
+  resolveLogoutContext,
 } from "./utils/authRouting.js";
 
 const pageMeta = {
@@ -66,7 +59,7 @@ const pageMeta = {
   progress: ["Progresso", "Histórico, evolução e indicadores de consistência."],
   "student-progress-detail": ["Progresso individual", "Central individual de performance do aluno."],
   coach: ["Coach IA", "Seu assistente inteligente para treino, dieta e evolução."],
-  "about-personal": ["Sobre o Personal", "Conheça a metodologia, a experiência e a filosofia do seu personal."]
+  "about-personal": ["Sobre o Personal", "Identidade e informações profissionais cadastradas."]
 };
 
 const rolePath = {
@@ -136,45 +129,98 @@ export default function App() {
     clearDemoActivityDataOnce();
   }, []);
   const [session, setSession] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem("ptf_theme") || "dark");
   const [branding, setBranding] = useState({ display_name: "Fitland", initials: "FT", is_fallback: true });
+  const [brandingUserId, setBrandingUserId] = useState(null);
+  const [brandingError, setBrandingError] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
-  const [selectedExercise, setSelectedExercise] = useState(mockWorkouts[0].exercises[0]);
-  const [students, setStudents] = useState(mockStudents);
-  const [pendingStudents, setPendingStudents] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("ptf_pending_students") || "[]");
-    } catch {
-      return [];
-    }
-  });
-  const [workouts, setWorkouts] = useState(mockWorkouts);
+  const [selectedExercise, setSelectedExercise] = useState(null);
+  const [tenantData, setTenantData] = useState(() => createTenantDataState());
+  const [exerciseLibrary, setExerciseLibrary] = useState([]);
+  const [dataReloadKey, setDataReloadKey] = useState(0);
+  const students = tenantData.students;
+  const workouts = tenantData.workouts;
+  const setStudents = (update) => setTenantData((current) => ({
+    ...current,
+    students: typeof update === "function" ? update(current.students) : update
+  }));
+  const setWorkouts = (update) => setTenantData((current) => ({
+    ...current,
+    workouts: typeof update === "function" ? update(current.workouts) : update
+  }));
+  const [pendingState, setPendingState] = useState({ personalId: null, items: [] });
+  const pendingStudents = session?.role === "personal" && pendingState.personalId === String(session.id) ? pendingState.items : [];
+  const scope = session?.role === "student" && brandingUserId === session.id ? studentScope(branding?.personal_id, session.id) : null;
   const [completed, setCompleted] = useState(() => new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [executionWorkoutId, setExecutionWorkoutId] = useState(null);
-  const [selectedStudentId, setSelectedStudentId] = useState(mockStudents[0]?.id);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [focusedPendingStudentId, setFocusedPendingStudentId] = useState(null);
   const [personalProfile, setPersonalProfile] = useState({
     name: "Seu personal",
-    bio: "Personal trainer focado em força, disciplina, performance e transformação real. Une estratégia, técnica e acompanhamento próximo para cada aluno evoluir com segurança.",
-    specialty: "Hipertrofia, emagrecimento e performance",
-    experience: "10+ anos de atuação",
-    method: "Disciplina, foco e propósito",
-    philosophy: "Treinar não é apenas cumprir exercícios. É construir uma versão mais forte, constante e confiante todos os dias.",
-    highlights: ["Treinos personalizados", "Acompanhamento de evolução", "Ajustes por performance", "Feedback inteligente", "Estratégia individual por objetivo"],
     email: session?.email || "",
-    instagram: ""
   });
 
   const meta = pageMeta[activePage] || pageMeta.dashboard;
-  const activeWorkout = useMemo(() => getRecommendedWorkout(workouts, new Date()) || workouts[0], [workouts]);
+  const activeWorkout = useMemo(() => getRecommendedWorkout(workouts, new Date()) || workouts[0] || null, [workouts]);
+
+  useEffect(() => {
+    if (!session || session.role === "owner") {
+      setTenantData(createTenantDataState());
+      setExerciseLibrary([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setTenantData(createTenantDataState("loading"));
+    const studentsRequest = session.role === "personal" ? apiRequest("/students") : Promise.resolve([]);
+    const exercisesRequest = session.role === "personal" ? apiRequest("/exercises") : Promise.resolve([]);
+
+    Promise.allSettled([studentsRequest, apiRequest("/workouts"), exercisesRequest])
+      .then(([studentResult, workoutResult, exerciseResult]) => {
+        if (cancelled) return;
+        const studentRows = studentResult.status === "fulfilled" ? studentResult.value : [];
+        const workoutRows = workoutResult.status === "fulfilled" ? workoutResult.value : [];
+        const exerciseRows = exerciseResult.status === "fulfilled" ? exerciseResult.value : [];
+        setExerciseLibrary(exerciseRows);
+        const failures = [studentResult, workoutResult, exerciseResult].filter((result) => result.status === "rejected");
+        if (failures.length === 3 || studentResult.status === "rejected") {
+          setTenantData(tenantDataError(failures[0]?.reason?.message));
+          return;
+        }
+        const next = tenantDataFromResponses(studentRows, workoutRows, exerciseRows);
+        setTenantData({ ...next, status: failures.length ? "partial" : "success", error: failures[0]?.reason?.message || "" });
+        setSelectedStudentId(studentRows[0]?.id || null);
+      })
+      .catch((error) => { if (!cancelled) setTenantData(tenantDataError(error?.message)); });
+
+    return () => { cancelled = true; };
+  }, [session?.id, session?.role, dataReloadKey]);
+
+  useEffect(() => {
+    if (session?.role === "owner") return;
+    document.body.classList.toggle("theme-light", theme === "light");
+    document.body.classList.toggle("theme-dark", theme === "dark");
+    localStorage.setItem("ptf_theme", theme);
+  }, [session?.role, theme]);
 
   useEffect(() => {
     if (!branding?.display_name) return;
+    if (session?.role !== "owner" && branding.display_name === "Fitland" && getRequestedContext(window.location.pathname)?.type !== "owner") return;
     setPersonalProfile((current) => ({ ...current, name: branding.display_name }));
     applyRouteBranding(window.location.pathname, branding);
-  }, [branding?.display_name, session?.role]);
+    if (session) {
+      rememberPublicAuthContext(resolveLogoutContext({
+        role: session.role,
+        pathname: window.location.pathname,
+        branding,
+        session,
+        storedContext: readPublicAuthContext(),
+      }));
+    }
+  }, [branding?.display_name, branding?.icon_url, branding?.logo_url, branding?.slug, session?.id, session?.role]);
 
   useEffect(() => {
     let mounted = true;
@@ -208,13 +254,9 @@ export default function App() {
           return;
         }
         setSession(normalizedUser);
-        const requestedPage = normalizedUser.role === "owner" && normalizedUser.must_change_password
-          ? "security"
-          : pageFromPath(window.location.pathname, normalizedUser.role);
+        const requestedPage = pageFromPath(window.location.pathname, normalizedUser.role);
         setActivePage(requestedPage);
-        if (normalizedUser.role === "owner" && normalizedUser.must_change_password) {
-          window.history.replaceState(null, "", "/fitland/change-password");
-        } else if (isAuthLoginPath(pathname) || pathname === "/") {
+        if (isAuthLoginPath(pathname) || pathname === "/" || pathname === "/fitland/change-password") {
           pushRoute(normalizedUser.role);
         }
       } catch {
@@ -231,20 +273,44 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("ptf_pending_students", JSON.stringify(pendingStudents));
-  }, [pendingStudents]);
+    setPendingState(session?.role === "personal"
+      ? { personalId: String(session.id), items: readPendingStudents(session.id) }
+      : { personalId: null, items: [] });
+  }, [session?.id, session?.role]);
+
+  const setPendingStudents = (update) => {
+    const personalId = session?.role === "personal" ? String(session.id) : null;
+    if (!personalId) return;
+    setPendingState((current) => {
+      const items = current.personalId === personalId ? current.items : readPendingStudents(personalId);
+      const next = typeof update === "function" ? update(items) : update;
+      savePendingStudents(personalId, next);
+      return { personalId, items: next };
+    });
+  };
 
   useEffect(() => {
     if (!session) return;
+    let cancelled = false;
+    setBrandingError(false);
     apiRequest("/branding/me")
-      .then(setBranding)
-      .catch(() => setBranding(session.role === "owner"
+      .then((resolved) => {
+        if (cancelled) return;
+        setBranding(resolved);
+        setBrandingUserId(resolved?.personal_id ? session.id : null);
+        setBrandingError(!resolved?.personal_id && session.role !== "owner");
+      })
+      .catch(() => { if (!cancelled) {
+        setBrandingError(true);
+        setBranding(session.role === "owner"
         ? { display_name: "Fitland", initials: "FT", is_fallback: false }
         : {
             display_name: session.name?.toLowerCase().startsWith("personal ") ? session.name : `Personal ${session.name || ""}`.trim(),
             initials: (session.name || "PT").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
             is_fallback: true
-          }));
+          });
+      } });
+    return () => { cancelled = true; };
   }, [session?.id, session?.role]);
 
   useEffect(() => {
@@ -265,17 +331,21 @@ export default function App() {
 
   if (!session) {
     const loginPath = window.location.pathname.toLowerCase();
-    const personalLoginMatch = loginPath.match(/^\/personal\/([^/]+)\/login\/?$/);
+    const personalLoginMatch = loginPath.match(/^\/personal\/([^/]+)(?:\/aluno)?\/login\/?$/);
+    const requestedLoginContext = getRequestedContext(loginPath);
     return (
       <Login
-        context={isOwnerLoginPath(loginPath) ? "owner" : "personal"}
+        context={isOwnerLoginPath(loginPath) ? "owner" : requestedLoginContext?.type || "personal"}
         brandSlug={personalLoginMatch?.[1] || ""}
         branding={branding}
-        onSignup={(student) => {
-          setPendingStudents((current) => [
+        onBrandingResolved={setBranding}
+        onSignup={(student, personalId) => {
+          if (!personalLoginMatch?.[1] || !personalId || String(branding?.personal_id) !== String(personalId)) return false;
+          savePendingStudents(personalId, [
             { ...student, id: crypto.randomUUID(), status: "pending", requestedAt: new Date().toISOString() },
-            ...current
+            ...readPendingStudents(personalId)
           ]);
+          return true;
         }}
         onLogin={(user) => {
           const normalizedUser = normalizeSessionUser(user);
@@ -285,15 +355,18 @@ export default function App() {
             setSession(null);
             return;
           }
+          rememberPublicAuthContext(resolveLogoutContext({
+            role: normalizedUser.role,
+            pathname: window.location.pathname,
+            branding,
+            session: normalizedUser,
+            storedContext: readPublicAuthContext(),
+          }));
           const normalizedRole = normalizedUser.role;
           setSession(normalizedUser);
-          const requestedPage = normalizedRole === "owner" && normalizedUser.must_change_password
-            ? "security"
-            : pageFromPath(window.location.pathname, normalizedRole);
+          const requestedPage = pageFromPath(window.location.pathname, normalizedRole);
           setActivePage(requestedPage);
-          if (normalizedRole === "owner" && normalizedUser.must_change_password) {
-            window.history.replaceState(null, "", "/fitland/change-password");
-          } else if (requestedPage === "dashboard") {
+          if (requestedPage === "dashboard") {
             pushRoute(normalizedRole);
           }
         }}
@@ -301,21 +374,9 @@ export default function App() {
     );
   }
 
-  if (session.role === "owner" && session.must_change_password) {
-    return (
-      <RequiredPasswordChange
-        onComplete={(user) => {
-          setSession(normalizeSessionUser(user));
-          setActivePage("dashboard");
-          window.history.replaceState(null, "", "/fitland/dashboard");
-        }}
-        onLogout={async () => {
-          await logoutSession();
-          setSession(null);
-          window.history.replaceState(null, "", "/fitland/login");
-        }}
-      />
-    );
+  if (session && session.role !== "owner" && (branding.display_name === "Fitland" || brandingUserId !== session.id)) {
+    if (brandingError) return <main className="login-screen login-loading-screen" role="alert"><p>Não foi possível confirmar o contexto desta conta.</p><button type="button" onClick={() => window.location.reload()}>Tentar novamente</button></main>;
+    return <main className="login-screen login-loading-screen" role="status" aria-label="Carregando identidade visual" />;
   }
 
   const isStudent = session.role === "student";
@@ -374,6 +435,8 @@ export default function App() {
   };
 
   const openWorkoutExecution = (workoutId) => {
+    const selectedWorkout = workouts.find((item) => item.id === workoutId);
+    if (!isStudent || !executionKey(scope, selectedWorkout)) return;
     setExecutionWorkoutId(workoutId);
     setActivePage("workout-execution");
     setSidebarOpen(false);
@@ -402,7 +465,7 @@ export default function App() {
     setStudents((current) => [
       {
         ...student,
-        avatar: mockStudents[0].avatar,
+        avatar: student.avatar || "",
         adherence: 0,
         workoutIds: student.workoutIds || [],
         workoutId: student.workoutId || null,
@@ -423,7 +486,7 @@ export default function App() {
     if (!confirmed) return;
     setStudents((current) => current.filter((item) => item.id !== student.id));
     if (selectedStudentId === student.id) {
-      setSelectedStudentId(mockStudents[0]?.id);
+      setSelectedStudentId(students[0]?.id || null);
     }
   };
 
@@ -464,7 +527,9 @@ export default function App() {
       }
     },
     onApproveStudent: approvePendingStudent,
-    branding
+    branding,
+    theme,
+    setTheme
   };
 
   const sharedPages = (
@@ -474,6 +539,7 @@ export default function App() {
         <StudentPortal
           workout={activeWorkout}
           workouts={workouts}
+          scope={scope}
           completed={completed}
           onStartWorkout={openWorkoutExecution}
           onNavigate={navigate}
@@ -489,6 +555,7 @@ export default function App() {
       {activePage === "workout-execution" && (
         <WorkoutExecution
           workout={workouts.find((item) => item.id === executionWorkoutId) || activeWorkout}
+          scope={scope}
           completed={completed}
           onBack={() => navigate("student-view")}
           onToggleExercise={(id) => {
@@ -501,7 +568,9 @@ export default function App() {
           onFinishWorkout={() => resetWorkoutProgress(executionWorkoutId)}
         />
       )}
-      {isStudent && activePage === "progress" && <Progress student={students[0]} students={students} workouts={workouts} completed={completed} branding={branding} />}
+      {isStudent && activePage === "progress" && (
+        <Progress student={students[0]} students={students} branding={branding} scope={scope} />
+      )}
       {activePage === "coach" && (
         <CoachIA
           role={isStudent ? "student" : "personal"}
@@ -512,22 +581,82 @@ export default function App() {
       )}
       {activePage === "about-personal" && (
         <AboutPersonal
-          profile={personalProfile}
+          profile={{ ...personalProfile, email: session?.email || "" }}
           branding={branding}
-          editable={!isStudent}
-          onSave={setPersonalProfile}
         />
       )}
     </>
   );
 
   const confirmLogout = async () => {
-    await logoutSession();
-    setLogoutConfirmOpen(false);
-    setSession(null);
-    setActivePage("dashboard");
-    setExecutionWorkoutId(null);
-    window.history.replaceState(null, "", "/");
+    const logoutRole = session?.role;
+    const logoutContext = resolveLogoutContext({
+      role: logoutRole,
+      pathname: window.location.pathname,
+      branding,
+      session,
+      storedContext: readPublicAuthContext(),
+    });
+    rememberPublicAuthContext(logoutContext);
+    const loginPath = getContextLoginPath(logoutContext);
+    try {
+      await logoutSession();
+    } finally {
+      window.history.replaceState(null, "", loginPath);
+      setLogoutConfirmOpen(false);
+      setSession(null);
+      setTenantData(createTenantDataState());
+      setActivePage("dashboard");
+      setExecutionWorkoutId(null);
+    }
+  };
+
+  const saveWorkout = async (workout) => {
+    const nextLibrary = [...exerciseLibrary];
+    const persistedExercises = [];
+    for (const exercise of workout.exercises) {
+      let record = exercise.exerciseId ? nextLibrary.find((item) => String(item.id) === String(exercise.exerciseId)) : null;
+      if (!record) record = nextLibrary.find((item) => item.name.trim().toLowerCase() === exercise.name.trim().toLowerCase());
+      if (!record) {
+        record = await apiRequest("/exercises", {
+          method: "POST",
+          body: JSON.stringify({ name: exercise.name, explanation: exercise.explanation || null }),
+        });
+        nextLibrary.push(record);
+      }
+      persistedExercises.push({ ...exercise, exerciseId: record.id });
+    }
+    const payload = buildWorkoutPayload(workout, persistedExercises);
+    const saved = await apiRequest(workout.id ? `/workouts/${workout.id}` : "/workouts", {
+      method: workout.id ? "PATCH" : "POST",
+      body: JSON.stringify(payload),
+    });
+    setExerciseLibrary(nextLibrary);
+    const normalized = tenantDataFromResponses(students, [saved], nextLibrary).workouts[0];
+    setWorkouts((current) => workout.id
+      ? current.map((item) => String(item.id) === String(saved.id) ? normalized : item)
+      : [normalized, ...current]);
+    return normalized;
+  };
+
+  const saveStudent = async (student) => {
+    const payload = {
+      name: student.name,
+      email: student.email,
+      age: student.age,
+      weight: student.weight,
+      height: student.height,
+      objective: student.objective,
+      notes: student.notes || null,
+    };
+    const saved = await apiRequest(student.id ? `/students/${student.id}` : "/students", {
+      method: student.id ? "PATCH" : "POST",
+      body: JSON.stringify(payload),
+    });
+    setStudents((current) => student.id
+      ? current.map((item) => String(item.id) === String(saved.id) ? saved : item)
+      : [saved, ...current]);
+    return saved;
   };
 
   const logoutModal = logoutConfirmOpen ? (
@@ -559,14 +688,14 @@ export default function App() {
     return (
       <>
       <StudentLayout {...commonLayoutProps}>
-        {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} />}
-        {activePage === "diet" && <StudentDiet student={students[0]} branding={branding} />}
-        {activePage === "assessments" && <StudentAssessments student={students[0]} branding={branding} />}
-        {activePage === "payments" && <StudentPayments student={students[0]} branding={branding} />}
-        {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} />}
-        {activePage === "messages" && <StudentMessages student={students[0]} branding={branding} />}
-        {activePage === "files" && <StudentFiles student={students[0]} branding={branding} />}
-        {activePage === "settings" && <StudentSettings student={students[0]} branding={branding} />}
+        {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} theme={theme} setTheme={setTheme} />}
+        {activePage === "diet" && <UnavailableDataPage className="student-diet-page" title="Nenhum plano alimentar disponível" message="Um plano prescrito aparecerá aqui quando estiver disponível no sistema." />}
+        {activePage === "assessments" && <UnavailableDataPage className="student-assessments-page" title="Nenhuma avaliação disponível" message="Suas avaliações aparecerão quando houver registros persistidos." />}
+        {activePage === "payments" && <UnavailableDataPage className="student-payments-page" title="Sem dados de pagamento" message="As cobranças aparecerão quando houver integração financeira real." />}
+        {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} />}
+        {activePage === "messages" && <UnavailableDataPage className="student-messages-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
+        {activePage === "files" && <UnavailableDataPage className="student-files-page" title="Nenhum arquivo disponível" message="Os arquivos aparecerão quando houver armazenamento persistido." />}
+        {activePage === "settings" && <StudentSettings student={students[0]} branding={branding} theme={theme} setTheme={setTheme} />}
         {sharedPages}
       </StudentLayout>
       {logoutModal}
@@ -577,25 +706,24 @@ export default function App() {
   return (
     <>
     <PersonalLayout {...commonLayoutProps}>
-      {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} onNavigate={navigate} branding={branding} />}
-      {activePage === "diet" && <PersonalDiet students={students} />}
-      {activePage === "finance" && <PersonalFinance students={students} branding={branding} />}
-      {activePage === "agenda" && <PersonalAgenda students={students} />}
-      {activePage === "chat" && <PersonalMessages students={students} branding={branding} />}
-      {activePage === "reports" && <PersonalReports students={students} branding={branding} />}
-      {activePage === "settings" && <PersonalSettings profile={personalProfile} />}
-      {activePage === "assessments" && <PersonalAssessments students={students} />}
-      {activePage === "progress" && <PersonalProgress students={students} onOpenStudentProgress={openStudentProgress} />}
+      {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} dataStatus={tenantData.status} dataError={tenantData.error} onRetry={() => setDataReloadKey((value) => value + 1)} onNavigate={navigate} branding={branding} theme={theme} setTheme={setTheme} />}
+      {activePage === "diet" && <UnavailableDataPage className="nutrition-admin-page" title="Nenhum plano alimentar cadastrado" message="Os planos aparecerão quando houver registros reais disponíveis." />}
+      {activePage === "finance" && <UnavailableDataPage className="finance-page" title="Sem dados financeiros" message="As informações financeiras aparecerão quando houver integração persistida." />}
+      {activePage === "agenda" && <UnavailableDataPage className="agenda-page" title="Nenhum compromisso cadastrado" message="A agenda ficará disponível quando houver eventos reais." />}
+      {activePage === "chat" && <UnavailableDataPage className="messages-admin-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
+      {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}
+      {activePage === "settings" && <PersonalSettings profile={{ ...personalProfile, email: session?.email || "" }} studentCount={students.length} workoutCount={workouts.length} theme={theme} setTheme={setTheme} />}
+      {activePage === "assessments" && <UnavailableDataPage className="assessments-admin-page" title="Nenhuma avaliação disponível" message="As avaliações aparecerão quando houver registros persistidos." />}
+      {activePage === "progress" && <PersonalProgress />}
       {activePage === "student-progress-detail" && (
-        <PersonalStudentProgress
-          student={students.find((student) => student.id === selectedStudentId) || students[0]}
-          branding={branding}
-          onBack={() => navigate("students")}
-        />
+        <UnavailableDataPage className="personal-progress-page" title="Sem dados individuais de progresso" message="As métricas aparecerão quando o aluno registrar avaliações e atividades reais." />
       )}
       {activePage === "students" && (
         <Students
           students={students}
+          dataStatus={tenantData.status}
+          dataError={tenantData.error}
+          onRetry={() => setDataReloadKey((value) => value + 1)}
           pendingStudents={pendingStudents}
           workouts={workouts}
           onOpenProgress={openStudentProgress}
@@ -603,35 +731,19 @@ export default function App() {
           onDeleteStudent={deleteStudent}
           focusedPendingStudentId={focusedPendingStudentId}
           onPendingStudentViewed={() => setFocusedPendingStudentId(null)}
-          onSaveStudent={(student) => {
-            setStudents((current) => {
-              if (student.id) {
-                return current.map((item) => item.id === student.id ? { ...item, ...student } : item);
-              }
-              return [
-                { ...student, id: crypto.randomUUID(), avatar: mockStudents[0].avatar, adherence: 0, workoutIds: student.workoutIds || [], accessApproved: student.accessApproved === true },
-                ...current
-              ];
-            });
-          }}
+          onSaveStudent={saveStudent}
         />
       )}
       {activePage === "workout-builder" && (
         <WorkoutBuilder
           students={students}
           workouts={workouts}
+          availableExercises={exerciseLibrary}
           onOpenExercise={(exercise) => {
             setSelectedExercise(exercise);
             navigate("exercise");
           }}
-          onSaveWorkout={(workout) => {
-            setWorkouts((current) => {
-              const exists = current.some((item) => item.id === workout.id);
-              return exists
-                ? current.map((item) => item.id === workout.id ? workout : item)
-                : [workout, ...current];
-            });
-          }}
+          onSaveWorkout={saveWorkout}
         />
       )}
       {sharedPages}

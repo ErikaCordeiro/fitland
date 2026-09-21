@@ -30,6 +30,7 @@ import {
 import { loadNotificationSettings } from "../utils/activityData.js";
 import { fetchProgressionAlerts, syncWorkoutHistory } from "../services/workoutSessions.js";
 import { getNextDays, getWorkoutsForDate } from "../utils/workoutSchedule.js";
+import { scopedKey } from "../utils/storageScope.js";
 
 const weekLabels = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
 const availableTimes = ["08:00", "09:00", "10:00", "14:00", "15:00", "16:00", "18:00", "19:00", "20:00"];
@@ -60,15 +61,15 @@ function buildMonthDays(monthDate) {
   });
 }
 
-export default function StudentCalendar({ student, workouts = [], onStartWorkout, branding }) {
-  const firstName = student?.name?.split(" ")[0] || "Erika";
+export default function StudentCalendar({ student, workouts = [], onStartWorkout, branding, scope }) {
+  const firstName = student?.name?.split(" ")[0] || "Aluno";
   const personalName = branding?.display_name || "Seu personal";
   const personalImage = branding?.profile_image_url || branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const brandLogo = branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const [monthDate, setMonthDate] = useState(() => new Date());
   const [selectedKey, setSelectedKey] = useState(() => toLocalDateKey(new Date()));
-  const [history, setHistory] = useState(() => loadWorkoutHistory());
-  const [customEvents, setCustomEvents] = useState(() => loadCalendarEvents());
+  const [history, setHistory] = useState(() => loadWorkoutHistory(scope));
+  const [customEvents, setCustomEvents] = useState(() => loadCalendarEvents(scope));
   const [dayDetail, setDayDetail] = useState(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [attendance, setAttendance] = useState(false);
@@ -76,15 +77,22 @@ export default function StudentCalendar({ student, workouts = [], onStartWorkout
   const [selectedDay, setSelectedDay] = useState(1);
   const [selectedTime, setSelectedTime] = useState("18:00");
   const [goalOpen, setGoalOpen] = useState(false);
-  const [monthlyGoalState, setMonthlyGoalState] = useState(() => getMonthlyWorkoutGoal() || 12);
+  const [monthlyGoalState, setMonthlyGoalState] = useState(() => getMonthlyWorkoutGoal(scope) || 12);
   const [progressionAlerts, setProgressionAlerts] = useState([]);
-  const [goalDraft, setGoalDraft] = useState(() => String(getMonthlyWorkoutGoal() || 12));
+  const [goalDraft, setGoalDraft] = useState(() => String(getMonthlyWorkoutGoal(scope) || 12));
   const availableDays = useMemo(() => getNextDays(7), []);
 
   useEffect(() => {
+    setHistory(loadWorkoutHistory(scope));
+    setCustomEvents(loadCalendarEvents(scope));
+    setMonthlyGoalState(getMonthlyWorkoutGoal(scope) || 12);
+    setGoalDraft(String(getMonthlyWorkoutGoal(scope) || 12));
+  }, [scope?.personalId, scope?.userId]);
+
+  useEffect(() => {
     const refresh = () => {
-      setHistory(loadWorkoutHistory());
-      setCustomEvents(loadCalendarEvents());
+      setHistory(loadWorkoutHistory(scope));
+      setCustomEvents(loadCalendarEvents(scope));
     };
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
@@ -92,10 +100,10 @@ export default function StudentCalendar({ student, workouts = [], onStartWorkout
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
     };
-  }, []);
+  }, [scope?.personalId, scope?.userId]);
 
   useEffect(() => {
-    syncWorkoutHistory().then(() => setHistory(loadWorkoutHistory())).catch(() => {});
+    syncWorkoutHistory({ scope }).then(() => setHistory(loadWorkoutHistory(scope))).catch(() => {});
     fetchProgressionAlerts().then((items) => {
       setProgressionAlerts(items);
       const preferences = loadNotificationSettings();
@@ -103,7 +111,7 @@ export default function StudentCalendar({ student, workouts = [], onStartWorkout
         new Notification("Acompanhamento de progressão", { body: items[0].message, icon: "/pwa-icon-192.png" });
       }
     }).catch(() => {});
-  }, []);
+  }, [scope?.personalId, scope?.userId]);
 
   const monthDays = useMemo(() => buildMonthDays(monthDate), [monthDate]);
   const workoutEvents = useMemo(() => workoutEventsFromHistory(history), [history]);
@@ -151,7 +159,8 @@ export default function StudentCalendar({ student, workouts = [], onStartWorkout
 
   function saveMonthlyGoal() {
     const value = Math.max(1, Math.min(60, Number(goalDraft) || 12));
-    window.localStorage.setItem("ptf_monthly_workout_goal", String(value));
+    const key = scopedKey("ptf_monthly_workout_goal", scope);
+    if (key) window.localStorage.setItem(key, String(value));
     setMonthlyGoalState(value);
     setGoalDraft(String(value));
     setGoalOpen(false);
@@ -168,8 +177,8 @@ export default function StudentCalendar({ student, workouts = [], onStartWorkout
       detail: `${serviceType} às ${selectedTime}`,
       time: selectedTime
     };
-    saveCalendarEvent(event);
-    setCustomEvents(loadCalendarEvents());
+    saveCalendarEvent(event, scope);
+    setCustomEvents(loadCalendarEvents(scope));
     setScheduleOpen(false);
   }
 

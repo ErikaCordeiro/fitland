@@ -6,6 +6,7 @@
 *.sqlite
 *.sqlite3
 .venv/
+backend/.runtime/
 __pycache__/
 *.pyc
 node_modules/

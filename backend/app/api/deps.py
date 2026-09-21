@@ -47,8 +47,6 @@ def require_student_or_personal(current_user: User = Depends(get_current_user)) 
 def require_owner(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != UserRole.OWNER:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Owner access required")
-    if current_user.must_change_password or getattr(current_user, "_token_password_change_required", False):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Password change required")
     return current_user
 
 

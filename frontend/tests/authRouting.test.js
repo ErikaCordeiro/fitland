@@ -1,19 +1,94 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   getContextLoginPath,
   getLoginEndpoint,
   getRequestedContext,
   getRouteBranding,
+  applyRouteBranding,
   isAuthLoginPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
+  PUBLIC_AUTH_CONTEXT_KEY,
+  readPublicAuthContext,
+  rememberPublicAuthContext,
+  resolveLogoutContext,
 } from "../src/utils/authRouting.js";
 
 test("Fitland login is always routed to the owner endpoint", () => {
   assert.equal(isOwnerLoginPath("/fitland/login"), true);
   assert.equal(isOwnerLoginPath("/fitland/login/"), true);
   assert.equal(getLoginEndpoint(isOwnerLoginPath("/fitland/login")), "/auth/owner-login");
+});
+
+test("logout uses the central context login path", () => {
+  const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  assert.match(appSource, /resolveLogoutContext/);
+  assert.match(appSource, /getContextLoginPath\(logoutContext\)/);
+  assert.match(appSource, /setTenantData\(createTenantDataState\(\)\)/);
+});
+
+test("logout resolves owner and branded personal destinations", () => {
+  assert.equal(getContextLoginPath(resolveLogoutContext({ role: "owner" })), "/fitland/login");
+  assert.equal(getContextLoginPath(resolveLogoutContext({ role: "personal", branding: { slug: "thiago-fillipo" } })), "/personal/thiago-fillipo/login");
+  assert.equal(getContextLoginPath(resolveLogoutContext({ role: "personal", branding: { slug: "hugo" } })), "/personal/hugo/login");
+});
+
+test("student logout preserves its personal tenant", () => {
+  const context = resolveLogoutContext({
+    role: "student",
+    pathname: "/dashboard/aluno",
+    storedContext: { type: "student", slug: "thiago-fillipo" },
+  });
+  assert.deepEqual(context, { type: "student", slug: "thiago-fillipo" });
+  assert.equal(getContextLoginPath(context), "/personal/thiago-fillipo/aluno/login");
+});
+
+test("public auth context stores no private session data", () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) || null,
+    setItem: (key, value) => values.set(key, value),
+  };
+  rememberPublicAuthContext({ type: "personal", slug: "thiago-fillipo", access_token: "secret", student: { id: "private" } }, storage);
+  assert.equal(values.has(PUBLIC_AUTH_CONTEXT_KEY), true);
+  assert.deepEqual(JSON.parse(values.get(PUBLIC_AUTH_CONTEXT_KEY)), { type: "personal", slug: "thiago-fillipo" });
+  assert.deepEqual(readPublicAuthContext(storage), { type: "personal", slug: "thiago-fillipo" });
+});
+
+test("authenticated branding takes priority over generic personal subroutes", () => {
+  assert.deepEqual(resolveLogoutContext({
+    role: "personal", pathname: "/personal/financeiro", branding: { slug: "hugo" },
+    storedContext: { type: "personal", slug: "old-personal" },
+  }), { type: "personal", slug: "hugo" });
+  for (const route of ["financeiro", "treinos", "alunos", "progresso"]) {
+    const context = resolveLogoutContext({ role: "personal", pathname: `/personal/${route}`, branding: { slug: "hugo" } });
+    assert.equal(getContextLoginPath(context), "/personal/hugo/login");
+  }
+});
+
+test("typing an email never changes route branding", () => {
+  const loginSource = readFileSync(new URL("../src/pages/Login.jsx", import.meta.url), "utf8");
+  assert.doesNotMatch(loginSource, /branding\/public\?email=/);
+  assert.doesNotMatch(loginSource, /resolvePersonalBrand/);
+});
+
+test("context changes update title and favicon together", () => {
+  const favicon = { href: "", type: "" };
+  global.document = {
+    title: "",
+    querySelector: () => favicon,
+    createElement: () => favicon,
+    head: { appendChild: () => {} },
+  };
+  applyRouteBranding("/fitland/dashboard", { display_name: "Personal A", icon_url: "/a.png" });
+  assert.equal(document.title, "Fitland");
+  assert.match(favicon.href, /fitland-icon\.svg$/);
+  applyRouteBranding("/personal/personal-a/login", { display_name: "Personal A", icon_url: "/a.png" });
+  assert.equal(document.title, "Personal A");
+  assert.match(favicon.href, /a\.png$/);
+  delete global.document;
 });
 
 test("personal login uses the regular auth endpoint", () => {
@@ -58,6 +133,9 @@ test("student routes and sessions stay separate from personal context", () => {
   assert.equal(isSessionCompatibleWithContext(student, studentContext), true);
   assert.equal(isSessionCompatibleWithContext(personal, studentContext), false);
   assert.equal(isSessionCompatibleWithContext(student, getRequestedContext("/personal/thiago-fillipo/login")), false);
+  assert.equal(isAuthLoginPath("/personal/thiago-fillipo/aluno/login"), true);
+  assert.deepEqual(getRequestedContext("/personal/thiago-fillipo/aluno/login"), { type: "student", slug: "thiago-fillipo" });
+  assert.equal(getContextLoginPath({ type: "student", slug: "thiago-fillipo" }), "/personal/thiago-fillipo/aluno/login");
 });
 
 test("branding follows the requested URL", () => {
@@ -70,6 +148,10 @@ test("branding follows the requested URL", () => {
     favicon: "/fitland-icon.svg",
   });
   assert.deepEqual(getRouteBranding("/personal/maria/login", { display_name: "Personal Maria", icon_url: "/maria.png" }), {
+    title: "Personal Maria",
+    favicon: "/maria.png",
+  });
+  assert.deepEqual(getRouteBranding("/personal/maria/aluno/login", { display_name: "Personal Maria", icon_url: "/maria.png" }), {
     title: "Personal Maria",
     favicon: "/maria.png",
   });

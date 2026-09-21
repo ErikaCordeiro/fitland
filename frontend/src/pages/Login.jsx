@@ -1,22 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Apple, Chrome, Download, Eye, EyeOff, Lock, Mail, UserPlus, X } from "lucide-react";
 import LionLogo from "../components/LionLogo.jsx";
-import { apiRequest, login as apiLogin } from "../services/api.js";
+import { apiRequest, confirmPasswordReset, login as apiLogin, requestPasswordReset } from "../services/api.js";
 import { applyRouteBranding } from "../utils/authRouting.js";
+import { createLoginBrandingRequest, loginBrandingFailure, visibleLoginBranding } from "../utils/loginBranding.js";
 
-function personalBrandFallback(brandSlug) {
-  const name = brandSlug.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
-  return {
-    display_name: `Personal ${name}`.trim(),
-    initials: name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "PT",
-    logo_url: "",
-    icon_url: "",
-    login_subtitle: "Disciplina • Foco • Propósito",
-    is_fallback: true
-  };
-}
-
-export default function Login({ onLogin, onSignup, context = "platform", branding: initialBranding = null, brandSlug = "" }) {
+export default function Login({ onLogin, onSignup, onBrandingResolved, context = "platform", branding: initialBranding = null, brandSlug = "" }) {
   const [credentials, setCredentials] = useState({
     email: "",
     password: ""
@@ -27,13 +16,50 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
   const [keepConnected, setKeepConnected] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
   const [signupMessage, setSignupMessage] = useState("");
   const [signupErrors, setSignupErrors] = useState({});
-  const [branding, setBranding] = useState(initialBranding);
+  const [branding, setBranding] = useState(() => visibleLoginBranding(initialBranding, brandSlug, context === "owner"));
+  const [brandingLoadError, setBrandingLoadError] = useState(false);
+  const [brandingRetry, setBrandingRetry] = useState(0);
   const signupDialogRef = useRef(null);
   const signupTriggerRef = useRef(null);
   const isOwnerContext = context === "owner";
-  const visualBranding = branding;
+  const visualBranding = visibleLoginBranding(branding, brandSlug, isOwnerContext);
+  const resetToken = new URLSearchParams(window.location.search).get("token");
+
+  const requestReset = async (event) => {
+    event.preventDefault();
+    setResetError("");
+    try {
+      const email = String(new FormData(event.currentTarget).get("email") || "").trim();
+      const result = await requestPasswordReset(email);
+      setResetMessage(result?.detail || "Se o e-mail estiver cadastrado, enviaremos um link de redefinicao.");
+    } catch (error) {
+      setResetError(error.message);
+    }
+  };
+
+  const completeReset = async (event) => {
+    event.preventDefault();
+    setResetError("");
+    const form = new FormData(event.currentTarget);
+    const newPassword = String(form.get("new_password") || "");
+    const confirmation = String(form.get("confirm_password") || "");
+    if (newPassword !== confirmation) {
+      setResetError("As senhas nao coincidem.");
+      return;
+    }
+    try {
+      const result = await confirmPasswordReset(resetToken, newPassword, confirmation);
+      window.history.replaceState(null, "", result?.context === "owner" ? "/fitland/login" : "/");
+      setResetMessage("Senha redefinida. Entre com a nova senha.");
+    } catch (error) {
+      setResetError(error.message);
+    }
+  };
 
   useEffect(() => {
     const build = typeof __APP_BUILD_ID__ !== "undefined" ? __APP_BUILD_ID__ : "unknown";
@@ -42,40 +68,27 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
 
   useEffect(() => {
     applyRouteBranding(window.location.pathname, visualBranding);
-  }, [visualBranding?.display_name, isOwnerContext]);
+    if (visualBranding?.display_name) onBrandingResolved?.(visualBranding);
+  }, [visualBranding?.display_name, visualBranding?.icon_url, visualBranding?.logo_url, isOwnerContext, onBrandingResolved]);
 
   useEffect(() => {
+    setBrandingLoadError(false);
     const endpoint = isOwnerContext || !brandSlug
       ? "/branding/platform"
       : `/branding/public?slug=${encodeURIComponent(brandSlug)}`;
+    const request = createLoginBrandingRequest({
+      brandSlug,
+      isOwnerContext,
+      onResolved: (resolved) => { setBranding(resolved); setBrandingLoadError(false); },
+      onRejected: () => {
+        setBranding((current) => loginBrandingFailure(current, brandSlug, isOwnerContext));
+        setBrandingLoadError(true);
+      }
+    });
     apiRequest(endpoint, { skipAuthRefresh: true })
-      .then((data) => setBranding(
-        !isOwnerContext && brandSlug && data?.display_name === "Fitland"
-          ? personalBrandFallback(brandSlug)
-          : data
-      ))
-      .catch(() => setBranding(isOwnerContext
-        ? { display_name: "Fitland", initials: "FT", is_fallback: true }
-        : personalBrandFallback(brandSlug)));
-  }, [isOwnerContext, brandSlug]);
-
-  useEffect(() => {
-    if (isOwnerContext || brandSlug || !credentials.email.includes("@")) return undefined;
-    const timer = window.setTimeout(() => {
-      resolvePersonalBrand();
-    }, 450);
-    return () => window.clearTimeout(timer);
-  }, [credentials.email, isOwnerContext, brandSlug]);
-
-  const resolvePersonalBrand = async () => {
-    if (isOwnerContext || brandSlug || !credentials.email) return;
-    try {
-      const data = await apiRequest(`/branding/public?email=${encodeURIComponent(credentials.email)}`, { skipAuthRefresh: true });
-      setBranding(data);
-    } catch {
-      setBranding((current) => current || { display_name: "Personal", initials: "PT", is_fallback: true });
-    }
-  };
+      .then(request.resolve, request.reject);
+    return request.cancel;
+  }, [isOwnerContext, brandSlug, brandingRetry]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
@@ -152,6 +165,10 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
 
   const submitSignup = (event) => {
     event.preventDefault();
+    if (!brandSlug || !branding?.personal_id || branding.slug !== brandSlug) {
+      setSignupMessage("Não foi possível identificar o personal. Abra o link de cadastro fornecido por ele.");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const errors = {};
     const name = String(form.get("name") || "").trim();
@@ -175,7 +192,7 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
       return;
     }
 
-    onSignup?.({
+    const saved = onSignup?.({
       name,
       email,
       age,
@@ -183,7 +200,11 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
       height,
       objective,
       notes: form.get("notes")
-    });
+    }, branding.personal_id);
+    if (!saved) {
+      setSignupMessage("Não foi possível identificar o personal. Abra o link de cadastro fornecido por ele.");
+      return;
+    }
     setSignupMessage("Cadastro enviado. aguarde aprovação do personal para liberar seu acesso.");
     setSignupOpen(false);
     event.currentTarget.reset();
@@ -226,6 +247,12 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [signupOpen]);
 
+  if (!isOwnerContext && brandSlug && !visualBranding?.display_name) {
+    return brandingLoadError
+      ? <main className="login-screen login-loading-screen" role="alert"><p>Não foi possível carregar a identidade visual.</p><button type="button" onClick={() => setBrandingRetry((current) => current + 1)}>Tentar novamente</button></main>
+      : <main className="login-screen login-loading-screen" role="status" aria-label="Carregando identidade visual" />;
+  }
+
   return (
     <main className="login-screen">
       <div className="login-orbit" aria-hidden="true" />
@@ -234,7 +261,14 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
       </section>
       <section className="phone-frame" aria-label="Tela de login">
         <div className="phone-speaker" />
-        <form className="login-card" onSubmit={submit}>
+        {resetToken ? <form className="login-card" onSubmit={completeReset}>
+          <LionLogo hero branding={visualBranding} platform={isOwnerContext} />
+          <p className="welcome-copy">Redefinir senha</p>
+          <label><span>Nova senha</span><div className="input-shell"><Lock size={16} /><input name="new_password" type="password" minLength={10} autoComplete="new-password" required /></div></label>
+          <label><span>Confirmar nova senha</span><div className="input-shell"><Lock size={16} /><input name="confirm_password" type="password" minLength={10} autoComplete="new-password" required /></div></label>
+          {resetError ? <p className="login-error">{resetError}</p> : null}
+          <button className="metal-button" type="submit">Redefinir senha</button>
+        </form> : <form className="login-card" onSubmit={submit}>
           <LionLogo hero branding={visualBranding} platform={isOwnerContext} />
           <p className="welcome-copy">Bem-vindo</p>
           <label>
@@ -247,7 +281,6 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
                 placeholder="E-mail"
                 value={credentials.email}
                 onChange={(event) => setCredentials((current) => ({ ...current, email: event.target.value }))}
-                onBlur={resolvePersonalBrand}
                 required
               />
             </div>
@@ -285,7 +318,7 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
               />
               <span>Manter conectado</span>
             </label>
-            <button className="forgot-link" type="button">Esqueci minha senha</button>
+            <button className="forgot-link" type="button" onClick={() => { setResetOpen(true); setResetMessage(""); setResetError(""); }}>Esqueci minha senha</button>
           </div>
           {loginError ? <p className="login-error">{loginError}</p> : null}
           <button className="metal-button" type="submit">Entrar</button>
@@ -306,8 +339,22 @@ export default function Login({ onLogin, onSignup, context = "platform", brandin
             </button>
           </small>}
           {signupMessage ? <p className="signup-success-message">{signupMessage}</p> : null}
-        </form>
+        </form>}
       </section>
+      {resetOpen && (
+        <div className="signup-modal-backdrop" onMouseDown={() => setResetOpen(false)}>
+          <form className="signup-modal password-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onSubmit={requestReset} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="section-heading">
+              <div><p className="eyebrow">Seguranca</p><h2 id="reset-title">Redefinir senha por e-mail</h2><span>Enviaremos um link temporario para o e-mail cadastrado.</span></div>
+              <button className="icon-button signup-close-button" type="button" onClick={() => setResetOpen(false)} aria-label="Fechar"><X size={22} /></button>
+            </div>
+            <label><span>E-mail</span><div className="input-shell"><Mail size={16} /><input name="email" type="email" defaultValue={credentials.email} autoComplete="email" required /></div></label>
+            {resetMessage ? <p className="signup-success-message">{resetMessage}</p> : null}
+            {resetError ? <p className="login-error">{resetError}</p> : null}
+            <button className="metal-button inline" type="submit">Enviar link</button>
+          </form>
+        </div>
+      )}
       {signupOpen && (
         <div className="signup-modal-backdrop" onMouseDown={closeSignup}>
           <form ref={signupDialogRef} className="signup-modal" role="dialog" aria-modal="true" aria-labelledby="signup-title" aria-describedby="signup-description" noValidate onSubmit={submitSignup} onMouseDown={(event) => event.stopPropagation()}>

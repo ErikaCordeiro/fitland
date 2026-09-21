@@ -1,7 +1,6 @@
 import React from "react";
 import { Brain, Link, Plus, Save, Trash2, Upload, Video } from "lucide-react";
 import { useMemo, useState } from "react";
-import { exerciseCatalog } from "../data/mockData.js";
 
 const blankExercise = {
   name: "",
@@ -11,7 +10,15 @@ const blankExercise = {
   load: "",
   explanation: "",
   videoUrl: "",
-  videoFile: ""
+  videoFile: "",
+  setType: "standard",
+  techniqueConfig: {},
+  partnerName: "",
+  partnerReps: "10",
+  partnerLoad: "",
+  dropCount: 3,
+  dropLoads: "",
+  dropReps: ""
 };
 
 const preferredInstructor = "Leandro Twin";
@@ -21,10 +28,34 @@ const buildInstructorYoutubeUrl = (exerciseName) => {
   return `https://www.youtube.com/results?search_query=${query}`;
 };
 
-export default function WorkoutBuilder({ students, workouts, onOpenExercise, onSaveWorkout }) {
+function techniqueConfigFor(exercise) {
+  if (exercise.setType === "biset") {
+    return { components: [
+      { exerciseName: exercise.name, repetitions: exercise.reps, prescribedLoad: exercise.load },
+      { exerciseName: exercise.partnerName, repetitions: exercise.partnerReps, prescribedLoad: exercise.partnerLoad },
+    ] };
+  }
+  if (exercise.setType === "drop_set") {
+    const loads = String(exercise.dropLoads || "").split(",").map((value) => value.trim());
+    const repetitions = String(exercise.dropReps || "").split(",").map((value) => value.trim());
+    return {
+      drop_count: Math.max(1, Number(exercise.dropCount) || 1),
+      drops: Array.from({ length: Math.max(1, Number(exercise.dropCount) || 1) }, (_, index) => ({
+        order: index,
+        prescribedLoad: loads[index] || "",
+        prescribedRepetitions: repetitions[index] || "",
+      })),
+    };
+  }
+  return {};
+}
+
+export default function WorkoutBuilder({ students, workouts, availableExercises = [], onOpenExercise, onSaveWorkout }) {
   const [exercises, setExercises] = useState([{ ...blankExercise, id: crypto.randomUUID() }]);
   const [activeSuggestId, setActiveSuggestId] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const workoutHistory = useMemo(
     () => [...workouts].sort((a, b) => a.name.localeCompare(b.name)),
@@ -40,6 +71,7 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
       if (exercise.id !== id) return exercise;
       return {
         ...exercise,
+        exerciseId: suggestion.id,
         name: suggestion.name,
         explanation: suggestion.explanation,
         videoUrl: buildInstructorYoutubeUrl(suggestion.name)
@@ -55,26 +87,46 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
     if (activeSuggestId === id) setActiveSuggestId(null);
   };
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    onSaveWorkout({
-      id: editingWorkout?.id || crypto.randomUUID(),
-      name: form.get("name"),
-      studentId: form.get("studentId"),
-      status: "Histórico",
-      focus: form.get("focus"),
-      duration: form.get("duration"),
-      date: form.get("date") || "Segunda",
-      exercises: exercises.map((exercise) => ({ ...exercise, done: false }))
-    });
-    setEditingWorkout(null);
-    setExercises([{ ...blankExercise, id: crypto.randomUUID() }]);
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSaveWorkout({
+        id: editingWorkout?.id || null,
+        name: form.get("name"),
+        studentId: form.get("studentId"),
+        status: "active",
+        focus: form.get("focus"),
+        duration: form.get("duration"),
+        date: form.get("date") || "Segunda",
+        exercises: exercises.map((exercise) => ({ ...exercise, techniqueConfig: techniqueConfigFor(exercise), done: false }))
+      });
+      setEditingWorkout(null);
+      setExercises([{ ...blankExercise, id: crypto.randomUUID() }]);
+    } catch (error) {
+      setSaveError(error.message || "Não foi possível salvar o treino.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const editWorkout = (workout) => {
     setEditingWorkout(workout);
-    setExercises(workout.exercises.map((exercise) => ({ ...blankExercise, ...exercise, id: exercise.id || crypto.randomUUID() })));
+    setExercises(workout.exercises.map((exercise) => ({
+      ...blankExercise,
+      ...exercise,
+      id: exercise.id || crypto.randomUUID(),
+      setType: exercise.setType || exercise.set_type || "standard",
+      techniqueConfig: exercise.techniqueConfig || exercise.technique_config || {},
+      partnerName: exercise.techniqueConfig?.components?.[1]?.exerciseName || exercise.technique_config?.components?.[1]?.exerciseName || "",
+      partnerReps: exercise.techniqueConfig?.components?.[1]?.repetitions || exercise.technique_config?.components?.[1]?.repetitions || "10",
+      partnerLoad: exercise.techniqueConfig?.components?.[1]?.prescribedLoad || exercise.technique_config?.components?.[1]?.prescribedLoad || "",
+      dropCount: exercise.techniqueConfig?.drop_count || exercise.technique_config?.drop_count || 3,
+      dropLoads: (exercise.techniqueConfig?.drops || exercise.technique_config?.drops || []).map((item) => item.prescribedLoad || "").join(", "),
+      dropReps: (exercise.techniqueConfig?.drops || exercise.technique_config?.drops || []).map((item) => item.prescribedRepetitions || "").join(", "),
+    })));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -86,7 +138,7 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
             <p className="eyebrow">{editingWorkout ? "Editando treino" : "Protocolos"}</p>
             <h2>{editingWorkout ? editingWorkout.name : "Criar treino"}</h2>
           </div>
-          <button className="metal-button inline" type="submit"><Save size={18} /> {editingWorkout ? "Salvar edição" : "Salvar treino"}</button>
+          <button className="metal-button inline" type="submit" disabled={saving}><Save size={18} /> {saving ? "Salvando..." : editingWorkout ? "Salvar edição" : "Salvar treino"}</button>
         </div>
         <div className="form-grid">
           <label><span>Nome do treino</span><input name="name" key={`name-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.name || "Novo treino personalizado"} required /></label>
@@ -98,7 +150,7 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
         <div className="exercise-builder">
           {exercises.map((exercise, index) => {
             const suggestions = exercise.name.trim().length > 1
-              ? exerciseCatalog
+              ? availableExercises
                 .filter((item) => `${item.name} ${item.muscle}`.toLowerCase().includes(exercise.name.toLowerCase()))
                 .slice(0, 4)
               : [];
@@ -138,7 +190,7 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
                         {suggestions.map((suggestion) => (
                           <button key={suggestion.name} type="button" onClick={() => applySuggestion(exercise.id, suggestion)}>
                             <strong>{suggestion.name}</strong>
-                            <span>{suggestion.muscle} - Vídeo disponível com {preferredInstructor}</span>
+                            <span>{suggestion.muscle_group || suggestion.muscle || "Exercício"}</span>
                           </button>
                         ))}
                       </div>
@@ -148,6 +200,17 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
                   <input placeholder="Repetições" value={exercise.reps} onChange={(event) => updateExercise(exercise.id, "reps", event.target.value)} />
                   <input placeholder="Descanso" value={exercise.rest} onChange={(event) => updateExercise(exercise.id, "rest", event.target.value)} />
                   <input placeholder="Carga" value={exercise.load} onChange={(event) => updateExercise(exercise.id, "load", event.target.value)} />
+                  <label><span>Técnica</span><select value={exercise.setType} onChange={(event) => updateExercise(exercise.id, "setType", event.target.value)}><option value="standard">Standard</option><option value="biset">Biset</option><option value="drop_set">Drop set</option></select></label>
+                  {exercise.setType === "biset" && <>
+                    <input placeholder="Segundo exercício do biset" value={exercise.partnerName} onChange={(event) => updateExercise(exercise.id, "partnerName", event.target.value)} required />
+                    <input placeholder="Repetições do segundo exercício" value={exercise.partnerReps} onChange={(event) => updateExercise(exercise.id, "partnerReps", event.target.value)} />
+                    <input placeholder="Carga do segundo exercício" value={exercise.partnerLoad} onChange={(event) => updateExercise(exercise.id, "partnerLoad", event.target.value)} />
+                  </>}
+                  {exercise.setType === "drop_set" && <>
+                    <input aria-label="Quantidade de etapas do drop set" type="number" min="1" max="6" value={exercise.dropCount} onChange={(event) => updateExercise(exercise.id, "dropCount", Number(event.target.value))} />
+                    <input placeholder="Cargas por etapa, separadas por vírgula" value={exercise.dropLoads} onChange={(event) => updateExercise(exercise.id, "dropLoads", event.target.value)} />
+                    <input placeholder="Repetições por etapa, separadas por vírgula" value={exercise.dropReps} onChange={(event) => updateExercise(exercise.id, "dropReps", event.target.value)} />
+                  </>}
                   <label className="vivideo-input">
                     <span><Link size={15} /> Link do YouTube</span>
                     <input placeholder="https://youtube.com/..." value={exercise.videoUrl} onChange={(event) => updateExercise(exercise.id, "videoUrl", event.target.value)} />
@@ -168,6 +231,7 @@ export default function WorkoutBuilder({ students, workouts, onOpenExercise, onS
             );
           })}
         </div>
+        {saveError ? <p className="form-error" role="alert">{saveError}</p> : null}
         <div className="builder-actions">
           <button className="ghost-button" type="button" onClick={addExercise}><Plus size={18} /> Adicionar exercício</button>
           {editingWorkout && (

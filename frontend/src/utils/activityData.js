@@ -1,3 +1,6 @@
+import { historyKey } from "./workoutSync.js";
+import { scopedKey } from "./storageScope.js";
+
 export const WORKOUT_HISTORY_KEY = "ptf_workout_history_v2";
 export const WORKOUT_EXECUTION_PREFIX = "ptf_workout_execution_v2";
 export const BEST_STREAK_KEY = "ptf_best_workout_streak";
@@ -42,9 +45,10 @@ export function isWorkoutCompleted(record) {
   return total > 0 ? done >= total : true;
 }
 
-export function loadWorkoutHistory() {
-  if (typeof window === "undefined") return [];
-  const records = safeJsonParse(window.localStorage.getItem(WORKOUT_HISTORY_KEY), []);
+export function loadWorkoutHistory(scope = null) {
+  const key = historyKey(scope);
+  if (typeof window === "undefined" || !key) return [];
+  const records = safeJsonParse(window.localStorage.getItem(key), []);
   return records
     .filter(isWorkoutCompleted)
     .map((record) => {
@@ -61,19 +65,21 @@ export function loadWorkoutHistory() {
     .sort((a, b) => new Date(b.completedAt || b.date) - new Date(a.completedAt || a.date));
 }
 
-export function loadCalendarEvents() {
-  if (typeof window === "undefined") return [];
-  return safeJsonParse(window.localStorage.getItem(CALENDAR_EVENTS_KEY), [])
+export function loadCalendarEvents(scope = null) {
+  const key = scopedKey(CALENDAR_EVENTS_KEY, scope);
+  if (typeof window === "undefined" || !key) return [];
+  return safeJsonParse(window.localStorage.getItem(key), [])
     .map((event) => ({ ...event, dateKey: event.dateKey || toLocalDateKey(event.date) }))
     .filter((event) => event.dateKey);
 }
 
-export function saveCalendarEvent(event) {
-  if (typeof window === "undefined") return;
-  const current = loadCalendarEvents();
+export function saveCalendarEvent(event, scope = null) {
+  const key = scopedKey(CALENDAR_EVENTS_KEY, scope);
+  if (typeof window === "undefined" || !key) return;
+  const current = loadCalendarEvents(scope);
   const normalized = { ...event, id: event.id || `event-${Date.now()}`, dateKey: event.dateKey || toLocalDateKey(event.date) };
   const withoutDuplicate = current.filter((item) => item.id !== normalized.id);
-  window.localStorage.setItem(CALENDAR_EVENTS_KEY, JSON.stringify([normalized, ...withoutDuplicate].slice(0, 80)));
+  window.localStorage.setItem(key, JSON.stringify([normalized, ...withoutDuplicate].slice(0, 80)));
 }
 
 export function workoutEventsFromHistory(history = loadWorkoutHistory()) {
@@ -127,9 +133,10 @@ export function completedWorkoutsInMonth(history = loadWorkoutHistory(), date = 
   });
 }
 
-export function getMonthlyWorkoutGoal() {
-  if (typeof window === "undefined") return null;
-  const stored = Number(window.localStorage.getItem(MONTHLY_GOAL_KEY));
+export function getMonthlyWorkoutGoal(scope = null) {
+  const key = scopedKey(MONTHLY_GOAL_KEY, scope);
+  if (typeof window === "undefined" || !key) return null;
+  const stored = Number(window.localStorage.getItem(key));
   return Number.isFinite(stored) && stored > 0 ? stored : null;
 }
 

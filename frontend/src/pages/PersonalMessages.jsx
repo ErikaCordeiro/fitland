@@ -154,6 +154,7 @@ const quickActions = [
 ];
 
 export default function PersonalMessages({ branding }) {
+  return <section className="messages-admin-page"><div className="tenant-data-state"><strong>Nenhuma mensagem disponível</strong><span>As conversas aparecerão quando houver integração persistida.</span></div></section>;
   const fallbackAvatar = branding?.icon_url || branding?.logo_url || "/fitland-icon.svg";
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, CalendarDays, CheckCircle2, Menu, Search, Sparkles, UserPlus } from "lucide-react";
+import { Bell, CalendarDays, CheckCircle2, Menu, Moon, Search, Sparkles, Sun, UserPlus } from "lucide-react";
 
 export default function Header({
   title,
@@ -12,7 +12,9 @@ export default function Header({
   onCoachClick,
   notifications = [],
   onNotificationAction,
-  onApproveStudent
+  onApproveStudent,
+  theme = "dark",
+  setTheme
 }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const firstName = user?.name?.split(" ")[0] || "Personal";
@@ -51,6 +53,15 @@ export default function Header({
         </label>
         <button className="icon-button glow-button" type="button" aria-label="Coach IA" onClick={onCoachClick}>
           <Sparkles size={19} />
+        </button>
+        <button
+          className="icon-button app-theme-toggle"
+          type="button"
+          aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+          title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+          onClick={() => setTheme?.(theme === "dark" ? "light" : "dark")}
+        >
+          {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
         </button>
         <div className="notification-shell">
           <button

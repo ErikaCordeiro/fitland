@@ -23,3 +23,13 @@ class SessionResponse(TokenResponse):
 class RequiredPasswordChange(BaseModel):
     new_password: str = Field(min_length=10, max_length=128)
     confirm_password: str = Field(min_length=10, max_length=128)
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=20, max_length=4096)
+    new_password: str = Field(min_length=10, max_length=128)
+    confirm_password: str = Field(min_length=10, max_length=128)

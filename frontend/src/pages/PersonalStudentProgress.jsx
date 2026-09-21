@@ -55,6 +55,7 @@ const alerts = [
 ];
 
 export default function PersonalStudentProgress({ student, onBack, branding }) {
+  return <section className="personal-progress-page"><div className="tenant-data-state"><strong>Sem dados individuais de progresso</strong><span>As métricas aparecerão quando o aluno registrar avaliações e atividades reais.</span><button type="button" onClick={onBack}>Voltar</button></div></section>;
   const athlete = student || {};
   const name = athlete.name || "Erika Gomes";
 

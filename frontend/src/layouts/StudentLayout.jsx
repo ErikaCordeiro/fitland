@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { BarChart3, CalendarDays, Dumbbell, Home, Utensils } from "lucide-react";
 import Header from "../components/Header.jsx";
 import Sidebar, { studentNavItems } from "../components/Sidebar.jsx";
-import { filterNavigation, tenantThemeStyle } from "../utils/tenantBranding.js";
+import { tenantThemeStyle } from "../utils/tenantBranding.js";
 
 export default function StudentLayout({
   activePage,
@@ -16,7 +15,9 @@ export default function StudentLayout({
   student,
   notifications,
   onNotificationAction,
-  branding
+  branding,
+  theme,
+  setTheme
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -59,28 +60,10 @@ export default function StudentLayout({
           onCoachClick={() => onNavigate("coach")}
           notifications={notifications}
           onNotificationAction={onNotificationAction}
+          theme={theme}
+          setTheme={setTheme}
         />
         {children}
-        <nav className="bottom-nav student-bottom-nav" aria-label="Navegação principal do aluno">
-          {filterNavigation([
-            { id: "dashboard", label: "Início", icon: Home },
-            { id: "student-view", label: "Treinos", icon: Dumbbell },
-            { id: "diet", label: "Dieta", icon: Utensils },
-            { id: "calendar", label: "Calendário", icon: CalendarDays },
-            { id: "progress", label: "Progresso", icon: BarChart3 }
-          ], branding?.modules).map(({ id: page, label, icon: Icon }) => (
-            <button
-              key={page}
-              className={activePage === page ? "active" : ""}
-              type="button"
-              onClick={() => onNavigate(page)}
-              aria-label={label}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
       </main>
     </div>
   );

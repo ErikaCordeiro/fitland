@@ -214,6 +214,7 @@ function readStorage(key, fallback) {
 }
 
 export default function StudentDiet({ student, branding }) {
+  return <section className="student-diet-page"><div className="tenant-data-state"><strong>Nenhum plano alimentar disponível</strong><span>Um plano prescrito aparecerá aqui quando estiver disponível no sistema.</span></div></section>;
   const [water, setWater] = useState(() => Number(readStorage(WATER_LOG_KEY, 0)) || 0);
   const [waterAmount, setWaterAmount] = useState("300");
   const [foods, setFoods] = useState([]);

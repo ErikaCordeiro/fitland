@@ -18,6 +18,8 @@ class WorkoutExerciseCreate(BaseModel):
 
 class WorkoutExerciseRead(WorkoutExerciseCreate):
     id: uuid.UUID
+    name: str
+    explanation: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -37,6 +39,7 @@ class WorkoutUpdate(BaseModel):
     duration_minutes: int | None = Field(default=None, ge=1, le=360)
     status: str | None = Field(default=None, max_length=40)
     notes: str | None = Field(default=None, max_length=3000)
+    exercises: list[WorkoutExerciseCreate] | None = None
 
 
 class WorkoutRead(BaseModel):

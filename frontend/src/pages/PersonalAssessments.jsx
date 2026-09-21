@@ -69,6 +69,7 @@ function classifyFat(value) {
 }
 
 export default function PersonalAssessments({ students }) {
+  return <section className="assessments-admin-page"><div className="tenant-data-state"><strong>Nenhuma avaliação disponível</strong><span>As avaliações aparecerão quando houver registros persistidos.</span></div></section>;
   const [selectedStudent, setSelectedStudent] = useState(null);
   const assessmentStudent = selectedStudent || students?.[0] || {};
   const [basic, setBasic] = useState({

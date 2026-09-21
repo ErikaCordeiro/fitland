@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Circle, Clock, Dumbbell, Flame, Play, Video, X } from "lucide-react";
 import { loadWorkoutHistory } from "../utils/activityData.js";
+import { syncWorkoutHistory } from "../services/workoutSessions.js";
 import { getRecommendedWorkout, getWeekdayName, groupWorkoutsByWeekday, normalizeScheduleText } from "../utils/workoutSchedule.js";
 
 const weekDays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
-export default function StudentPortal({ workout, workouts = [], completed, onStartWorkout, onToggleExercise, onNavigate }) {
+export default function StudentPortal({ workout, workouts = [], scope, completed, onStartWorkout, onToggleExercise, onNavigate }) {
   const [loads, setLoads] = useState({});
   const availableWorkouts = workouts.length ? workouts : workout ? [workout] : [];
   const recommendedWorkout = getRecommendedWorkout(availableWorkouts, new Date());
@@ -15,21 +16,19 @@ export default function StudentPortal({ workout, workouts = [], completed, onSta
   const [historyDetail, setHistoryDetail] = useState(null);
 
   useEffect(() => {
-    const refreshHistory = () => {
-      try {
-        setWorkoutHistory(loadWorkoutHistory());
-      } catch {
-        setWorkoutHistory([]);
-      }
-    };
+    const refreshHistory = () => syncWorkoutHistory({ scope })
+      .then(() => setWorkoutHistory(loadWorkoutHistory(scope)))
+      .catch(() => setWorkoutHistory(loadWorkoutHistory(scope)));
     refreshHistory();
     window.addEventListener("focus", refreshHistory);
+    window.addEventListener("online", refreshHistory);
     window.addEventListener("storage", refreshHistory);
     return () => {
       window.removeEventListener("focus", refreshHistory);
+      window.removeEventListener("online", refreshHistory);
       window.removeEventListener("storage", refreshHistory);
     };
-  }, []);
+  }, [scope?.personalId, scope?.userId]);
 
   useEffect(() => {
     if (recommendedWorkout?.id) setSelectedWorkoutId(recommendedWorkout.id);
@@ -39,9 +38,11 @@ export default function StudentPortal({ workout, workouts = [], completed, onSta
   const todayName = getWeekdayName(new Date());
 
   const percent = useMemo(() => {
+    const persisted = workoutHistory.find((item) => String(item.workoutId) === String(selectedWorkout?.id) && item.status === "concluido");
+    if (persisted) return 100;
     const done = selectedWorkout?.exercises?.filter((exercise) => completed.has(exercise.id)).length || 0;
     return selectedWorkout?.exercises?.length ?Math.round((done / selectedWorkout.exercises.length) * 100) : 0;
-  }, [selectedWorkout, completed]);
+  }, [selectedWorkout, completed, workoutHistory]);
 
   if (!selectedWorkout) return <section className="student-training-page"><article className="premium-panel"><h2>Nenhum treino cadastrado</h2><p>Seu personal ainda não configurou sua semana de treinos.</p></article></section>;
 
@@ -55,7 +56,6 @@ export default function StudentPortal({ workout, workouts = [], completed, onSta
           <div className="training-facts">
             <span><Dumbbell size={17} />{selectedWorkout.exercises.length} exercícios</span>
             <span><Clock size={17} />{selectedWorkout.duration}</span>
-            <span><Flame size={17} />420 kcal</span>
           </div>
           <button type="button" onClick={() => onStartWorkout?.(selectedWorkout.id)}>
             Acessar treino <Play size={16} />
@@ -131,6 +131,7 @@ export default function StudentPortal({ workout, workouts = [], completed, onSta
 
               return (
                 <article key={item.id}>
+                  {item.syncStatus === "pending_sync" && <span className="history-sync-pending">Pendente de sincronização</span>}
                   <button className="history-open-button" type="button" onClick={() => setHistoryDetail(item)} aria-label={`Ver detalhes de ${item.workoutName}`}>
                   <div>
                     <strong>{item.workoutName}</strong>

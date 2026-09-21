@@ -124,6 +124,7 @@ const initialFiles = [
 const allowedTypes = ["Exames e laudos", "Fotos e vídeos", "PDFs e documentos", "Receitas médicas", "Avaliações e relatórios", "Outros arquivos"];
 
 export default function StudentFiles({ student, branding }) {
+  return <section className="student-files-page"><div className="tenant-data-state"><strong>Nenhum arquivo disponível</strong><span>Os arquivos aparecerão quando houver armazenamento persistido.</span></div></section>;
   const personalName = branding?.display_name || "Seu personal";
   const personalImage = branding?.profile_image_url || branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
   const inputRef = useRef(null);

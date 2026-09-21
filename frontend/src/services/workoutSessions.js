@@ -1,4 +1,15 @@
-import { apiRequest } from "./api.js";
+import { apiRequest, getToken } from "./api.js";
+import {
+  cacheHistory,
+  mergeWorkoutHistory,
+  persistWithQueue,
+  readJson,
+  readPendingWorkouts,
+  retryQueue,
+  storageOrDefault,
+  historyKey,
+} from "../utils/workoutSync.js";
+export { selectLatestExercisePerformance } from "../utils/workoutSync.js";
 
 function numeric(value) {
   const parsed = Number(String(value ?? "").replace(",", ".").replace(/[^0-9.]/g, ""));
@@ -80,6 +91,7 @@ export const saveWorkoutSession = (execution, workout) => apiRequest("/workout-s
 export const discardWorkoutSession = (id) => apiRequest(`/workout-sessions/${id}`, { method: "DELETE" });
 export const fetchWorkoutHistory = () => apiRequest("/workout-sessions/history");
 export const fetchProgressionAlerts = () => apiRequest("/workout-sessions/progression-alerts");
+export const fetchLatestExercisePerformance = (exerciseRef) => apiRequest(`/workout-sessions/exercises/${encodeURIComponent(exerciseRef)}/latest`);
 
 export function backendHistoryToLocal(records) {
   return records.map((session) => {
@@ -96,7 +108,7 @@ export function backendHistoryToLocal(records) {
     }));
     const completedSets = exercises.flatMap((item) => item.sets).filter((set) => set.status === "concluida");
     return {
-      id: session.id, executionId: session.client_session_id, workoutId: session.workout_ref, workoutName: session.workout_name,
+      id: session.id, executionId: session.client_session_id, workoutId: session.workout_ref, workoutName: session.workout_name, syncStatus: "synced",
       date: session.completed_at, completedAt: session.completed_at, duration: session.duration_seconds,
       durationLabel: `${Math.floor(session.duration_seconds / 60)} min`, status: session.status,
       exercisesDone: exercises.filter((item) => item.status === "concluido").length, exercisesTotal: exercises.length,
@@ -107,8 +119,30 @@ export function backendHistoryToLocal(records) {
   });
 }
 
-export async function syncWorkoutHistory() {
-  const records = backendHistoryToLocal(await fetchWorkoutHistory());
-  window.localStorage.setItem("ptf_workout_history_v2", JSON.stringify(records));
+export async function persistFinishedWorkout(execution, workout, record, options = {}) {
+  return persistWithQueue({ execution, workout, record, storage: options.storage, scope: options.scope, save: options.save || saveWorkoutSession, toPersistedRecord: (saved) => backendHistoryToLocal([saved])[0] });
+}
+
+export async function retryPendingWorkouts(options = {}) {
+  const storage = storageOrDefault(options.storage);
+  if (!historyKey(options.scope)) return [];
+  const token = options.save ? null : getToken();
+  const canSend = options.canSend || (() => Boolean(token && getToken() === token));
+  const records = await retryQueue({ storage, scope: options.scope, save: options.save || saveWorkoutSession, canSend, toPersistedRecord: (saved) => backendHistoryToLocal([saved])[0] });
+  if (records.length) {
+    const cached = readJson(storage, historyKey(options.scope)).filter((item) => !records.some((record) => record.executionId === item.executionId));
+    cacheHistory(mergeWorkoutHistory([...records, ...cached], readPendingWorkouts(storage, options.scope)), storage, options.scope);
+  }
   return records;
+}
+
+export async function syncWorkoutHistory(options = {}) {
+  const storage = storageOrDefault(options.storage);
+  if (!historyKey(options.scope)) return [];
+  const token = options.fetchHistory ? null : getToken();
+  const retried = await retryPendingWorkouts(options);
+  const fetchHistory = options.fetchHistory || fetchWorkoutHistory;
+  const records = backendHistoryToLocal(await fetchHistory());
+  if (!options.fetchHistory && getToken() !== token) return [];
+  return cacheHistory(mergeWorkoutHistory([...records, ...retried], readPendingWorkouts(storage, options.scope)), storage, options.scope);
 }

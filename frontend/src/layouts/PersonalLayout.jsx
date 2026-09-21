@@ -16,7 +16,9 @@ export default function PersonalLayout({
   notifications,
   onNotificationAction,
   onApproveStudent,
-  branding
+  branding,
+  theme,
+  setTheme
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -60,6 +62,8 @@ export default function PersonalLayout({
           notifications={notifications}
           onNotificationAction={onNotificationAction}
           onApproveStudent={onApproveStudent}
+          theme={theme}
+          setTheme={setTheme}
         />
         {children}
       </main>

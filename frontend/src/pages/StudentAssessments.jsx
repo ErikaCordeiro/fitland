@@ -77,6 +77,7 @@ const quickActions = [
 ];
 
 export default function StudentAssessments({ student, branding }) {
+  return <section className="student-assessments-page"><div className="tenant-data-state"><strong>Nenhuma avaliação disponível</strong><span>Suas avaliações aparecerão quando houver registros persistidos.</span></div></section>;
   const name = student?.name || "Erika Gomes";
   const [detailModal, setDetailModal] = useState(null);
 

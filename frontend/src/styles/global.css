@@ -19306,6 +19306,10 @@ body.theme-light .workout-layout {
   margin: 0 0 18px;
 }
 
+.student-dashboard-utility-bar {
+  justify-content: flex-start;
+}
+
 .theme-toggle-button,
 button.admin-kpi-card,
 .admin-feature-strip button,
@@ -20425,6 +20429,267 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
   }
 }
 
+.tenant-data-state {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  min-height: 180px;
+  padding: 32px;
+  border: 1px dashed var(--personal-border, #34373a);
+  background: var(--personal-surface, #121416);
+  color: var(--personal-text, #f5f5f5);
+}
+
+.tenant-data-state strong { font-size: 1.15rem; }
+.tenant-data-state span { color: var(--personal-text-secondary, #a7abb0); }
+.tenant-data-state.error { border-color: #b94b4b; }
+.dashboard-inline-empty { padding: 24px; color: var(--personal-text-secondary, #a7abb0); text-align: center; }
+.dashboard-inline-empty.table-empty { grid-column: 1 / -1; }
+.tenant-data-warning { padding: 12px 16px; border: 1px solid #a97a28; color: var(--personal-text, #f5f5f5); background: var(--personal-surface, #121416); }
+
+/* Shared responsive foundation for Owner, Personal and Student workspaces. */
+:where(.owner-shell,.app-shell,.owner-main,.main-panel) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:where(.owner-main,.main-panel) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:where(.owner-shell,.personal-layout,.student-layout-shell) :where(img,svg,video,canvas) {
+  max-width: 100%;
+}
+
+:where(.owner-shell,.personal-layout,.student-layout-shell) :where(h1,h2,h3,p,strong,small,label,button,a) {
+  overflow-wrap: break-word;
+}
+
+:where(.owner-shell,.personal-layout,.student-layout-shell) :where(input,select,textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 1rem;
+}
+
+:where(.owner-shell,.personal-layout,.student-layout-shell) :where(button,[role="button"]) {
+  min-width: 0;
+}
+
+:where(.owner-modal,.student-modal,.form-modal,.nutrition-modal,.finance-modal,.student-calendar-modal,.assessment-detail-modal,.student-message-schedule,.signup-modal) {
+  box-sizing: border-box;
+  width: min(760px, calc(100vw - 32px));
+  max-width: 100%;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+:where(.owner-modal-backdrop,.modal-backdrop,.nutrition-modal-backdrop,.finance-modal-backdrop,.student-calendar-modal-backdrop,.assessment-detail-backdrop,.student-message-modal-backdrop,.signup-modal-backdrop) {
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+:where(.form-grid,.assessment-form-grid,.nutrition-goal-grid,.finance-modal-rows,.settings-two-cols) > * {
+  min-width: 0;
+}
+
+:where(.admin-table,.nutrition-student-table,.student-measure-table,.payment-history-list) {
+  max-width: 100%;
+}
+
+:where(.admin-table-row,.nutrition-table-head,.nutrition-student-row,.student-file-row,.payment-history-row) > * {
+  min-width: 0;
+}
+
+.topbar > div:first-child,
+.owner-header > div:first-child,
+.owner-dashboard-topbar > div:first-child {
+  min-width: 0;
+}
+
+.topbar h1,
+.owner-header h1,
+.owner-dashboard-topbar h1 {
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+@media (max-width: 1180px) {
+  :where(.admin-main-grid,.finance-two-columns,.nutrition-main-grid,.student-assessment-grid,.student-calendar-grid,.student-settings-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :where(.owner-main,.main-panel) {
+    padding-inline: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  html { font-size: 16px; }
+
+  :where(.owner-main,.main-panel) {
+    width: 100%;
+    padding-inline: 14px;
+  }
+
+  .student-layout-shell .student-main,
+  .student-main {
+    padding-bottom: 32px !important;
+  }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
+  }
+
+  .topbar h1 {
+    font-size: 1.75rem !important;
+    line-height: 1.18;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    grid-template-columns: repeat(3, 48px) minmax(0, 1fr) !important;
+    align-items: center;
+  }
+
+  .topbar-actions .compact-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .topbar-actions .header-date {
+    grid-column: 4;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  :where(.section-heading,.panel-head,.assessment-admin-header,.student-settings-header,.student-files-header,.student-calendar-header,.finance-header-card) {
+    align-items: stretch;
+    flex-direction: column;
+    flex-wrap: wrap;
+  }
+
+  :where(.section-heading,.panel-head,.assessment-admin-header,.student-settings-header,.student-files-header,.student-calendar-header,.finance-header-card) > :where(button,.metal-button,.ghost-button) {
+    width: 100%;
+  }
+
+  :where(.stats-grid,.students-grid,.admin-kpis,.admin-main-grid,.admin-feature-strip,.finance-kpi-grid,.finance-two-columns,.nutrition-kpi-grid,.nutrition-main-grid,.nutrition-bottom-grid,.student-metrics-grid,.student-assessment-grid,.student-calendar-grid,.student-settings-grid,.owner-kpis,.owner-dashboard-grid,.owner-settings-grid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :where(.form-grid,.form-grid.compact,.assessment-form-grid,.nutrition-goal-grid,.settings-two-cols,.owner-brand-colors,.owner-brand-uploads,.owner-module-grid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :where(.modal-actions,.owner-modal-actions,.recipe-modal-actions,.identified-actions) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :where(.modal-actions,.owner-modal-actions,.recipe-modal-actions,.identified-actions) > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  :where(.owner-modal,.student-modal,.form-modal,.nutrition-modal,.finance-modal,.student-calendar-modal,.assessment-detail-modal,.student-message-schedule,.signup-modal) {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 20px 16px;
+  }
+
+  :where(.owner-modal-backdrop,.modal-backdrop,.nutrition-modal-backdrop,.finance-modal-backdrop,.student-calendar-modal-backdrop,.assessment-detail-backdrop,.student-message-modal-backdrop,.signup-modal-backdrop) {
+    padding: 10px;
+  }
+
+  :where(.personal-layout,.student-layout-shell) > .sidebar.mobile-open,
+  .owner-sidebar.open {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 380px) {
+  :where(.owner-main,.main-panel) { padding-inline: 10px; }
+
+  .topbar-actions {
+    grid-template-columns: repeat(3, 44px) minmax(0, 1fr) !important;
+    gap: 8px;
+  }
+
+  .topbar-actions :where(.icon-button,.mobile-menu-trigger) {
+    width: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Final drawer override: prevents legacy mobile rules from stretching the close button. */
+@media (max-width: 760px) {
+  .app-shell.personal-layout > .sidebar.mobile-open .sidebar-header,
+  .app-shell.student-layout-shell > .sidebar.mobile-open .sidebar-header {
+    position: relative !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-height: 244px !important;
+    padding: 10px 8px 18px !important;
+  }
+
+  .app-shell.personal-layout > .sidebar.mobile-open .sidebar-header > .lion-logo,
+  .app-shell.student-layout-shell > .sidebar.mobile-open .sidebar-header > .lion-logo {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 24px !important;
+    justify-content: center !important;
+  }
+
+  .app-shell.personal-layout > .sidebar.mobile-open .sidebar-header .brand-lockup,
+  .app-shell.student-layout-shell > .sidebar.mobile-open .sidebar-header .brand-lockup {
+    display: grid !important;
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-shell.personal-layout > .sidebar.mobile-open .sidebar-header .lion-mark,
+  .app-shell.student-layout-shell > .sidebar.mobile-open .sidebar-header .lion-mark {
+    width: min(150px, calc(100% - 24px)) !important;
+    height: 132px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .app-shell.personal-layout > .sidebar.mobile-open .sidebar-toggle,
+  .app-shell.student-layout-shell > .sidebar.mobile-open .sidebar-toggle {
+    position: absolute !important;
+    top: -7px !important;
+    right: -5px !important;
+    z-index: 3 !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+}
+
 .admin-brand-editor { display: grid; gap: 12px; }
 .admin-brand-editor > label { display: grid; gap: 6px; color: #bdbdbd; font-size: 12px; }
 .admin-brand-editor input:not([type="color"]) { width: 100%; }
@@ -20867,6 +21132,33 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
   font-family: var(--personal-font, Inter), Arial, sans-serif;
 }
 
+:where(.personal-layout,.student-layout-shell) > .sidebar { box-sizing: border-box !important; }
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header {
+  grid-template-columns: minmax(0, 1fr) 42px !important;
+}
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header > .lion-logo {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 46px minmax(0, 1fr) !important;
+  align-items: center;
+  gap: 10px;
+}
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .lion-mark {
+  width: 46px !important;
+  height: 46px !important;
+}
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .brand-lockup { min-width: 0; }
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .brand-lockup :where(span,strong,small) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:where(.personal-layout,.student-layout-shell) > .sidebar.collapsed .sidebar-header {
+  display: flex !important;
+}
+
 .personal-layout .sidebar,
 .student-layout-shell .sidebar,
 .personal-layout .main-panel,
@@ -20889,3 +21181,634 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
 .owner-brand-preview img { width: 48px; height: 48px; object-fit: contain; }
 .owner-brand-preview button { width: fit-content; min-height: 44px; padding: 0 18px; border: 0; border-radius: 6px; font-weight: 700; }
 @media (max-width: 700px) { .owner-brand-colors, .owner-module-grid { grid-template-columns: 1fr; } }
+/* Accessible Personal/Student navigation and workout controls. */
+.personal-layout .sidebar,
+.student-layout-shell .sidebar {
+  width: 260px;
+  padding: 18px 14px;
+  background: linear-gradient(180deg, #101215 0%, #070809 58%, #030404 100%);
+  border-right: 1px solid #292c31;
+  color: #f5f5f7;
+}
+.personal-layout .sidebar-header,
+.student-layout-shell .sidebar-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin-bottom: 18px;
+}
+.personal-layout .sidebar-header .brand-lockup,
+.student-layout-shell .sidebar-header .brand-lockup { min-width: 0; overflow: hidden; }
+.personal-layout .sidebar-header .menu-toggle,
+.student-layout-shell .sidebar-header .menu-toggle {
+  position: static;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #34373d;
+  border-radius: 7px;
+  background: #15171a;
+  color: #fff;
+}
+.personal-layout .sidebar-primary-profile,
+.student-layout-shell .sidebar-primary-profile {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px 8px 18px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #25282d;
+}
+.personal-layout .sidebar-primary-profile > span,
+.student-layout-shell .sidebar-primary-profile > span {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f4f5f6, #8b9098);
+  color: #111318;
+  font-weight: 900;
+}
+.personal-layout .sidebar-primary-profile div,
+.student-layout-shell .sidebar-primary-profile div { min-width: 0; }
+.personal-layout .sidebar-primary-profile strong,
+.personal-layout .sidebar-primary-profile small,
+.student-layout-shell .sidebar-primary-profile strong,
+.student-layout-shell .sidebar-primary-profile small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.personal-layout .nav-list,
+.student-layout-shell .nav-list { gap: 6px; }
+.personal-layout .nav-item,
+.student-layout-shell .nav-item {
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 7px;
+  color: #d5d7db;
+  font-size: 16px;
+}
+.personal-layout .nav-item svg,
+.student-layout-shell .nav-item svg { width: 21px; height: 21px; flex: 0 0 21px; }
+.personal-layout .nav-item.active,
+.student-layout-shell .nav-item.active {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--brand-primary) 68%, #fff 12%);
+  background: color-mix(in srgb, var(--brand-primary) 28%, #14161a);
+}
+.sidebar-logout {
+  width: 100%; min-height: 48px; display: flex; align-items: center; gap: 14px;
+  padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: #f0b2b2; font-size: 15px;
+}
+.sidebar-logout:hover { background: rgba(190, 55, 55, .14); }
+.sidebar-copyright { display: block; padding: 14px 8px 0; color: #747880; font-size: 10px; line-height: 1.55; }
+.personal-layout .sidebar.collapsed,
+.student-layout-shell .sidebar.collapsed { width: 82px; padding-inline: 12px; }
+.personal-layout .sidebar.collapsed .sidebar-header,
+.student-layout-shell .sidebar.collapsed .sidebar-header { display: flex; justify-content: center; }
+.personal-layout .sidebar.collapsed .sidebar-header .brand-lockup,
+.student-layout-shell .sidebar.collapsed .sidebar-header .brand-lockup,
+.personal-layout .sidebar.collapsed .sidebar-primary-profile,
+.student-layout-shell .sidebar.collapsed .sidebar-primary-profile,
+.personal-layout .sidebar.collapsed .sidebar-copyright,
+.student-layout-shell .sidebar.collapsed .sidebar-copyright { display: none; }
+.personal-layout .sidebar.collapsed .nav-item,
+.student-layout-shell .sidebar.collapsed .nav-item,
+.personal-layout .sidebar.collapsed .sidebar-logout,
+.student-layout-shell .sidebar.collapsed .sidebar-logout { justify-content: center; padding: 0; }
+.personal-layout .sidebar.collapsed .nav-item span,
+.student-layout-shell .sidebar.collapsed .nav-item span,
+.personal-layout .sidebar.collapsed .sidebar-logout span,
+.student-layout-shell .sidebar.collapsed .sidebar-logout span { display: none; }
+
+.workout-number-field { display: grid; gap: 7px; }
+.workout-number-control { display: grid; grid-template-columns: 46px minmax(0, 1fr) 46px; gap: 8px; align-items: stretch; }
+.workout-number-control > button { min-height: 46px; border: 1px solid #34373d; border-radius: 7px; background: #17191c; color: #fff; display: grid; place-items: center; }
+.workout-number-control > div { position: relative; min-width: 0; }
+.workout-number-control input { width: 100%; height: 100%; min-height: 46px; padding-right: 42px; text-align: center; font-size: 17px; }
+.workout-number-control div > span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #aeb2b8; font-weight: 700; }
+.technique-entry { border: 1px solid #454a52; border-radius: 7px; padding: 14px; background: #111316; display: grid; gap: 10px; }
+.technique-entry legend { padding: 0 8px; color: #fff; font-weight: 800; }
+
+.technique-badge { display: inline-flex; width: fit-content; min-height: 24px; align-items: center; padding: 3px 8px; border: 1px solid #626974; border-radius: 6px; color: #f7f7f7; background: #24272c; font-size: 0.72rem; font-weight: 800; }
+.technique-biset { border-color: #8aa4c0; background: #24313d; }
+.technique-drop_set { border-color: #d38a54; background: #3b281d; }
+.technique-summary { display: grid; gap: 8px; margin: 10px 0; }
+.technique-summary > span { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 10px; border: 1px solid #3e434b; border-radius: 6px; background: #16181b; color: #f4f4f4; }
+.technique-summary small { color: #c8ccd2; }
+.student-score-hero { overflow: hidden; }
+.student-score-hero > img { width: clamp(96px, 24%, 180px); height: clamp(96px, 24vw, 180px); max-width: 36%; object-fit: contain; align-self: center; }
+:where(.nav-item,.sidebar-toggle,.sidebar-logout,.workout-number-control button):focus-visible { outline: 3px solid color-mix(in srgb, var(--brand-primary) 72%, #fff); outline-offset: 2px; }
+@media (max-width: 700px) {
+  .personal-layout .sidebar.mobile-open,
+  .student-layout-shell .sidebar.mobile-open { width: min(320px, calc(100vw - 24px)); max-width: 100%; }
+  .personal-layout .sidebar.mobile-open .sidebar-header,
+  .student-layout-shell .sidebar.mobile-open .sidebar-header { display: grid; }
+  .student-score-hero { grid-template-columns: minmax(0, 1fr) 92px; gap: 10px; min-height: 0; }
+  .student-score-hero > img { width: 92px; height: 110px; max-width: 100%; }
+}
+.history-sync-pending {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 7px;
+  padding: 5px 8px;
+  border: 1px solid #9a7629;
+  border-radius: 6px;
+  background: #2a210d;
+  color: #ffd978;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Personal/Student sidebar visual finish; structure and dimensions stay unchanged. */
+:where(.personal-layout,.student-layout-shell) > .sidebar {
+  overflow-x: hidden;
+  background: #090b0d;
+  border-right-color: #292c30;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header {
+  position: relative;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  min-height: 244px;
+  margin-bottom: 14px;
+  padding: 10px 8px 18px;
+  border-bottom: 1px solid rgba(210, 214, 220, .12);
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header > .lion-logo {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .brand-lockup {
+  width: 100%;
+  display: grid !important;
+  justify-items: center;
+  gap: 3px;
+  position: relative;
+  z-index: 1;
+  padding-top: 0;
+  overflow: visible;
+  text-align: center;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .brand-lockup > span {
+  display: none !important;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .brand-lockup strong {
+  max-width: 100%;
+  overflow: visible;
+  color: #f7f8f9;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .brand-lockup small {
+  max-width: 100%;
+  overflow: visible;
+  color: #b8bdc3;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .lion-mark {
+  flex: 0 0 132px;
+  width: min(150px, calc(100% - 24px)) !important;
+  height: 132px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-header .lion-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-toggle {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-color: transparent;
+  background: transparent;
+  color: #eef0f2;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: 0;
+  border: 1px solid #34383d;
+  border-radius: 7px;
+  background: #111315;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-toggle svg {
+  position: relative;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-toggle:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-toggle:hover::before {
+  border-color: #555b62;
+  background: #191c1f;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-list {
+  gap: 5px;
+  padding: 0;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item {
+  position: relative;
+  min-height: 52px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #d9dce0;
+  font-size: 17px;
+  font-weight: 500;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item svg {
+  width: 22px;
+  height: 22px;
+  color: #bec3c9;
+  transition: color .18s ease;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item:hover {
+  background: #15181b;
+  color: #fff;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item:hover svg,
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item.active svg {
+  color: #f4f5f6;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item.active {
+  border-color: #62686f;
+  background: rgba(166, 171, 178, .16);
+  color: #fff;
+  font-weight: 650;
+  box-shadow: none;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #d5d8dc;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-footer {
+  padding-top: 14px;
+  border-top: 1px solid rgba(210, 214, 220, .12);
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-logout {
+  color: #cdd1d5;
+  background: transparent;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar .sidebar-logout:hover {
+  color: #fff;
+  background: #15181b;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar::-webkit-scrollbar { width: 6px; }
+:where(.personal-layout,.student-layout-shell) > .sidebar::-webkit-scrollbar-track { background: transparent; }
+:where(.personal-layout,.student-layout-shell) > .sidebar::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: #454a50;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar.collapsed .sidebar-header {
+  display: grid !important;
+  min-height: 58px;
+  padding-block: 0 12px;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar.collapsed .sidebar-header .lion-mark {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+:where(.personal-layout,.student-layout-shell) > .sidebar.collapsed .sidebar-toggle {
+  position: static;
+}
+
+@media (max-width: 700px) {
+  :where(.personal-layout,.student-layout-shell) > .sidebar.mobile-open .sidebar-header {
+    display: flex !important;
+    min-height: 210px;
+  }
+}
+.personal-layout,
+.student-layout-shell {
+  --app-bg: #050505;
+  --surface: #111315;
+  --surface-raised: #181a1d;
+  --surface-strong: #090a0b;
+  --text-primary: #f7f7f8;
+  --text-secondary: #c4c7cb;
+  --text-muted: #92979e;
+  --text-on-dark: #f7f7f8;
+  --text-on-dark-muted: #b9bdc2;
+  --text-on-dark-success: #8eea7a;
+  --border: #30343a;
+  --border-strong: #50555d;
+  --input-bg: #111315;
+  --input-text: #f7f7f8;
+  --input-placeholder: #9ca1a8;
+  --input-border: #3c4148;
+  --focus-ring: var(--personal-accent, #c0c0c0);
+}
+
+body.theme-light .personal-layout,
+body.theme-light .student-layout-shell {
+  --app-bg: #f4f5f6;
+  --surface: #ffffff;
+  --surface-raised: #f8f9fa;
+  --surface-strong: #17191c;
+  --text-primary: #15181c;
+  --text-secondary: #424850;
+  --text-muted: #626a73;
+  --text-on-dark: #f8f9fa;
+  --text-on-dark-muted: #c5c9ce;
+  --text-on-dark-success: #8eea7a;
+  --border: #cbd0d5;
+  --border-strong: #989fa7;
+  --input-bg: #ffffff;
+  --input-text: #15181c;
+  --input-placeholder: #68717b;
+  --input-border: #9ba3ac;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) {
+  color: var(--text-primary) !important;
+  background: var(--app-bg) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) .main-panel {
+  color: var(--text-primary) !important;
+  background: var(--app-bg) !important;
+  overflow-x: clip;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) > .sidebar {
+  color: #171a1e !important;
+  border-right-color: #c9cdd2 !important;
+  background: #f2f3f4 !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) > .sidebar :where(span,strong,small,p,button,a,svg) {
+  color: inherit;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) > .sidebar .nav-item {
+  color: #30353b;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) > .sidebar .nav-item:hover {
+  color: #111418;
+  background: #e3e5e8;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) > .sidebar .nav-item.active {
+  color: #080a0c;
+  border-color: #8d949c;
+  background: #d9dce0;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(.compact-search,.header-date,.icon-button,.profile-chip) {
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(h1,h2,h3,h4,h5,h6,label,legend) {
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(p,small,.eyebrow,.helper-text) {
+  color: var(--text-secondary) !important;
+  opacity: 1 !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(
+  .section-heading > div > span,.panel-head > div > span,.form-panel > span:not(.eyebrow),
+  .compact-heading > div > span,.admin-section-heading > div > span
+) {
+  color: var(--text-secondary) !important;
+  opacity: 1 !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) .accent-name {
+  color: var(--text-primary) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(input,select,textarea) {
+  min-height: 48px;
+  color: var(--input-text) !important;
+  caret-color: var(--input-text);
+  border-color: var(--input-border) !important;
+  background: var(--input-bg) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  opacity: 1 !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(input,textarea)::placeholder {
+  color: var(--input-placeholder) !important;
+  -webkit-text-fill-color: var(--input-placeholder) !important;
+  opacity: 1 !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(input,select,textarea):-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+}
+
+:where(.personal-layout,.student-layout-shell) :where(button,a,input,select,textarea):focus-visible {
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 2px;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(
+  .premium-panel,.form-panel,.workout-list,.reports-card,.nutrition-admin-panel,
+  .student-streak-card,.student-mini-evolution,.workout-history-panel,.student-progress-card,
+  .student-calendar-card,.student-files-card,.student-settings-card
+) {
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) .nutrition-table-head {
+  color: var(--text-on-dark) !important;
+  background: var(--surface-strong) !important;
+}
+body.theme-light :where(.personal-layout,.student-layout-shell) .nutrition-table-head :where(span,strong,small) {
+  color: var(--text-on-dark) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(
+  .semantic-dark-surface,.nutrition-admin-stat,.student-score-hero,.student-coach-panel,.training-hero-card,
+  .execution-v2-stat,.execution-v2-current,.workout-feedback-modal .rating-row button
+) {
+  color: var(--text-on-dark) !important;
+  border-color: #373b41 !important;
+  background: var(--surface-strong) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(
+  .semantic-dark-surface,.nutrition-admin-stat,.student-score-hero,.student-coach-panel,.training-hero-card,.execution-v2-stat,.execution-v2-current
+) :where(h1,h2,h3,h4,strong,b,span,svg,label) {
+  color: var(--text-on-dark) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(
+  .semantic-dark-surface,.nutrition-admin-stat,.student-score-hero,.student-coach-panel,.training-hero-card,.execution-v2-stat,.execution-v2-current
+) :where(p,small,.eyebrow) {
+  color: var(--text-on-dark-muted) !important;
+}
+
+/* Text follows the component surface, even when the page uses the light theme. */
+:where(.personal-layout,.student-layout-shell) .semantic-dark-surface {
+  color: var(--text-on-dark) !important;
+}
+
+:where(.personal-layout,.student-layout-shell) .semantic-dark-surface .admin-settings-hero-metric small {
+  color: var(--text-on-dark-success) !important;
+}
+
+:where(.personal-layout,.student-layout-shell) .semantic-dark-surface .admin-plan-chip {
+  color: var(--text-on-accent, #050505) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) :where(.metal-button.light,.nutrition-admin-button,.glow-button) {
+  color: var(--text-on-accent, #050505) !important;
+}
+
+:where(.personal-layout,.student-layout-shell) :where(button,input,select,textarea) { min-height: 44px; }
+
+:where(.personal-layout,.student-layout-shell,.owner-shell) button[aria-label] {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.owner-shell :where(button,a,input,select,textarea,[tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring, #d9dde2) !important;
+  outline-offset: 2px;
+}
+
+.owner-shell :where(button,input,select,textarea) {
+  min-height: 44px;
+}
+
+@media (max-width: 1100px) {
+  :where(.personal-layout,.student-layout-shell) .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  :where(.personal-layout,.student-layout-shell) .topbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 48px auto;
+    gap: 10px;
+  }
+  :where(.personal-layout,.student-layout-shell) .compact-search { width: 100%; min-width: 0; }
+  :where(.personal-layout,.student-layout-shell) .profile-chip { display: none; }
+}
+
+@media (max-width: 700px) {
+  :where(.personal-layout,.student-layout-shell) .main-panel { width: 100%; min-width: 0; padding-inline: 16px; }
+  :where(.personal-layout,.student-layout-shell) .topbar { align-items: stretch; gap: 12px; }
+  :where(.personal-layout,.student-layout-shell) .topbar > div:first-child { min-width: 0; }
+  :where(.personal-layout,.student-layout-shell) .topbar h1 { font-size: clamp(1.55rem, 7vw, 2rem); line-height: 1.15; overflow-wrap: anywhere; }
+  :where(.personal-layout,.student-layout-shell) .topbar-actions {
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+  }
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .mobile-menu-trigger { display: grid; }
+  :where(.personal-layout,.student-layout-shell) .compact-search { grid-column: 1 / -1; grid-row: 2; }
+  :where(.personal-layout,.student-layout-shell) .header-date { grid-column: 2; grid-row: 1; min-width: 0; justify-content: center; }
+  :where(.personal-layout,.student-layout-shell) .header-date small { display: none; }
+  :where(.personal-layout,.student-layout-shell) :where(.admin-feature-strip,.admin-kpi-grid,.nutrition-admin-grid,.execution-v2-stats) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Keep the compact header predictable after all legacy responsive layers. */
+@media (max-width: 700px) {
+  :where(.personal-layout,.student-layout-shell) .topbar-actions {
+    grid-template-columns: 44px 44px 44px minmax(0, 1fr) !important;
+    gap: 8px;
+  }
+
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .mobile-menu-trigger {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .glow-button {
+    display: none;
+  }
+
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .app-theme-toggle {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .notification-shell {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .header-date {
+    grid-column: 4;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  :where(.personal-layout,.student-layout-shell) .topbar-actions .compact-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

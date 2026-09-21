@@ -12,7 +12,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 from app.api.deps import require_owner, require_personal, require_student_or_personal
 from app.core.config import settings
 from app.core.errors import DomainError
-from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
+from app.core.security import create_access_token, create_password_reset_token, create_refresh_token, hash_password, verify_password
 from app.db.session import get_db
 from app.main import app
 from app.models.user import User, UserRole
@@ -231,7 +231,7 @@ def test_required_password_change_rejects_reused_temporary_password():
     assert error.value.status_code == 422
 
 
-def test_http_required_password_change_returns_normal_session_and_revokes_old_token():
+def test_email_token_password_change_revokes_old_session_without_blocking_login():
     user = make_user(must_change_password=True)
     db = FakeSession([user])
     token = create_access_token(str(user.id), {
@@ -246,21 +246,23 @@ def test_http_required_password_change_returns_normal_session_and_revokes_old_to
                 "/api/owner/settings",
                 headers={"Authorization": f"Bearer {token}"},
             )
-            changed = client.post(
-                "/api/auth/change-required-password",
-                headers={"Authorization": f"Bearer {token}"},
-                json={"new_password": "NewValidPass456!", "confirm_password": "NewValidPass456!"},
-            )
+            reset_token = create_password_reset_token(str(user.id), user.token_version)
+            changed = client.post("/api/auth/password-reset/confirm", json={
+                "token": reset_token,
+                "new_password": "NewValidPass456!",
+                "confirm_password": "NewValidPass456!",
+            })
             stale = client.get(
                 "/api/owner/settings",
                 headers={"Authorization": f"Bearer {token}"},
             )
-        assert restricted.status_code == 403
-        assert restricted.json()["detail"] == "Password change required"
+        assert restricted.status_code == 200
         assert restricted.headers.get("X-Request-ID")
         assert restricted.headers.get("X-Fitland-Service") == "backend"
         assert changed.status_code == 200
-        assert changed.json()["user"]["must_change_password"] is False
+        assert changed.json()["context"] == "owner"
+        assert user.must_change_password is False
+        assert verify_password("NewValidPass456!", user.hashed_password)
         assert stale.status_code == 401
         assert stale.headers.get("X-Request-ID")
         assert stale.headers.get("X-Fitland-Service") == "backend"

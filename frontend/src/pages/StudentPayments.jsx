@@ -80,6 +80,8 @@ export default function StudentPayments({ student, branding }) {
     return content[modal] || null;
   }, [modal]);
 
+  return <section className="student-payments-page"><div className="tenant-data-state"><strong>Sem dados de pagamento</strong><span>As cobranças e o histórico aparecerão quando houver integração financeira real.</span></div></section>;
+
   return (
     <section className="student-payments-page">
       <div className="payments-hero-header">

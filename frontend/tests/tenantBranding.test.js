@@ -77,6 +77,34 @@ test("different personals and their students receive isolated visual tokens", ()
   });
 });
 
+test("shared sidebar branding preserves full logos, compact icons and safe fallbacks", () => {
+  const component = readFileSync(new URL("../src/components/LionLogo.jsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
+
+  assert.match(component, /compact \? data\?\.icon_url \|\| data\?\.logo_url : data\?\.logo_url \|\| data\?\.icon_url/);
+  assert.match(component, /has-wordmark-asset/);
+  assert.match(component, /onError=\{\(\) => setImageFailed\(true\)\}/);
+  assert.match(component, /data\?\.initials \|\| "FT"/);
+  assert.match(styles, /\.sidebar-header \.lion-mark img[\s\S]*object-fit:\s*contain\s*!important/);
+  assert.match(styles, /\.sidebar-header \.lion-mark img[\s\S]*object-position:\s*center/);
+  assert.match(styles, /\.sidebar\.collapsed \.sidebar-header[\s\S]*grid-template-rows:\s*44px 44px/);
+  assert.match(styles, /Final tenant-branding layer[\s\S]*@media \(max-width: 980px\)[\s\S]*width:\s*100%\s*!important/);
+  assert.match(styles, /\.sidebar\.collapsed \.sidebar-header \.lion-mark,[\s\S]*min-height:\s*44px\s*!important[\s\S]*max-height:\s*44px\s*!important/);
+  assert.match(styles, /body\.theme-light[\s\S]*\.sidebar-header \.fitland-mark/);
+  assert.match(styles, /\.sidebar-header \.fitland-mark[\s\S]*color:\s*#15181c\s*!important/);
+});
+
+test("owner surfaces define readable dark and light text, placeholders and focus", () => {
+  const styles = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
+  assert.ok(contrastRatio("#F7F7F8", "#101214") >= 4.5);
+  assert.ok(contrastRatio("#B9BDC5", "#101214") >= 4.5);
+  assert.ok(contrastRatio("#17191D", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#4D545D", "#FFFFFF") >= 4.5);
+  assert.match(styles, /\.owner-shell[\s\S]*--owner-text:\s*#f7f7f8/);
+  assert.match(styles, /body\.owner-light \.owner-shell[\s\S]*--owner-text:\s*#17191d/);
+  assert.match(styles, /\.owner-shell :where\(input,textarea\)::placeholder[\s\S]*opacity:\s*1/);
+});
+
 test("application source contains no client-specific branding hardcode", () => {
   const sourceRoot = new URL("../src", import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, (value) => value.slice(1));
   const files = [];

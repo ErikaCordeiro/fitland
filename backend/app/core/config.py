@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "openai"
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5.6-luna"
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     AI_TIMEOUT_SECONDS: float = Field(default=20.0, ge=1.0, le=120.0)
     AI_DAILY_LIMIT: int = Field(default=50, ge=1, le=10000)
 

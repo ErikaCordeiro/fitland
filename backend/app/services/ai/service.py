@@ -11,15 +11,23 @@ from app.schemas.ai import AIOperation, AIErrorCode, AIProviderResult
 from app.services.ai.errors import AIServiceError
 from app.services.ai.guardrails import AIScope, evaluate_safety, resolve_ai_scope
 from app.services.ai.providers.base import AIProvider
+from app.services.ai.providers.gemini_provider import GeminiProvider
 from app.services.ai.providers.openai_provider import OpenAIProvider
 from app.services.ai.quota import enforce_daily_quota
 
 
 def build_provider(config: Settings) -> AIProvider:
-    if config.AI_PROVIDER.lower() == "openai":
+    provider_name = config.AI_PROVIDER.strip().lower()
+    if provider_name == "openai":
         return OpenAIProvider(
             api_key=config.OPENAI_API_KEY,
             model=config.OPENAI_MODEL,
+            timeout_seconds=config.AI_TIMEOUT_SECONDS,
+        )
+    if provider_name == "gemini":
+        return GeminiProvider(
+            api_key=config.GEMINI_API_KEY,
+            model=config.GEMINI_MODEL,
             timeout_seconds=config.AI_TIMEOUT_SECONDS,
         )
     raise AIServiceError(AIErrorCode.NOT_CONFIGURED, "Configured AI provider is not supported")

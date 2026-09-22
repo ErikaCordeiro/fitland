@@ -77,6 +77,12 @@ test("different personals and their students receive isolated visual tokens", ()
   });
 });
 
+test("sidebar toggle decoration stays inside the button instead of covering tenant branding", () => {
+  const styles = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
+  assert.match(styles, /\.sidebar-header \.menu-toggle,[\s\S]*position:\s*relative/);
+  assert.match(styles, /\.sidebar \.sidebar-toggle::before[\s\S]*position:\s*absolute[\s\S]*inset:\s*5px/);
+});
+
 test("application source contains no client-specific branding hardcode", () => {
   const sourceRoot = new URL("../src", import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, (value) => value.slice(1));
   const files = [];

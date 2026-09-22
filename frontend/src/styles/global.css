@@ -21203,7 +21203,7 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
 .student-layout-shell .sidebar-header .brand-lockup { min-width: 0; overflow: hidden; }
 .personal-layout .sidebar-header .menu-toggle,
 .student-layout-shell .sidebar-header .menu-toggle {
-  position: static;
+  position: relative;
   width: 42px;
   height: 42px;
   border: 1px solid #34373d;

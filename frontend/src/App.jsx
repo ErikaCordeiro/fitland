@@ -30,12 +30,16 @@ import { readPendingStudents, savePendingStudents, studentScope, executionKey } 
 import {
   applyRouteBranding,
   getContextLoginPath,
+  getLegacyPersonalPage,
+  getPersonalPagePath,
+  getPersonalRoute,
   getRequestedContext,
   isAuthLoginPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
   readPublicAuthContext,
   rememberPublicAuthContext,
+  resolvePersonalNavigation,
   resolveLogoutContext,
 } from "./utils/authRouting.js";
 
@@ -64,7 +68,6 @@ const pageMeta = {
 
 const rolePath = {
   owner: "/fitland/dashboard",
-  personal: "/dashboard/personal",
   student: "/dashboard/aluno"
 };
 
@@ -89,19 +92,6 @@ function pageFromPath(pathname, role) {
     "/aluno/coach-ia": "coach",
     "/aluno/sobre-o-personal": "about-personal"
   };
-  const personalRoutes = {
-    "/dashboard/personal": "dashboard",
-    "/dashboard/personal/dietas": "diet",
-    "/personal/avaliacoes": "assessments",
-    "/personal/progresso": "progress",
-    "/personal/financeiro": "finance",
-    "/personal/agenda": "agenda",
-    "/admin/mensagens": "chat",
-    "/admin/relatorios": "reports",
-    "/admin/configuracoes": "settings",
-    "/personal/coach-ia": "coach",
-    "/personal/sobre-o-personal": "about-personal"
-  };
   const ownerRoutes = {
     "/fitland/login": "dashboard",
     "/fitland/dashboard": "dashboard",
@@ -117,10 +107,10 @@ function pageFromPath(pathname, role) {
   };
   if (role === "owner") return ownerRoutes[path] || "dashboard";
   if (role === "student") return studentRoutes[path] || "dashboard";
-  return personalRoutes[path] || "dashboard";
+  return getPersonalRoute(path)?.page || getLegacyPersonalPage(path) || "dashboard";
 }
-function pushRoute(role) {
-  const path = rolePath[role] || rolePath.personal;
+function pushRoute(role, personalSlug = null) {
+  const path = role === "personal" ? getPersonalPagePath(personalSlug) : rolePath[role] || "/personal/login";
   window.history.replaceState(null, "", path);
 }
 
@@ -257,7 +247,7 @@ export default function App() {
         const requestedPage = pageFromPath(window.location.pathname, normalizedUser.role);
         setActivePage(requestedPage);
         if (isAuthLoginPath(pathname) || pathname === "/" || pathname === "/fitland/change-password") {
-          pushRoute(normalizedUser.role);
+          if (normalizedUser.role !== "personal") pushRoute(normalizedUser.role);
         }
       } catch {
         clearToken();
@@ -314,12 +304,21 @@ export default function App() {
   }, [session?.id, session?.role]);
 
   useEffect(() => {
+    if (session?.role !== "personal" || brandingUserId !== session.id || !branding?.slug) return;
+    const route = resolvePersonalNavigation(window.location.pathname, branding.slug);
+    setActivePage(route.page);
+    if (route.redirect) {
+      window.history.replaceState(null, "", route.path);
+    }
+  }, [branding?.slug, brandingUserId, session?.id, session?.role]);
+
+  useEffect(() => {
     if (!session || session.role === "owner" || !branding?.modules) return;
     if (!isPageEnabled(activePage, branding.modules)) {
       setActivePage("dashboard");
-      window.history.replaceState(null, "", rolePath[session.role]);
+      window.history.replaceState(null, "", session.role === "personal" ? getPersonalPagePath(branding.slug) : rolePath[session.role]);
     }
-  }, [activePage, branding?.modules, session?.role]);
+  }, [activePage, branding?.modules, branding?.slug, session?.role]);
 
   if (!authReady) {
     return (
@@ -350,7 +349,12 @@ export default function App() {
         onLogin={(user) => {
           const normalizedUser = normalizeSessionUser(user);
           const requestedContext = getRequestedContext(window.location.pathname);
-          if (!isSessionCompatibleWithContext(normalizedUser, requestedContext)) {
+          const personalBrandMismatch = normalizedUser.role === "personal"
+            && requestedContext?.type === "personal"
+            && requestedContext.slug
+            && branding?.personal_id
+            && String(branding.personal_id) !== String(normalizedUser.id);
+          if (!isSessionCompatibleWithContext(normalizedUser, requestedContext) || personalBrandMismatch) {
             clearToken();
             setSession(null);
             return;
@@ -367,7 +371,7 @@ export default function App() {
           const requestedPage = pageFromPath(window.location.pathname, normalizedRole);
           setActivePage(requestedPage);
           if (requestedPage === "dashboard") {
-            pushRoute(normalizedRole);
+            pushRoute(normalizedRole, branding?.slug);
           }
         }}
       />
@@ -391,10 +395,12 @@ export default function App() {
     if (isOwner) {
       const ownerPaths = { dashboard: "/fitland/dashboard", personals: "/fitland/personals", logs: "/fitland/logs", settings: "/fitland/configuracoes", security: "/fitland/seguranca" };
       window.history.replaceState(null, "", ownerPaths[page] || "/fitland/dashboard");
+    } else if (!isStudent) {
+      window.history.replaceState(null, "", getPersonalPagePath(branding.slug, page, { studentId: selectedStudentId }));
     } else if (page === "coach") {
-      window.history.replaceState(null, "", isStudent ? "/aluno/coach-ia" : "/personal/coach-ia");
+      window.history.replaceState(null, "", "/aluno/coach-ia");
     } else if (page === "about-personal") {
-      window.history.replaceState(null, "", isStudent ? "/aluno/sobre-o-personal" : "/personal/sobre-o-personal");
+      window.history.replaceState(null, "", "/aluno/sobre-o-personal");
     } else if (isStudent && page === "progress") {
       window.history.replaceState(null, "", "/aluno/progresso");
     } else if (isStudent && page === "diet") {
@@ -411,26 +417,8 @@ export default function App() {
       window.history.replaceState(null, "", "/aluno/arquivos");
     } else if (isStudent && page === "settings") {
       window.history.replaceState(null, "", "/aluno/configuracoes");
-    } else if (!isStudent && page === "diet") {
-      window.history.replaceState(null, "", "/dashboard/personal/dietas");
-    } else if (!isStudent && page === "assessments") {
-      window.history.replaceState(null, "", "/personal/avaliacoes");
-    } else if (!isStudent && page === "progress") {
-      window.history.replaceState(null, "", "/personal/progresso");
-    } else if (!isStudent && page === "finance") {
-      window.history.replaceState(null, "", "/personal/financeiro");
-    } else if (!isStudent && page === "agenda") {
-      window.history.replaceState(null, "", "/personal/agenda");
-    } else if (!isStudent && page === "chat") {
-      window.history.replaceState(null, "", "/admin/mensagens");
-    } else if (!isStudent && page === "reports") {
-      window.history.replaceState(null, "", "/admin/relatorios");
-    } else if (!isStudent && page === "settings") {
-      window.history.replaceState(null, "", "/admin/configuracoes");
-    } else if (!isStudent && page === "student-progress-detail") {
-      window.history.replaceState(null, "", `/personal/aluno/${selectedStudentId || "aluno"}/progresso`);
     } else {
-      pushRoute(isStudent ? "student" : "personal");
+      pushRoute("student");
     }
   };
 
@@ -457,7 +445,7 @@ export default function App() {
     setSelectedStudentId(student.id);
     setActivePage("student-progress-detail");
     setSidebarOpen(false);
-    window.history.replaceState(null, "", `/personal/aluno/${student.id}/progresso`);
+    window.history.replaceState(null, "", getPersonalPagePath(branding.slug, "student-progress-detail", { studentId: student.id }));
   };
 
   const approvePendingStudent = (student) => {
@@ -477,7 +465,7 @@ export default function App() {
     setPendingStudents((current) => current.filter((item) => item.id !== student.id));
     setFocusedPendingStudentId(null);
     setActivePage("students");
-    window.history.replaceState(null, "", "/dashboard/personal");
+    window.history.replaceState(null, "", getPersonalPagePath(branding.slug, "students"));
   };
 
   const deleteStudent = (student) => {
@@ -523,7 +511,7 @@ export default function App() {
         setActivePage("students");
         setFocusedPendingStudentId(notification.student?.id || null);
         setSidebarOpen(false);
-        window.history.replaceState(null, "", "/dashboard/personal");
+        window.history.replaceState(null, "", getPersonalPagePath(branding.slug, "students"));
       }
     },
     onApproveStudent: approvePendingStudent,

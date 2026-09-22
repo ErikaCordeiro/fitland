@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   getContextLoginPath,
+  getLegacyPersonalPage,
   getLoginEndpoint,
+  getPersonalPagePath,
+  getPersonalRoute,
   getRequestedContext,
   getRouteBranding,
   applyRouteBranding,
@@ -13,6 +16,7 @@ import {
   PUBLIC_AUTH_CONTEXT_KEY,
   readPublicAuthContext,
   rememberPublicAuthContext,
+  resolvePersonalNavigation,
   resolveLogoutContext,
 } from "../src/utils/authRouting.js";
 
@@ -144,6 +148,85 @@ test("personal slugs remain isolated when the session exposes tenant identity", 
   assert.equal(isSessionCompatibleWithContext(thiago, getRequestedContext("/personal/maria/login")), false);
   assert.equal(getContextLoginPath(getRequestedContext("/personal/maria/dashboard")), "/personal/maria/login");
   assert.equal(getContextLoginPath({ type: "personal", slug: null }), "/personal/login");
+});
+
+test("personal pages use canonical tenant-scoped routes for any valid slug", () => {
+  const expected = {
+    dashboard: "dashboard",
+    students: "alunos",
+    "workout-builder": "treinos",
+    diet: "dietas",
+    assessments: "avaliacoes",
+    progress: "progresso",
+    finance: "financeiro",
+    agenda: "agenda",
+    chat: "mensagens",
+    reports: "relatorios",
+    coach: "coach-ia",
+    "about-personal": "sobre-o-personal",
+    settings: "configuracoes",
+  };
+  for (const [page, segment] of Object.entries(expected)) {
+    const path = `/personal/tenant-example/${segment}`;
+    assert.equal(getPersonalPagePath("tenant-example", page), path);
+    assert.deepEqual(getPersonalRoute(path), { slug: "tenant-example", page });
+  }
+  assert.deepEqual(getPersonalRoute("/personal/tenant-example/progresso"), { slug: "tenant-example", page: "progress" });
+});
+
+test("tenant-scoped routes preserve their page while replacing a foreign slug", () => {
+  const requested = getPersonalRoute("/personal/tenant-a/treinos");
+  assert.deepEqual(requested, { slug: "tenant-a", page: "workout-builder" });
+  assert.equal(getPersonalPagePath("tenant-b", requested.page), "/personal/tenant-b/treinos");
+});
+
+test("authenticated personal routing preserves F5 and blocks cross-tenant URL context", () => {
+  assert.deepEqual(resolvePersonalNavigation("/personal/hugo/treinos", "hugo"), {
+    page: "workout-builder",
+    path: "/personal/hugo/treinos",
+    redirect: false,
+  });
+  assert.deepEqual(resolvePersonalNavigation("/personal/thiago-fillipo/dashboard", "hugo"), {
+    page: "dashboard",
+    path: "/personal/hugo/dashboard",
+    redirect: true,
+  });
+  assert.deepEqual(resolvePersonalNavigation("/personal/hugo/progresso", "thiago-fillipo"), {
+    page: "progress",
+    path: "/personal/thiago-fillipo/progresso",
+    redirect: true,
+  });
+});
+
+test("legacy personal aliases resolve to pages without becoming tenant slugs", () => {
+  const aliases = {
+    "/dashboard/personal": "dashboard",
+    "/dashboard/personal/dietas": "diet",
+    "/personal/progresso": "progress",
+    "/admin/configuracoes": "settings",
+    "/financeiro": "finance",
+    "/mensagens": "chat",
+  };
+  for (const [pathname, page] of Object.entries(aliases)) {
+    assert.equal(getLegacyPersonalPage(pathname), page);
+    assert.deepEqual(getRequestedContext(pathname), { type: "personal", slug: null });
+    assert.equal(getPersonalPagePath("tenant-example", page).startsWith("/personal/tenant-example/"), true);
+  }
+  assert.deepEqual(resolvePersonalNavigation("/admin/configuracoes", "hugo"), {
+    page: "settings",
+    path: "/personal/hugo/configuracoes",
+    redirect: true,
+  });
+});
+
+test("student progress details are tenant-scoped without authorizing by URL slug", () => {
+  const path = getPersonalPagePath("tenant-example", "student-progress-detail", { studentId: "student-123" });
+  assert.equal(path, "/personal/tenant-example/aluno/student-123/progresso");
+  assert.deepEqual(getPersonalRoute(path), {
+    slug: "tenant-example",
+    page: "student-progress-detail",
+    studentId: "student-123",
+  });
 });
 
 test("student routes and sessions stay separate from personal context", () => {

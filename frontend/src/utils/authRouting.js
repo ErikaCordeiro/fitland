@@ -2,6 +2,90 @@ function normalizePath(pathname = "") {
   return String(pathname).toLowerCase().replace(/\/+$/, "") || "/";
 }
 
+export const PERSONAL_PAGE_SEGMENTS = Object.freeze({
+  dashboard: "dashboard",
+  students: "alunos",
+  "workout-builder": "treinos",
+  diet: "dietas",
+  assessments: "avaliacoes",
+  progress: "progresso",
+  finance: "financeiro",
+  agenda: "agenda",
+  chat: "mensagens",
+  reports: "relatorios",
+  coach: "coach-ia",
+  "about-personal": "sobre-o-personal",
+  settings: "configuracoes",
+});
+
+const PERSONAL_SEGMENT_PAGES = Object.freeze(Object.fromEntries(
+  Object.entries(PERSONAL_PAGE_SEGMENTS).map(([page, segment]) => [segment, page]),
+));
+
+const LEGACY_PERSONAL_PAGES = Object.freeze({
+  "/dashboard/personal": "dashboard",
+  "/dashboard/personal/dietas": "diet",
+  "/personal/alunos": "students",
+  "/personal/treinos": "workout-builder",
+  "/personal/avaliacoes": "assessments",
+  "/personal/progresso": "progress",
+  "/personal/financeiro": "finance",
+  "/personal/agenda": "agenda",
+  "/personal/coach-ia": "coach",
+  "/personal/sobre-o-personal": "about-personal",
+  "/admin/mensagens": "chat",
+  "/admin/relatorios": "reports",
+  "/admin/configuracoes": "settings",
+  "/financeiro": "finance",
+  "/agenda": "agenda",
+  "/avaliacoes": "assessments",
+  "/coach-ia": "coach",
+  "/sobre-o-personal": "about-personal",
+  "/mensagens": "chat",
+  "/relatorios": "reports",
+});
+
+function validSlug(slug = "") {
+  const normalized = String(slug).toLowerCase();
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized) ? normalized : null;
+}
+
+export function getLegacyPersonalPage(pathname = "") {
+  return LEGACY_PERSONAL_PAGES[normalizePath(pathname)] || null;
+}
+
+export function getPersonalRoute(pathname = "") {
+  const normalized = normalizePath(pathname);
+  const detailMatch = normalized.match(/^\/personal\/([^/]+)\/aluno\/([^/]+)\/progresso$/);
+  if (detailMatch && validSlug(detailMatch[1])) {
+    return { slug: detailMatch[1], page: "student-progress-detail", studentId: detailMatch[2] };
+  }
+  const match = normalized.match(/^\/personal\/([^/]+)\/([^/]+)$/);
+  const page = match ? PERSONAL_SEGMENT_PAGES[match[2]] : null;
+  return page && validSlug(match[1]) ? { slug: match[1], page } : null;
+}
+
+export function getPersonalPagePath(slug, page = "dashboard", options = {}) {
+  const safeSlug = validSlug(slug);
+  if (!safeSlug) return "/personal/login";
+  if (page === "student-progress-detail" && options.studentId) {
+    return `/personal/${safeSlug}/aluno/${encodeURIComponent(options.studentId)}/progresso`;
+  }
+  return `/personal/${safeSlug}/${PERSONAL_PAGE_SEGMENTS[page] || PERSONAL_PAGE_SEGMENTS.dashboard}`;
+}
+
+export function resolvePersonalNavigation(pathname, authenticatedSlug) {
+  const currentRoute = getPersonalRoute(pathname);
+  const legacyPage = getLegacyPersonalPage(pathname);
+  const page = currentRoute?.page || legacyPage || "dashboard";
+  const path = getPersonalPagePath(authenticatedSlug, page, { studentId: currentRoute?.studentId });
+  return {
+    page,
+    path,
+    redirect: normalizePath(pathname) !== path,
+  };
+}
+
 export const PUBLIC_AUTH_CONTEXT_KEY = "fitland_public_auth_context";
 
 function normalizedRole(role = "") {
@@ -12,9 +96,7 @@ function normalizedRole(role = "") {
 
 function validContext(context) {
   if (!context || !["owner", "personal", "student"].includes(context.type)) return null;
-  const slug = typeof context.slug === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(context.slug)
-    ? context.slug.toLowerCase()
-    : null;
+  const slug = validSlug(context.slug);
   return { type: context.type, slug };
 }
 
@@ -77,6 +159,7 @@ export function getRequestedContext(pathname = "") {
   }
   if (normalized === "/aluno/login") return { type: "student", slug: null };
   if (normalized === "/personal/login") return { type: "personal", slug: null };
+  if (getLegacyPersonalPage(normalized)) return { type: "personal", slug: null };
   const personalMatch = normalized.match(/^\/personal\/([^/]+)(?:\/|$)/);
   if (personalMatch) return { type: "personal", slug: personalMatch[1] };
   if (normalized.startsWith("/dashboard/personal") || normalized.startsWith("/admin/")) {

@@ -599,16 +599,14 @@ export default function App() {
     });
     rememberPublicAuthContext(logoutContext);
     const loginPath = getContextLoginPath(logoutContext);
-    try {
-      await logoutSession();
-    } finally {
-      window.history.replaceState(null, "", loginPath);
-      setLogoutConfirmOpen(false);
-      setSession(null);
-      setTenantData(createTenantDataState());
-      setActivePage("dashboard");
-      setExecutionWorkoutId(null);
-    }
+    const remoteLogout = logoutSession();
+    window.history.replaceState(null, "", loginPath);
+    setLogoutConfirmOpen(false);
+    setSession(null);
+    setTenantData(createTenantDataState());
+    setActivePage("dashboard");
+    setExecutionWorkoutId(null);
+    await remoteLogout;
   };
 
   const saveWorkout = async (workout) => {

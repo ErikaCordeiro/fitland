@@ -152,13 +152,16 @@ export async function confirmPasswordReset(token, newPassword, confirmPassword) 
 export async function logoutSession() {
   const context = normalizeContext();
   authCoordinator.invalidate();
+  const request = apiRequest("/auth/logout", {
+    method: "POST",
+    timeoutMs: 2500,
+    skipAuthRefresh: true,
+    headers: { "X-Auth-Context": context },
+  });
+  clearToken(context);
   try {
-    await apiRequest("/auth/logout", {
-      method: "POST",
-      timeoutMs: 8000,
-      headers: { "X-Auth-Context": context },
-    });
-  } finally {
-    clearToken(context);
+    await request;
+  } catch {
+    // Local logout is authoritative when the remote revocation is unavailable.
   }
 }

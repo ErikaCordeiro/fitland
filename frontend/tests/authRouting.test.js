@@ -68,6 +68,27 @@ test("authenticated branding takes priority over generic personal subroutes", ()
   }
 });
 
+test("logout from every generic Hugo page remains contextual and never targets settings", () => {
+  for (const pathname of ["/personal/financeiro", "/personal/alunos", "/personal/treinos", "/personal/progresso"]) {
+    const context = resolveLogoutContext({ role: "personal", pathname, branding: { slug: "hugo" } });
+    assert.equal(getContextLoginPath(context), "/personal/hugo/login");
+    assert.notEqual(getContextLoginPath(context), "/admin/configuracoes");
+  }
+});
+
+test("logout clears the local session before waiting for remote revocation", () => {
+  const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  const apiSource = readFileSync(new URL("../src/services/api.js", import.meta.url), "utf8");
+  const flowStart = appSource.indexOf("const remoteLogout = logoutSession()");
+  const navigate = appSource.indexOf("window.history.replaceState(null, \"\", loginPath)", flowStart);
+  const clearSession = appSource.indexOf("setSession(null)", flowStart);
+  const waitRemote = appSource.indexOf("await remoteLogout", flowStart);
+  assert.ok(flowStart >= 0 && navigate > flowStart && clearSession > navigate && waitRemote > clearSession);
+  assert.match(apiSource, /timeoutMs: 2500/);
+  assert.match(apiSource, /skipAuthRefresh: true/);
+  assert.ok(apiSource.indexOf("clearToken(context)", apiSource.indexOf("export async function logoutSession")) < apiSource.indexOf("await request", apiSource.indexOf("export async function logoutSession")));
+});
+
 test("typing an email never changes route branding", () => {
   const loginSource = readFileSync(new URL("../src/pages/Login.jsx", import.meta.url), "utf8");
   assert.doesNotMatch(loginSource, /branding\/public\?email=/);

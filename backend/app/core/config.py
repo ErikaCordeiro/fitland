@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str | None = None
     SMTP_USE_TLS: bool = True
     UPLOADS_DIR: Path = Path(__file__).resolve().parents[2] / "uploads"
+    AI_PROVIDER: str = "openai"
+    OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-5.6-luna"
+    AI_TIMEOUT_SECONDS: float = Field(default=20.0, ge=1.0, le=120.0)
+    AI_DAILY_LIMIT: int = Field(default=50, ge=1, le=10000)
 
     @field_validator("DATABASE_URL")
     @classmethod

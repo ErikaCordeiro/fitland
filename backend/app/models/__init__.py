@@ -1,4 +1,5 @@
 from app.models.exercise import Exercise
+from app.models.ai_audit import AIAuditLog
 from app.models.audit_log import AuditLog
 from app.models.progress import ProgressLog
 from app.models.personal_branding import PersonalBranding
@@ -10,6 +11,7 @@ from app.models.workout_session import ProgressionAlert, WorkoutSession
 
 __all__ = [
     "Exercise",
+    "AIAuditLog",
     "AuditLog",
     "ProgressLog",
     "PersonalBranding",

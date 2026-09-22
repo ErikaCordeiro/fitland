@@ -28,6 +28,7 @@ function PersonalModal({ item, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (editing) apiRequest(`/branding/personal/${item.id}`).then(setBrand).catch(() => {});
@@ -40,11 +41,14 @@ function PersonalModal({ item, onClose, onSaved }) {
   }, [editing, form.name]);
 
   const save = async (event) => {
-    event.preventDefault(); setBusy(true); setError("");
+    event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
       const payload = editing ? { name: form.name, email: form.email, phone: form.phone || null } : { ...form, branding: brand };
       await apiRequest(editing ? `/owner/personals/${item.id}` : "/owner/personals", { method: editing ? "PATCH" : "POST", body: JSON.stringify(payload) });
-      if (editing) await apiRequest(`/branding/personal/${item.id}`, { method: "PUT", body: JSON.stringify(brand) });
+      if (editing) {
+        const savedBranding = await apiRequest(`/branding/personal/${item.id}`, { method: "PUT", body: JSON.stringify(brand) });
+        setBrand(savedBranding);
+      }
       onSaved(); onClose();
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
@@ -52,11 +56,12 @@ function PersonalModal({ item, onClose, onSaved }) {
   const uploadBrandAsset = async (event, type) => {
     const file = event.target.files?.[0];
     if (!file || !editing) return;
-    setUploading(type); setError("");
+    setUploading(type); setError(""); setMessage("");
     try {
       const result = await apiRequest(`/branding/personal/${item.id}/upload/${type}`, { method: "POST", body: file, headers: { "Content-Type": file.type } });
       setBrand(result.branding);
-    } catch (err) { setError(err.message); } finally { setUploading(""); event.target.value = ""; }
+      setMessage(type === "logo" ? "Logo enviada com sucesso." : "Favicon enviado com sucesso.");
+    } catch (err) { setError(err.message); setMessage(""); } finally { setUploading(""); event.target.value = ""; }
   };
 
   return <div className="owner-modal-backdrop" onMouseDown={onClose}>
@@ -65,6 +70,7 @@ function PersonalModal({ item, onClose, onSaved }) {
       <p className="eyebrow">{editing ? "Editar cadastro" : "Novo acesso"}</p>
       <h2>{editing ? "Personal e aplicativo" : "Cadastrar personal"}</h2>
       {error && <p className="owner-alert error">{error}</p>}
+      {message && <p className="owner-alert success">{message}</p>}
       <label>Nome completo<input required value={form.name} onChange={event=>setForm({...form,name:event.target.value})}/></label>
       <label>E-mail<input required type="email" value={form.email} onChange={event=>setForm({...form,email:event.target.value})}/></label>
       <label>Telefone opcional<input value={form.phone} onChange={event=>setForm({...form,phone:event.target.value})}/></label>

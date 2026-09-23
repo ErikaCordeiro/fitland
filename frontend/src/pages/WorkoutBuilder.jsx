@@ -1,5 +1,5 @@
 import React from "react";
-import { Brain, Link, Plus, Save, Trash2, Upload, Video } from "lucide-react";
+import { Brain, Check, Link, Plus, Save, Sparkles, Trash2, Upload, Video, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 const blankExercise = {
@@ -50,12 +50,18 @@ function techniqueConfigFor(exercise) {
   return {};
 }
 
-export default function WorkoutBuilder({ students, workouts, availableExercises = [], onOpenExercise, onSaveWorkout }) {
+export default function WorkoutBuilder({ students, workouts, availableExercises = [], onOpenExercise, onSaveWorkout, onRequestSuggestions }) {
   const [exercises, setExercises] = useState([{ ...blankExercise, id: crypto.randomUUID() }]);
   const [activeSuggestId, setActiveSuggestId] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [studentId, setStudentId] = useState(students[0]?.id || "");
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
 
   const workoutHistory = useMemo(
     () => [...workouts].sort((a, b) => a.name.localeCompare(b.name)),
@@ -81,6 +87,45 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
   };
 
   const addExercise = () => setExercises((current) => [...current, { ...blankExercise, id: crypto.randomUUID() }]);
+
+  const requestSuggestions = async () => {
+    if (!studentId || !availableExercises.length) {
+      setAiError("Cadastre exercícios no catálogo antes de solicitar sugestões.");
+      setAiOpen(true);
+      return;
+    }
+    setAiOpen(true);
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await onRequestSuggestions(studentId, { quantity: 4 });
+      setAiSuggestions(response.suggestions || []);
+      setSelectedSuggestions(new Set());
+    } catch (error) {
+      setAiSuggestions([]);
+      setAiError(error.message || "A IA está indisponível. Continue montando o treino manualmente.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const addSelectedSuggestions = () => {
+    const chosen = aiSuggestions.filter((item) => selectedSuggestions.has(item.exercise_id));
+    setExercises((current) => {
+      const existing = new Set(current.map((item) => String(item.exerciseId || "")));
+      const additions = chosen.filter((item) => !existing.has(String(item.exercise_id))).map((item) => ({
+        ...blankExercise,
+        id: crypto.randomUUID(),
+        exerciseId: item.exercise_id,
+        name: item.name,
+        explanation: item.reason,
+        videoUrl: buildInstructorYoutubeUrl(item.name),
+      }));
+      const onlyBlank = current.length === 1 && !current[0].name.trim();
+      return [...(onlyBlank ? [] : current), ...additions];
+    });
+    setAiOpen(false);
+  };
 
   const removeExercise = (id) => {
     setExercises((current) => current.length <= 1 ? current : current.filter((exercise) => exercise.id !== id));
@@ -114,6 +159,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
 
   const editWorkout = (workout) => {
     setEditingWorkout(workout);
+    setStudentId(workout.studentId || "");
     setExercises(workout.exercises.map((exercise) => ({
       ...blankExercise,
       ...exercise,
@@ -142,7 +188,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         </div>
         <div className="form-grid">
           <label><span>Nome do treino</span><input name="name" key={`name-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.name || "Novo treino personalizado"} required /></label>
-          <label><span>Aluno</span><select name="studentId" key={`student-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.studentId || students[0]?.id}>{students.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
+          <label><span>Aluno</span><select name="studentId" value={studentId} onChange={(event) => setStudentId(event.target.value)}>{students.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
           <label><span>Foco</span><input name="focus" key={`focus-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.focus || "Força, hipertrofia e cardio"} /></label>
           <label><span>Duração</span><input name="duration" key={`duration-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.duration || "60 min"} /></label>
           <label><span>Dia da semana</span><select name="date" key={`date-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.date || "Segunda"}>{["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map((day) => <option key={day} value={day}>{day}</option>)}</select></label>
@@ -234,6 +280,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         {saveError ? <p className="form-error" role="alert">{saveError}</p> : null}
         <div className="builder-actions">
           <button className="ghost-button" type="button" onClick={addExercise}><Plus size={18} /> Adicionar exercício</button>
+          <button className="metal-button inline" type="button" onClick={requestSuggestions} disabled={!studentId || aiLoading}><Sparkles size={18} /> Sugerir com IA</button>
           {editingWorkout && (
             <button className="ghost-button" type="button" onClick={() => { setEditingWorkout(null); setExercises([{ ...blankExercise, id: crypto.randomUUID() }]); }}>
               Novo treino
@@ -241,6 +288,21 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
           )}
         </div>
       </form>
+      {aiOpen && <div className="ai-suggestion-backdrop" role="presentation" onMouseDown={() => setAiOpen(false)}>
+        <section className="ai-suggestion-modal" role="dialog" aria-modal="true" aria-labelledby="ai-suggestion-title" onMouseDown={(event) => event.stopPropagation()}>
+          <header><div><p className="eyebrow">Assistência profissional</p><h2 id="ai-suggestion-title">Sugestões da IA</h2></div><button type="button" aria-label="Fechar sugestões" onClick={() => setAiOpen(false)}><X /></button></header>
+          {aiLoading && <p role="status">Analisando o contexto e o catálogo deste aluno...</p>}
+          {aiError && <p className="form-error" role="alert">{aiError}</p>}
+          {!aiLoading && !aiError && aiSuggestions.length === 0 && <p>Nenhuma sugestão adequada foi encontrada. Continue montando manualmente.</p>}
+          <div className="ai-suggestion-list">{aiSuggestions.map((item) => {
+            const selected = selectedSuggestions.has(item.exercise_id);
+            return <button type="button" className={selected ? "selected" : ""} key={item.exercise_id} onClick={() => setSelectedSuggestions((current) => { const next = new Set(current); selected ? next.delete(item.exercise_id) : next.add(item.exercise_id); return next; })}>
+              <span className="ai-suggestion-check">{selected ? <Check size={16} /> : null}</span><span><strong>{item.name}</strong><small>{item.muscle_group || "Exercício"}</small><p>{item.reason}</p></span>
+            </button>;
+          })}</div>
+          <footer><button type="button" className="ghost-button" onClick={() => setAiOpen(false)}>Continuar manualmente</button><button type="button" className="metal-button inline" disabled={!selectedSuggestions.size} onClick={addSelectedSuggestions}>Adicionar selecionados</button></footer>
+        </section>
+      </div>}
       <aside className="workout-list">
         <p className="eyebrow">Histórico</p>
         <h2>Histórico de treinos</h2>

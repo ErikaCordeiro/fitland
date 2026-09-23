@@ -20,8 +20,9 @@ class PersonalSuggestionContextBuilder:
     def build(student: Student, exercises: list[Exercise]) -> dict[str, Any]:
         return {
             "student": {
-                "student_id": str(student.id),
                 "age": student.age,
+                "weight": student.weight,
+                "height": student.height,
                 "objective": student.objective,
                 "notes": student.notes,
             },

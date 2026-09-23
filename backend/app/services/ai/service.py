@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
@@ -51,6 +51,7 @@ class AIService:
         input_text: str,
         response_model: type[BaseModel],
         student_id=None,
+        result_validator: Callable[[BaseModel], BaseModel] | None = None,
     ) -> BaseModel:
         scope = resolve_ai_scope(self.db, user=user, operation=operation, student_id=student_id)
         safety = evaluate_safety(input_text)
@@ -70,6 +71,8 @@ class AIService:
                 response_model=response_model,
             )
             parsed = self._validate_result(result, response_model)
+            if result_validator:
+                parsed = result_validator(parsed)
             self._audit(scope, operation, "success", self._elapsed(started), result=result)
             return parsed
         except AIServiceError as exc:

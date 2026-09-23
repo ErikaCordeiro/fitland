@@ -730,6 +730,10 @@ export default function App() {
             navigate("exercise");
           }}
           onSaveWorkout={saveWorkout}
+          onRequestSuggestions={(studentId, options) => apiRequest(`/ai/personal/students/${studentId}/exercise-suggestions`, {
+            method: "POST",
+            body: JSON.stringify(options),
+          })}
         />
       )}
       {sharedPages}

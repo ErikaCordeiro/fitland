@@ -73,3 +73,31 @@ class AIStatusResponse(BaseModel):
 
 class StructuredAIResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class ExerciseSuggestionRequest(BaseModel):
+    quantity: int = Field(default=4, ge=1, le=10)
+    focus: str | None = Field(default=None, max_length=120)
+    additional_context: str | None = Field(default=None, max_length=300)
+
+
+class ExerciseSuggestionSelection(StructuredAIResponse):
+    exercise_id: uuid.UUID
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class ExerciseSuggestionModelResponse(StructuredAIResponse):
+    suggestions: list[ExerciseSuggestionSelection] = Field(default_factory=list, max_length=10)
+
+
+class ExerciseSuggestionRead(BaseModel):
+    exercise_id: uuid.UUID
+    name: str
+    muscle_group: str | None = None
+    reason: str
+
+
+class ExerciseSuggestionResponse(BaseModel):
+    suggestions: list[ExerciseSuggestionRead]
+    requires_professional_review: bool = False
+    warnings: list[str] = Field(default_factory=list)

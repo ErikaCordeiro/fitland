@@ -101,7 +101,10 @@ export async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     const error = await parseResponse(response) || { detail: "Erro inesperado" };
-    throw new Error(error.detail || "Erro inesperado");
+    const requestError = new Error(error.detail || error.message || "Erro inesperado");
+    requestError.code = error.code || null;
+    requestError.status = response.status;
+    throw requestError;
   }
 
   return parseResponse(response);

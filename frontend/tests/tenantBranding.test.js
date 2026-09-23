@@ -77,6 +77,13 @@ test("different personals and their students receive isolated visual tokens", ()
   });
 });
 
+test("light workspace text rules never leak into dark public login surfaces", () => {
+  const styles = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
+  assert.doesNotMatch(styles, /body\.theme-light small,\s*body\.theme-light \.eyebrow,\s*body\.theme-light p,\s*body\.theme-light span/);
+  assert.match(styles, /body\.theme-light :where\(\.personal-layout,\.student-layout-shell\) small/);
+  assert.match(styles, /\.login-screen[\s\S]*linear-gradient\(160deg, #000 0%, #030303 48%, #000 100%\)/);
+});
+
 test("sidebar toggle decoration stays inside the button instead of covering tenant branding", () => {
   const styles = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
   assert.match(styles, /\.sidebar-header \.menu-toggle,[\s\S]*position:\s*relative/);

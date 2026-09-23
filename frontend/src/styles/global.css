@@ -914,6 +914,7 @@ select {
 
 .student-card h3 {
   margin: 0 0 4px;
+  font-size: 1.1rem;
 }
 
 .student-card p {
@@ -922,6 +923,8 @@ select {
   gap: 8px;
   margin: 0;
   color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .mini-progress {
@@ -19490,10 +19493,10 @@ body.theme-light .workout-list {
   background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(232,232,229,.78)) !important;
 }
 
-body.theme-light small,
-body.theme-light .eyebrow,
-body.theme-light p,
-body.theme-light span {
+body.theme-light :where(.personal-layout,.student-layout-shell) small,
+body.theme-light :where(.personal-layout,.student-layout-shell) .eyebrow,
+body.theme-light :where(.personal-layout,.student-layout-shell) p,
+body.theme-light :where(.personal-layout,.student-layout-shell) span {
   color: rgba(5,5,5,.72);
 }
 
@@ -21829,9 +21832,24 @@ body.theme-light :where(.personal-layout,.student-layout-shell) :where(.metal-bu
   padding: 24px;
   border: 1px solid var(--border-color, #42464b);
   border-radius: 8px;
-  background: var(--surface-color, #151719);
-  color: var(--text-color, #f5f5f5);
+  background: var(--surface-strong, #151719);
+  color: var(--text-on-dark, #f5f5f5);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.38);
+}
+
+.ai-suggestion-modal :where(h2,strong,label) { color: var(--text-on-dark, #f7f7f8) !important; }
+.ai-suggestion-modal :where(p,small,.eyebrow) {
+  color: var(--text-on-dark-muted, #c5c9ce) !important;
+  opacity: 1 !important;
+}
+.ai-suggestion-modal .eyebrow,
+.ai-suggestion-modal .form-error { font-size: 1rem; line-height: 1.5; }
+.ai-suggestion-modal .form-error {
+  color: #ffd0d0 !important;
+  border: 1px solid #a95050;
+  border-radius: 6px;
+  background: #3a1515;
+  padding: 12px 14px;
 }
 
 .ai-suggestion-modal header,
@@ -21882,7 +21900,8 @@ body.theme-light :where(.personal-layout,.student-layout-shell) :where(.metal-bu
 
 .ai-suggestion-list small,
 .ai-suggestion-list p {
-  opacity: 0.78;
+  color: var(--text-on-dark-muted, #c5c9ce) !important;
+  opacity: 1;
 }
 
 .ai-suggestion-check {
@@ -21897,4 +21916,27 @@ body.theme-light :where(.personal-layout,.student-layout-shell) :where(.metal-bu
 @media (max-width: 560px) {
   .ai-suggestion-modal { padding: 18px; }
   .ai-suggestion-modal footer { align-items: stretch; flex-direction: column-reverse; }
+  .ai-suggestion-modal footer button { width: 100%; }
+}
+
+:where(.personal-layout,.student-layout-shell) .form-grid label > span {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) .student-card {
+  color: var(--text-primary);
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :where(h3,strong) {
+  color: var(--text-primary) !important;
+}
+
+body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :where(p,span,small) {
+  color: var(--text-secondary) !important;
+  opacity: 1 !important;
 }

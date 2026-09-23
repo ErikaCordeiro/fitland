@@ -23,6 +23,21 @@ const blankExercise = {
 
 const preferredInstructor = "Leandro Twin";
 
+const aiErrorMessages = {
+  AI_NOT_CONFIGURED: "A IA ainda não está configurada.",
+  AI_UNAVAILABLE: "A IA está temporariamente indisponível. Continue montando o treino manualmente.",
+  AI_TIMEOUT: "A IA demorou mais que o esperado. Tente novamente.",
+  AI_RATE_LIMITED: "O limite de uso da IA foi atingido. Tente novamente mais tarde.",
+  AI_INVALID_RESPONSE: "Não foi possível validar as sugestões. Tente novamente.",
+  AI_SAFETY_BLOCKED: "A solicitação precisa de revisão profissional antes de usar a IA.",
+  AI_FORBIDDEN: "Você não tem acesso a sugestões para este aluno.",
+};
+
+export function getAISuggestionErrorMessage(error) {
+  return aiErrorMessages[error?.code]
+    || "A IA está temporariamente indisponível. Continue montando o treino manualmente.";
+}
+
 const buildInstructorYoutubeUrl = (exerciseName) => {
   const query = encodeURIComponent(`${preferredInstructor} ${exerciseName} execução correta`);
   return `https://www.youtube.com/results?search_query=${query}`;
@@ -103,7 +118,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
       setSelectedSuggestions(new Set());
     } catch (error) {
       setAiSuggestions([]);
-      setAiError(error.message || "A IA está indisponível. Continue montando o treino manualmente.");
+      setAiError(getAISuggestionErrorMessage(error));
     } finally {
       setAiLoading(false);
     }
@@ -289,7 +304,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         </div>
       </form>
       {aiOpen && <div className="ai-suggestion-backdrop" role="presentation" onMouseDown={() => setAiOpen(false)}>
-        <section className="ai-suggestion-modal" role="dialog" aria-modal="true" aria-labelledby="ai-suggestion-title" onMouseDown={(event) => event.stopPropagation()}>
+        <section className="ai-suggestion-modal semantic-dark-surface" role="dialog" aria-modal="true" aria-labelledby="ai-suggestion-title" onMouseDown={(event) => event.stopPropagation()}>
           <header><div><p className="eyebrow">Assistência profissional</p><h2 id="ai-suggestion-title">Sugestões da IA</h2></div><button type="button" aria-label="Fechar sugestões" onClick={() => setAiOpen(false)}><X /></button></header>
           {aiLoading && <p role="status">Analisando o contexto e o catálogo deste aluno...</p>}
           {aiError && <p className="form-error" role="alert">{aiError}</p>}

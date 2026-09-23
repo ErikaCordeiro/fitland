@@ -24,6 +24,14 @@ test("loading errors empty catalog and manual continuation remain available", ()
   assert.match(builder, /Continuar manualmente/);
 });
 
+test("AI errors are mapped to accessible and actionable messages", () => {
+  assert.match(builder, /AI_NOT_CONFIGURED/);
+  assert.match(builder, /AI_RATE_LIMITED/);
+  assert.match(builder, /AI_INVALID_RESPONSE/);
+  assert.match(builder, /temporariamente indisponível/);
+  assert.match(builder, /semantic-dark-surface/);
+});
+
 test("suggested exercises reuse manual workout defaults", () => {
   assert.match(builder, /\.\.\.blankExercise/);
   assert.match(builder, /exerciseId: item\.exercise_id/);

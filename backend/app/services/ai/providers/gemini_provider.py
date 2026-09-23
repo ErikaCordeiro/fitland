@@ -46,8 +46,9 @@ class GeminiProvider(AIProvider):
 
     def _generate(self, *, instructions: str, content: Any, response_model: type[BaseModel]) -> AIProviderResult:
         try:
+            client = self._get_client()
             types = self._load_sdk()
-            response = self._get_client().models.generate_content(
+            response = client.models.generate_content(
                 model=self.model,
                 contents=content,
                 config=types.GenerateContentConfig(

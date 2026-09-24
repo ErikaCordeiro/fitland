@@ -44,6 +44,27 @@ class GeminiProvider(AIProvider):
             )
         return self._client
 
+    @staticmethod
+    def _provider_schema(response_model: type[BaseModel]) -> dict[str, Any]:
+        schema = response_model.model_json_schema()
+
+        def sanitize(value: Any) -> Any:
+            if isinstance(value, list):
+                return [sanitize(item) for item in value]
+            if not isinstance(value, dict):
+                return value
+
+            cleaned = {}
+            for key, item in value.items():
+                if key in {"minLength", "maxLength"}:
+                    continue
+                if key == "format" and item == "uuid":
+                    continue
+                cleaned[key] = sanitize(item)
+            return cleaned
+
+        return sanitize(schema)
+
     def _generate(self, *, instructions: str, content: Any, response_model: type[BaseModel]) -> AIProviderResult:
         try:
             client = self._get_client()
@@ -54,7 +75,7 @@ class GeminiProvider(AIProvider):
                 config=types.GenerateContentConfig(
                     system_instruction=instructions,
                     response_mime_type="application/json",
-                    response_schema=response_model,
+                    response_json_schema=self._provider_schema(response_model),
                 ),
             )
             self._raise_if_safety_blocked(response)

@@ -4,7 +4,7 @@ import pytest
 from pydantic import BaseModel
 
 from app.core.config import Settings
-from app.schemas.ai import AIErrorCode
+from app.schemas.ai import AIErrorCode, ExerciseSuggestionModelResponse
 from app.services.ai.errors import AIServiceError
 from app.services.ai.providers.gemini_provider import GeminiProvider
 from app.services.ai.providers.openai_provider import OpenAIProvider
@@ -102,8 +102,25 @@ def test_structured_output_is_validated_and_usage_is_captured():
     assert call["config"].options == {
         "system_instruction": "rules",
         "response_mime_type": "application/json",
-        "response_schema": ResultSchema,
+        "response_json_schema": ResultSchema.model_json_schema(),
     }
+
+
+def test_gemini_schema_omits_unsupported_string_constraints_but_keeps_local_validation():
+    provider = provider_with(result=response('{"suggestions":[{"exercise_id":"not-a-uuid","reason":"ok"}]}'))
+    with pytest.raises(AIServiceError) as error:
+        provider.generate_structured(
+            instructions="rules",
+            input_text="input",
+            response_model=ExerciseSuggestionModelResponse,
+        )
+
+    sent_schema = provider._client.models.call["config"].options["response_json_schema"]
+    serialized_schema = str(sent_schema)
+    assert 'format' not in serialized_schema
+    assert 'minLength' not in serialized_schema
+    assert 'maxLength' not in serialized_schema
+    assert error.value.code == AIErrorCode.INVALID_RESPONSE
 
 
 def test_image_input_uses_inline_bytes_and_same_structured_contract():

@@ -4,11 +4,11 @@ import { createLoginBrandingRequest, loginBrandingFailure, loginBrandingResponse
 
 test("a valid public response stays effective after a late request failure", () => {
   const response = {
-    display_name: "MucleBoom",
+    display_name: "MuscleBoom",
     slug: "hugo",
     is_fallback: false,
     personal_id: "tenant-1",
-    logo_url: "/mucleboom.png",
+    logo_url: "/muscleboom.png",
     login_subtitle: "Treine. Evolua. Exploda.",
     primary_color: "#0A0A0A",
     accent_color: "#FF4B0B"
@@ -16,9 +16,9 @@ test("a valid public response stays effective after a late request failure", () 
   const resolved = loginBrandingResponse(response, "hugo", false);
   assert.equal(resolved, response);
   assert.equal(loginBrandingFailure(resolved, "hugo", false), response);
-  assert.equal(resolved.display_name, "MucleBoom");
+  assert.equal(resolved.display_name, "MuscleBoom");
   assert.notEqual(resolved.display_name, "Personal Hugo");
-  assert.equal(resolved.logo_url, "/mucleboom.png");
+  assert.equal(resolved.logo_url, "/muscleboom.png");
   assert.equal(resolved.login_subtitle, "Treine. Evolua. Exploda.");
 });
 
@@ -49,7 +49,7 @@ test("first mount stays neutral until a valid tenant response arrives", () => {
     onResolved: (value) => { applied = value; },
     onRejected: () => assert.fail("valid first load should not reject")
   });
-  const response = { display_name: "MucleBoom", slug: "hugo", is_fallback: false };
+  const response = { display_name: "MuscleBoom", slug: "hugo", is_fallback: false };
   request.resolve(response);
   assert.equal(applied, response);
   assert.equal(visibleLoginBranding(applied, "hugo", false), response);

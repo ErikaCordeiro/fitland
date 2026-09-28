@@ -10,6 +10,7 @@ export function buildWorkoutPayload(workout, exercises) {
     name: String(workout.name || "").trim(),
     focus: workout.focus || null,
     duration_minutes: numericValue(workout.duration),
+    day_of_week: workout.dayOfWeek || workout.day_of_week || null,
     notes: workout.notes || null,
     exercises: exercises.map((exercise, index) => ({
       exercise_id: exercise.exerciseId,

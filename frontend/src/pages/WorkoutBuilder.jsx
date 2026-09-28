@@ -160,7 +160,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         status: "active",
         focus: form.get("focus"),
         duration: form.get("duration"),
-        date: form.get("date") || "Segunda",
+        dayOfWeek: form.get("dayOfWeek") || null,
         exercises: exercises.map((exercise) => ({ ...exercise, techniqueConfig: techniqueConfigFor(exercise), done: false }))
       });
       setEditingWorkout(null);
@@ -206,7 +206,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
           <label><span>Aluno</span><select name="studentId" value={studentId} onChange={(event) => setStudentId(event.target.value)}>{students.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label>
           <label><span>Foco</span><input name="focus" key={`focus-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.focus || "Força, hipertrofia e cardio"} /></label>
           <label><span>Duração</span><input name="duration" key={`duration-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.duration || "60 min"} /></label>
-          <label><span>Dia da semana</span><select name="date" key={`date-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.date || "Segunda"}>{["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map((day) => <option key={day} value={day}>{day}</option>)}</select></label>
+          <label><span>Dia da semana</span><select name="dayOfWeek" key={`day-${editingWorkout?.id || "new"}`} defaultValue={editingWorkout?.dayOfWeek || ""}><option value="">Sem dia definido</option>{["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map((day) => <option key={day} value={day}>{day}</option>)}</select></label>
         </div>
         <div className="exercise-builder">
           {exercises.map((exercise, index) => {
@@ -325,7 +325,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
           <article key={workout.id} className={`workout-card ${editingWorkout?.id === workout.id ? "active-edit" : ""}`}>
             <div className="workout-card-header" onClick={() => editWorkout(workout)} role="button" tabIndex="0">
               <strong>{workout.name}</strong>
-              <span>{workout.date || "Treino"} - {workout.focus} - {workout.duration}</span>
+              <span>{workout.dayOfWeek || "Sem dia definido"} - {workout.focus} - {workout.duration}</span>
               <small>Clique para editar este treino</small>
             </div>
             {workout.exercises.map((exercise) => (

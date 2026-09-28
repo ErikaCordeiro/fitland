@@ -14,6 +14,8 @@ export function tenantDataFromResponses(students, workouts, exercises = []) {
     studentId: workout.studentId || workout.student_id,
     personalId: workout.personalId || workout.personal_id,
     duration: workout.duration || (workout.duration_minutes ? `${workout.duration_minutes} min` : ""),
+    dayOfWeek: workout.dayOfWeek || workout.day_of_week || "",
+    date: workout.date || workout.day_of_week || "",
     exercises: (workout.exercises || []).map((item) => {
       const exercise = exerciseById.get(String(item.exercise_id)) || {};
       return {

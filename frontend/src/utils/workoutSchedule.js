@@ -14,7 +14,7 @@ export function getWeekdayName(date = new Date()) {
 }
 
 export function getWorkoutDay(workout) {
-  const configuredDay = normalizeScheduleText(workout?.date);
+  const configuredDay = normalizeScheduleText(workout?.dayOfWeek || workout?.day_of_week || workout?.date);
   return WEEKDAYS.find((day) => configuredDay.includes(normalizeScheduleText(day))) || null;
 }
 
@@ -36,6 +36,10 @@ export function groupWorkoutsByWeekday(workouts = []) {
     if (displayDay) grouped[displayDay].push(workout);
   });
   return grouped;
+}
+
+export function getUnscheduledWorkouts(workouts = []) {
+  return workouts.filter((workout) => !getWorkoutDay(workout));
 }
 
 export function getNextDays(total = 7, start = new Date()) {

@@ -146,6 +146,18 @@ def test_student_workout_payload_preserves_exercise_order(db):
     assert [item["name"] for item in serialized["exercises"]] == ["Supino", "Remada"]
 
 
+def test_workout_schedule_day_is_optional_and_persisted(db):
+    personal, student, exercise = records(db)
+    unscheduled = create_workout(db, personal, WorkoutCreate(student_id=student.id, name="Sem agenda", exercises=[{
+        "exercise_id": exercise.id, "sets": 3, "repetitions": "10", "rest_seconds": 60,
+    }]))
+    assert unscheduled.day_of_week is None
+    scheduled = update_workout(db, personal, unscheduled.id, WorkoutUpdate(day_of_week="Quarta"))
+    assert scheduled.day_of_week == "Quarta"
+    serialized = WorkoutRead.model_validate(list_workouts(db, db.get(User, student.user_id))[0]).model_dump(mode="json")
+    assert serialized["day_of_week"] == "Quarta"
+
+
 def test_student_and_personal_workout_isolation(db):
     personal, student, exercise = records(db)
     other_personal = User(id=uuid.uuid4(), name="Other", email="other@test.dev", hashed_password="x", role=UserRole.PERSONAL)

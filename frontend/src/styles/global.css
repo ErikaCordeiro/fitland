@@ -21973,6 +21973,162 @@ body.theme-light .personal-layout .workout-list .workout-card-header small { col
   .current-exercise-heading .exercise-video-preview { width: 100%; }
 }
 
+/* Student training schedule: prescription, weekly agenda and completed history are distinct. */
+.student-training-page {
+  width: 100%;
+  min-width: 0;
+  gap: 16px;
+}
+.student-training-page .training-hero-card {
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.2);
+}
+.student-training-page .training-hero-card h2 {
+  max-width: none;
+  margin: 5px 0 7px;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.02;
+}
+.student-training-page .training-facts { margin: 17px 0; }
+.student-training-page .training-ring .progress-ring { width: 126px; height: 126px; }
+.student-training-page .weekly-workout-panel,
+.student-training-page .workout-history-panel { padding: 22px; border-radius: 8px; }
+.student-training-page .weekly-workout-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  gap: 10px !important;
+  width: 100%;
+  overflow: visible;
+}
+.student-training-page .weekday-card {
+  min-width: 0;
+  min-height: 154px !important;
+  padding: 13px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.student-training-page .weekday-card button { min-height: 88px !important; border-radius: 6px; }
+.unscheduled-workouts {
+  display: grid;
+  grid-template-columns: minmax(190px, .4fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.unscheduled-workouts h3 { margin: 4px 0; font-size: 1.35rem; }
+.unscheduled-workouts > div > span { color: var(--muted); }
+.unscheduled-workout-list { display: grid; gap: 8px; }
+.unscheduled-workout-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.035);
+}
+.unscheduled-workout-list article div { min-width: 0; display: grid; gap: 3px; }
+.unscheduled-workout-list article :where(strong,span,small) { overflow-wrap: anywhere; }
+.unscheduled-workout-list article span,
+.unscheduled-workout-list article small { color: var(--muted); }
+.unscheduled-workout-list article button {
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  background: rgba(255,255,255,.06);
+  font-weight: 800;
+}
+
+body.theme-light .student-layout-shell .student-training-page {
+  color: #17191c;
+}
+body.theme-light .student-layout-shell .student-training-page .training-hero-card,
+body.theme-light .student-layout-shell .student-training-page .weekly-workout-panel,
+body.theme-light .student-layout-shell .student-training-page .workout-history-panel {
+  color: #17191c !important;
+  border-color: #d7dade !important;
+  background: #fff !important;
+  box-shadow: 0 8px 24px rgba(30,34,38,.08) !important;
+  backdrop-filter: none;
+}
+body.theme-light .student-layout-shell .student-training-page .training-hero-card :where(h2,strong,span,svg,p,.eyebrow),
+body.theme-light .student-layout-shell .student-training-page .section-heading :where(h2,strong,span,p,.eyebrow) {
+  color: #17191c !important;
+}
+body.theme-light .student-layout-shell .student-training-page .training-hero-card > div > span,
+body.theme-light .student-layout-shell .student-training-page .section-heading > div > span,
+body.theme-light .student-layout-shell .student-training-page .unscheduled-workouts > div > span {
+  color: #555c64 !important;
+}
+body.theme-light .student-layout-shell .student-training-page .training-facts span {
+  color: #292d31 !important;
+  border-color: #d9dde1;
+  background: #f3f5f6;
+}
+body.theme-light .student-layout-shell .student-training-page .training-hero-card button {
+  color: #fff;
+  background: #202326;
+}
+body.theme-light .student-layout-shell .student-training-page .progress-ring {
+  color: #17191c;
+  background: conic-gradient(#2d3237 var(--value), #e4e7e9 0) !important;
+  box-shadow: none;
+}
+body.theme-light .student-layout-shell .student-training-page .progress-ring::after { background: #fff; }
+body.theme-light .student-layout-shell .student-training-page .weekday-card {
+  color: #17191c;
+  border-color: #dfe2e5;
+  background: #f7f8f8;
+}
+body.theme-light .student-layout-shell .student-training-page .weekday-card header { border-color: #dfe2e5; }
+body.theme-light .student-layout-shell .student-training-page .weekday-card :where(strong,span,p,small,em) { color: #4d545b !important; }
+body.theme-light .student-layout-shell .student-training-page .weekday-card strong { color: #17191c !important; }
+body.theme-light .student-layout-shell .student-training-page .weekday-card button {
+  color: #17191c;
+  border-color: #ccd1d5;
+  background: #fff;
+  box-shadow: none;
+}
+body.theme-light .student-layout-shell .student-training-page .weekday-card button.active,
+body.theme-light .student-layout-shell .student-training-page .weekday-card button:hover {
+  border-color: #626970;
+  background: #eef0f2;
+  box-shadow: none;
+}
+body.theme-light .student-layout-shell .unscheduled-workout-list article {
+  border-color: #d9dde1;
+  background: #f7f8f8;
+}
+body.theme-light .student-layout-shell .unscheduled-workout-list article :where(strong,span,small) { color: #30353a !important; }
+body.theme-light .student-layout-shell .unscheduled-workout-list article button { color: #fff; background: #202326; }
+body.theme-light .student-layout-shell .workout-history-panel .empty-history-text { color: #555c64 !important; }
+
+@media (max-width: 760px) {
+  .student-training-page .training-hero-card { grid-template-columns: 1fr; padding: 18px; }
+  .student-training-page .training-ring { display: none; }
+  .student-training-page .weekly-workout-grid { grid-template-columns: 1fr !important; }
+  .student-training-page .weekday-card { min-height: 0 !important; }
+  .student-training-page .weekday-card p { margin: 0; }
+  .unscheduled-workouts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 390px) {
+  .student-training-page .training-hero-card,
+  .student-training-page .weekly-workout-panel,
+  .student-training-page .workout-history-panel { padding: 15px; }
+  .student-training-page .training-hero-card h2 { font-size: 1.85rem; }
+  .student-training-page .training-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .student-training-page .training-facts span { padding: 0 9px; font-size: .85rem; }
+  .unscheduled-workout-list article { grid-template-columns: 1fr; }
+  .unscheduled-workout-list article button { width: 100%; }
+}
+
 .ai-suggestion-modal {
   width: min(620px, 100%);
   max-height: min(760px, 90vh);

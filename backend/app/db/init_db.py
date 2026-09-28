@@ -26,6 +26,7 @@ def init_db() -> None:
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP NULL",
                 "ALTER TABLE workout_exercises ADD COLUMN IF NOT EXISTS set_type VARCHAR(24) NOT NULL DEFAULT 'standard'",
                 "ALTER TABLE workout_exercises ADD COLUMN IF NOT EXISTS technique_config JSON NOT NULL DEFAULT '{}'",
+                "ALTER TABLE workouts ADD COLUMN IF NOT EXISTS day_of_week VARCHAR(16)",
             ]
             for statement in upgrades:
                 connection.execute(text(statement))

@@ -34,6 +34,7 @@ import {
   getPersonalPagePath,
   getPersonalRoute,
   getRequestedContext,
+  isBrandingCompatibleWithContext,
   isAuthLoginPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
@@ -286,6 +287,17 @@ export default function App() {
     apiRequest("/branding/me")
       .then((resolved) => {
         if (cancelled) return;
+        const requestedContext = getRequestedContext(window.location.pathname);
+        if (!isBrandingCompatibleWithContext(resolved, requestedContext)) {
+          const loginPath = getContextLoginPath(requestedContext);
+          clearToken();
+          setSession(null);
+          setBrandingUserId(null);
+          setTenantData(createTenantDataState());
+          setBranding({ display_name: "Fitland", initials: "FT", is_fallback: true });
+          window.history.replaceState(null, "", loginPath);
+          return;
+        }
         setBranding(resolved);
         setBrandingUserId(resolved?.personal_id ? session.id : null);
         setBrandingError(!resolved?.personal_id && session.role !== "owner");

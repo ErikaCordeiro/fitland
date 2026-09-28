@@ -80,7 +80,8 @@ def make_user(role=UserRole.OWNER, **changes):
 
 
 @pytest.fixture(autouse=True)
-def reset_auth_state():
+def reset_auth_state(monkeypatch):
+    monkeypatch.setattr(settings, "OWNER_INITIAL_NAME", "Owner")
     auth_service.FAILED_ATTEMPTS.clear()
     auth_service.REVOKED_REFRESH_JTIS.clear()
     yield

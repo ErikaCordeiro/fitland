@@ -180,6 +180,11 @@ export function isSessionCompatibleWithContext(user, context) {
   return !context.slug || !sessionSlug || sessionSlug === context.slug;
 }
 
+export function isBrandingCompatibleWithContext(branding, context) {
+  if (!context?.slug) return true;
+  return Boolean(branding?.slug) && branding.slug === context.slug;
+}
+
 export function getContextLoginPath(context) {
   if (context?.type === "owner") return "/fitland/login";
   if (context?.type === "student") return context.slug ? `/personal/${context.slug}/aluno/login` : "/aluno/login";

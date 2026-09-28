@@ -1,7 +1,10 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+WorkoutDay = Literal["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 
 
 class WorkoutExerciseCreate(BaseModel):
@@ -32,6 +35,7 @@ class WorkoutCreate(BaseModel):
     name: str = Field(min_length=2, max_length=160)
     focus: str | None = Field(default=None, max_length=255)
     duration_minutes: int | None = Field(default=None, ge=1, le=360)
+    day_of_week: WorkoutDay | None = None
     notes: str | None = Field(default=None, max_length=3000)
     exercises: list[WorkoutExerciseCreate] = Field(default_factory=list)
 
@@ -40,6 +44,7 @@ class WorkoutUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=160)
     focus: str | None = Field(default=None, max_length=255)
     duration_minutes: int | None = Field(default=None, ge=1, le=360)
+    day_of_week: WorkoutDay | None = None
     status: str | None = Field(default=None, max_length=40)
     notes: str | None = Field(default=None, max_length=3000)
     exercises: list[WorkoutExerciseCreate] | None = None
@@ -52,6 +57,7 @@ class WorkoutRead(BaseModel):
     name: str
     focus: str | None
     duration_minutes: int | None
+    day_of_week: WorkoutDay | None
     status: str
     notes: str | None
     exercises: list[WorkoutExerciseRead] = []

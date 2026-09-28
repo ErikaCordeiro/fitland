@@ -17,6 +17,7 @@ class Workout(Base):
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     focus: Mapped[str | None] = mapped_column(String(255))
     duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    day_of_week: Mapped[str | None] = mapped_column(String(16), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="active", nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

@@ -13,6 +13,7 @@ import {
   isAuthLoginPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
+  isBrandingCompatibleWithContext,
   PUBLIC_AUTH_CONTEXT_KEY,
   readPublicAuthContext,
   rememberPublicAuthContext,
@@ -148,6 +149,25 @@ test("personal slugs remain isolated when the session exposes tenant identity", 
   assert.equal(isSessionCompatibleWithContext(thiago, getRequestedContext("/personal/maria/login")), false);
   assert.equal(getContextLoginPath(getRequestedContext("/personal/maria/dashboard")), "/personal/maria/login");
   assert.equal(getContextLoginPath({ type: "personal", slug: null }), "/personal/login");
+});
+
+test("authenticated branding cannot replace the tenant explicitly requested by the URL", () => {
+  const hugoRoute = getRequestedContext("/personal/hugo/dashboard");
+  const thiagoRoute = getRequestedContext("/personal/thiago-fillipo/dashboard");
+  assert.equal(isBrandingCompatibleWithContext({ slug: "thiago-fillipo" }, hugoRoute), false);
+  assert.equal(isBrandingCompatibleWithContext({ slug: "hugo" }, thiagoRoute), false);
+  assert.equal(isBrandingCompatibleWithContext({ slug: "hugo" }, hugoRoute), true);
+  assert.equal(getContextLoginPath(hugoRoute), "/personal/hugo/login");
+  assert.equal(getContextLoginPath(thiagoRoute), "/personal/thiago-fillipo/login");
+});
+
+test("App clears an incompatible session before routing to the requested tenant login", () => {
+  const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  const guard = appSource.indexOf("!isBrandingCompatibleWithContext(resolved, requestedContext)");
+  const clear = appSource.indexOf("clearToken()", guard);
+  const clearSession = appSource.indexOf("setSession(null)", guard);
+  const redirect = appSource.indexOf("window.history.replaceState(null, \"\", loginPath)", guard);
+  assert.ok(guard >= 0 && clear > guard && clearSession > clear && redirect > clearSession);
 });
 
 test("personal pages use canonical tenant-scoped routes for any valid slug", () => {

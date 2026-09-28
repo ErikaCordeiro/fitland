@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Circle, Clock, Dumbbell, Flame, Play, Video, X } from "lucide-react";
 import { loadWorkoutHistory } from "../utils/activityData.js";
 import { syncWorkoutHistory } from "../services/workoutSessions.js";
-import { getRecommendedWorkout, getWeekdayName, groupWorkoutsByWeekday, normalizeScheduleText } from "../utils/workoutSchedule.js";
+import { getRecommendedWorkout, getUnscheduledWorkouts, getWeekdayName, groupWorkoutsByWeekday, normalizeScheduleText } from "../utils/workoutSchedule.js";
 
 const weekDays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
@@ -35,6 +35,7 @@ export default function StudentPortal({ workout, workouts = [], scope, completed
   }, [recommendedWorkout?.id]);
 
   const workoutsByDay = useMemo(() => groupWorkoutsByWeekday(availableWorkouts), [availableWorkouts]);
+  const unscheduledWorkouts = useMemo(() => getUnscheduledWorkouts(availableWorkouts), [availableWorkouts]);
   const todayName = getWeekdayName(new Date());
 
   const percent = useMemo(() => {
@@ -52,7 +53,7 @@ export default function StudentPortal({ workout, workouts = [], scope, completed
         <div>
           <p className="eyebrow">{selectedWorkout.id === recommendedWorkout?.id ? "Treino recomendado para hoje" : "Treino selecionado"}</p>
           <h2>{selectedWorkout.name}</h2>
-          <span>{selectedWorkout.date || "Hoje"} - {selectedWorkout.focus} - {selectedWorkout.duration}</span>
+          <span>{selectedWorkout.dayOfWeek || "Sem dia definido"} • {String(selectedWorkout.focus || "Treino personalizado").replaceAll(",", " •")} • {selectedWorkout.duration}</span>
           <div className="training-facts">
             <span><Dumbbell size={17} />{selectedWorkout.exercises.length} exercícios</span>
             <span><Clock size={17} />{selectedWorkout.duration}</span>
@@ -72,9 +73,9 @@ export default function StudentPortal({ workout, workouts = [], scope, completed
       <article className="full-workout-panel weekly-workout-panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Meu treino completo</p>
+            <p className="eyebrow">Agenda semanal</p>
             <h2>Segunda a domingo</h2>
-            <span>Escolha o treino do dia para visualizar os exercícios.</span>
+            <span>Os treinos aparecem no dia definido pelo Personal.</span>
           </div>
           <span className="status-pill">{availableWorkouts.length} treinos</span>
         </div>
@@ -86,7 +87,7 @@ export default function StudentPortal({ workout, workouts = [], scope, completed
               <article className="weekday-card" key={day}>
                 <header>
                   <strong>{day}{normalizeScheduleText(day) === normalizeScheduleText(todayName) ? " - Hoje" : ""}</strong>
-                  <span>{dayWorkouts.length ?`${dayWorkouts.length} treino(s)` : "Descanso"}</span>
+                  <span>{dayWorkouts.length ?`${dayWorkouts.length} treino(s)` : "Sem treino agendado"}</span>
                 </header>
                 {dayWorkouts.length ?dayWorkouts.map((item) => (
                   <button
@@ -101,18 +102,31 @@ export default function StudentPortal({ workout, workouts = [], scope, completed
                     <small>{item.focus}</small>
                     <em>{item.duration}</em>
                   </button>
-                )) : <p>Dia livre para recuperação, mobilidade ou cardio leve.</p>}
+                )) : <p>Nenhum treino definido para este dia.</p>}
               </article>
             );
           })}
         </div>
+        {unscheduledWorkouts.length > 0 && (
+          <section className="unscheduled-workouts" aria-labelledby="unscheduled-title">
+            <div><p className="eyebrow">Meus treinos</p><h3 id="unscheduled-title">Sem dia definido</h3><span>Disponíveis para acesso, mas ainda não incluídos na agenda semanal.</span></div>
+            <div className="unscheduled-workout-list">
+              {unscheduledWorkouts.map((item) => (
+                <article key={item.id}>
+                  <div><strong>{item.name}</strong><span>{item.focus || "Treino personalizado"}</span><small>{item.exercises.length} exercício(s) • {item.duration}</small></div>
+                  <button type="button" onClick={() => setSelectedWorkoutId(item.id)}>Ver treino</button>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </article>
 
       <article className="workout-history-panel premium-panel">
         <div className="section-heading compact-heading">
           <div>
-            <p className="eyebrow">Histórico de treinos</p>
-            <h2>Seus treinos registrados</h2>
+            <p className="eyebrow">Histórico</p>
+            <h2>Treinos concluídos</h2>
           </div>
           <span className="status-pill">{workoutHistory.length} {workoutHistory.length === 1 ?"registro" : "registros"}</span>
         </div>
@@ -147,7 +161,7 @@ export default function StudentPortal({ workout, workouts = [], scope, completed
             })}
           </div>
         ) : (
-          <p className="empty-history-text">Finalize seu primeiro treino para criar o histórico real de evolução.</p>
+          <p className="empty-history-text">Nenhum treino concluído ainda. Ao finalizar uma execução, ela aparecerá aqui.</p>
         )}
       </article>
 

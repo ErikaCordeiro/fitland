@@ -189,6 +189,38 @@ def test_owner_normal_login_wrong_password_is_401(monkeypatch):
     assert error.value.status_code == 401
 
 
+def test_owner_login_logs_sanitized_decision_without_credentials(monkeypatch, capsys):
+    monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", False)
+    submitted_password = "WrongPass123!"
+
+    with pytest.raises(DomainError):
+        authenticate_owner(FakeSession([make_user()]), payload(password=submitted_password))
+
+    output = capsys.readouterr().out
+    decision = next(line for line in output.splitlines() if "[auth-owner] decision" in line)
+    assert "result=rejected_password_mismatch" in decision
+    assert "user_found=true" in decision
+    assert "role_owner=true" in decision
+    assert "active=true" in decision
+    assert "password_valid=false" in decision
+    assert "locked=false" in decision
+    assert "must_change_password=false" in decision
+    assert "force_reset=false" in decision
+    forbidden_values = (
+        submitted_password,
+        "test@example.com",
+        "hashed_password",
+        "password_hash",
+        "password_match",
+        "authorization",
+        "cookie",
+        "secret",
+        "token=",
+    )
+    lowered_output = output.lower()
+    assert all(value.lower() not in lowered_output for value in forbidden_values)
+
+
 def test_owner_normal_login_rate_limit_blocks_repeated_failures(monkeypatch):
     monkeypatch.setattr(settings, "OWNER_FORCE_PASSWORD_RESET", False)
     db = FakeSession([make_user()])

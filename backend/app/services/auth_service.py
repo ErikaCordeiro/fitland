@@ -233,24 +233,30 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
         password.encode("utf-8"), configured_password.encode("utf-8")
     )
     owner_recovery_matches = settings.OWNER_FORCE_PASSWORD_RESET and email_matches and password_matches
-    print(
-        "[auth-owner] login_attempt "
-        f"request_id={correlation_id} configured={str(bool(configured_email and configured_password)).lower()} "
-        f"email_match={str(email_matches).lower()} password_match={str(password_matches).lower()}",
-        flush=True,
-    )
-    print(
-        f"[auth-owner] stage=credentials request_id={correlation_id} "
-        f"email_match={str(email_matches).lower()} configured={str(bool(configured_email and configured_password)).lower()}",
-        flush=True,
-    )
-
     user = None
     password_valid = False
     owner_count = 0
+    owner_lookup_complete = False
+
+    def log_decision(result: str, *, locked: bool = False) -> None:
+        def state(value):
+            return "unknown" if value is None else str(bool(value)).lower()
+
+        print(
+            "[auth-owner] decision "
+            f"request_id={correlation_id} result={result} "
+            f"user_found={state(user is not None if owner_lookup_complete else None)} "
+            f"role_owner={state(user.role == UserRole.OWNER if user else None)} "
+            f"active={state(user.is_active if user else None)} "
+            f"password_valid={state(password_valid if user else None)} "
+            f"locked={state(locked)} "
+            f"must_change_password={state(user.must_change_password if user else None)} "
+            f"force_reset={state(settings.OWNER_FORCE_PASSWORD_RESET)}",
+            flush=True,
+        )
 
     if _is_locked(email) and not owner_recovery_matches:
-        print(f"[auth-owner] login_failed request_id={correlation_id} reason=blocked_owner", flush=True)
+        log_decision("rejected_rate_limit", locked=True)
         raise DomainError("Muitas tentativas. Aguarde alguns minutos e tente novamente.", status.HTTP_429_TOO_MANY_REQUESTS)
 
     if settings.OWNER_FORCE_PASSWORD_RESET:
@@ -260,11 +266,7 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
         # lookup that can disagree because of stale ORM state or legacy email
         # artifacts.
         if not email_matches or not password_matches:
-            print(
-                f"[auth-owner] login_failed request_id={correlation_id} "
-                "reason=recovery_credentials_mismatch",
-                flush=True,
-            )
+            log_decision("rejected_recovery_credentials")
             raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
 
         from app.services.owner_service import ensure_owner
@@ -272,14 +274,11 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
         try:
             user = ensure_owner(db)
         except RuntimeError as exc:
-            print(
-                f"[auth-owner] owner_reset_rejected request_id={correlation_id} "
-                f"error_type={type(exc).__name__}",
-                flush=True,
-            )
+            log_decision("rejected_recovery_owner")
             raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED) from exc
         password_valid = bool(user and user.role == UserRole.OWNER)
         owner_count = 1 if user else 0
+        owner_lookup_complete = True
     else:
         owner_candidates = db.scalars(select(User).where(User.role == UserRole.OWNER)).all()
         matching_owners = [
@@ -289,6 +288,7 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
         ]
         owner_count = len(matching_owners)
         user = matching_owners[0] if owner_count == 1 else None
+        owner_lookup_complete = True
         if user:
             try:
                 password_valid = verify_password(password, user.hashed_password)
@@ -298,29 +298,12 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
     if not user or owner_count != 1 or not password_valid:
         _register_failure(email)
         reason = "owner_not_found" if not user or owner_count != 1 else "password_mismatch"
-        print(
-            f"[auth-owner] login_failed request_id={correlation_id} "
-            f"reason={reason} owner_count={owner_count} "
-            f"role_valid={str(bool(user and user.role == UserRole.OWNER)).lower()} "
-            f"password_valid={str(password_valid).lower()}",
-            flush=True,
-        )
+        log_decision(f"rejected_{reason}")
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
 
-    print(
-        f"[auth-owner] stage=owner_validated request_id={correlation_id} owner_found=true "
-        f"role_valid={str(user.role == UserRole.OWNER).lower()} active={str(user.is_active).lower()} "
-        f"blocked={str(user.account_status != 'active').lower()} "
-        f"must_change_password={str(user.must_change_password).lower()} "
-        f"password_valid={str(password_valid).lower()}",
-        flush=True,
-    )
-
     if user.deleted_at is not None or not user.is_active or user.account_status != "active":
-        print(f"[auth-owner] stage=account_status request_id={correlation_id} active=false", flush=True)
+        log_decision("rejected_inactive")
         raise DomainError("Inactive user", status.HTTP_403_FORBIDDEN)
-
-    print(f"[auth-owner] stage=account_status request_id={correlation_id} active=true", flush=True)
 
     try:
         _register_success(email, user)
@@ -336,16 +319,11 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
         db.commit()
     except Exception as exc:
         db.rollback()
-        print(
-            f"[auth-owner] login_failed request_id={correlation_id} "
-            f"reason=session_creation_failed error_type={type(exc).__name__}",
-            flush=True,
-        )
+        log_decision("failed_session_creation")
         raise DomainError("Unable to create session", status.HTTP_500_INTERNAL_SERVER_ERROR) from exc
 
     FAILED_ATTEMPTS.pop(email, None)
-    print(f"[auth-owner] stage=session_created request_id={correlation_id} success=true", flush=True)
-    print(f"[auth-owner] login_success request_id={correlation_id}", flush=True)
+    log_decision("accepted")
     return token_response, refresh_token
 
 

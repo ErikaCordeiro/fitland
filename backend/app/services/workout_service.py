@@ -13,7 +13,7 @@ from app.services.access import get_owned_student, get_owned_workout
 
 def list_workouts(db: Session, current_user: User) -> list[Workout]:
     query = select(Workout).options(
-        selectinload(Workout.exercises).selectinload(WorkoutExercise.exercise)
+        selectinload(Workout.exercises).selectinload(WorkoutExercise.exercise).selectinload(Exercise.videos)
     ).order_by(Workout.created_at.desc())
     if current_user.role == UserRole.PERSONAL:
         query = query.where(Workout.personal_id == current_user.id)

@@ -20,6 +20,9 @@ class WorkoutExerciseRead(WorkoutExerciseCreate):
     id: uuid.UUID
     name: str
     explanation: str | None = None
+    video_url: str | None = None
+    video_provider: str | None = None
+    video_title: str | None = None
 
     model_config = {"from_attributes": True}
 

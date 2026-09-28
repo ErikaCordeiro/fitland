@@ -44,6 +44,18 @@ test("student workout uses the exercise name embedded in the authorized payload"
   assert.deepEqual(state.workouts[0].exercises[0].techniqueConfig, { components: [] });
 });
 
+test("workout keeps API order and hydrates instruction video variants", () => {
+  const state = tenantDataFromResponses([], [{ id: "w1", exercises: [
+    { id: "we2", exercise_id: "e2", order_index: 2, name: "Segundo", video_url: "/uploads/exercises/demo.mp4", video_provider: "upload" },
+    { id: "we1", exercise_id: "e1", order_index: 1, name: "Primeiro", video_url: "https://youtube.com/embed/demo", video_provider: "youtube" },
+    { id: "we3", exercise_id: "e3", order_index: 3, name: "Terceiro" }
+  ] }]);
+  assert.deepEqual(state.workouts[0].exercises.map((item) => item.name), ["Segundo", "Primeiro", "Terceiro"]);
+  assert.equal(state.workouts[0].exercises[0].videoProvider, "upload");
+  assert.equal(state.workouts[0].exercises[1].videoProvider, "youtube");
+  assert.equal(state.workouts[0].exercises[2].videoUrl, "");
+});
+
 test("a failed optional resource can be represented without injecting fallback rows", () => {
   const state = tenantDataFromResponses([{ id: "real-student" }], [], []);
   const partial = { ...state, status: "partial", error: "workouts unavailable" };

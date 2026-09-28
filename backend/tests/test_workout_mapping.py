@@ -11,6 +11,7 @@ from app.models.exercise import Exercise
 from app.models.student import Student
 from app.models.user import User, UserRole
 from app.models.workout import Workout, WorkoutExercise
+from app.models.video import Video
 from app.schemas.workout import WorkoutCreate, WorkoutRead, WorkoutUpdate
 from app.services.workout_service import create_workout, list_workouts, update_workout
 
@@ -103,6 +104,46 @@ def test_student_workout_payload_includes_owned_exercise_name_and_technique(db, 
     serialized = WorkoutRead.model_validate(listed[0]).model_dump(mode="json")
     assert serialized["exercises"][0]["name"] == "Supino"
     assert serialized["exercises"][0]["set_type"] == set_type
+
+
+@pytest.mark.parametrize("provider,url", [
+    ("youtube", "https://www.youtube.com/embed/example"),
+    ("upload", "/uploads/exercises/example.mp4"),
+])
+def test_student_workout_payload_includes_existing_instruction_video(db, provider, url):
+    personal, student, exercise = records(db)
+    db.add(Video(exercise_id=exercise.id, title="Execução segura", provider=provider, url=url, embed_url=url))
+    db.commit()
+    workout = create_workout(db, personal, WorkoutCreate(student_id=student.id, name="Treino com vídeo", exercises=[{
+        "exercise_id": exercise.id, "sets": 3, "repetitions": "10", "rest_seconds": 60,
+    }]))
+    serialized = WorkoutRead.model_validate(list_workouts(db, db.get(User, student.user_id))[0]).model_dump(mode="json")
+    item = serialized["exercises"][0]
+    assert item["video_url"] == url
+    assert item["video_provider"] == provider
+    assert item["video_title"] == "Execução segura"
+
+
+def test_student_workout_payload_handles_exercise_without_video(db):
+    personal, student, exercise = records(db)
+    create_workout(db, personal, WorkoutCreate(student_id=student.id, name="Treino sem vídeo", exercises=[{
+        "exercise_id": exercise.id, "sets": 3, "repetitions": "10", "rest_seconds": 60,
+    }]))
+    serialized = WorkoutRead.model_validate(list_workouts(db, db.get(User, student.user_id))[0]).model_dump(mode="json")
+    assert serialized["exercises"][0]["video_url"] is None
+
+
+def test_student_workout_payload_preserves_exercise_order(db):
+    personal, student, first = records(db)
+    second = Exercise(id=uuid.uuid4(), personal_id=personal.id, name="Remada", muscle_group="Costas")
+    db.add(second)
+    db.commit()
+    create_workout(db, personal, WorkoutCreate(student_id=student.id, name="Treino ordenado", exercises=[
+        {"exercise_id": second.id, "order_index": 2, "sets": 3, "repetitions": "12", "rest_seconds": 60},
+        {"exercise_id": first.id, "order_index": 1, "sets": 4, "repetitions": "8", "rest_seconds": 90},
+    ]))
+    serialized = WorkoutRead.model_validate(list_workouts(db, db.get(User, student.user_id))[0]).model_dump(mode="json")
+    assert [item["name"] for item in serialized["exercises"]] == ["Supino", "Remada"]
 
 
 def test_student_and_personal_workout_isolation(db):

@@ -23,7 +23,12 @@ class Workout(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     student = relationship("Student", back_populates="workouts")
-    exercises = relationship("WorkoutExercise", back_populates="workout", cascade="all, delete-orphan")
+    exercises = relationship(
+        "WorkoutExercise",
+        back_populates="workout",
+        cascade="all, delete-orphan",
+        order_by="WorkoutExercise.order_index",
+    )
 
 
 class WorkoutExercise(Base):
@@ -51,3 +56,16 @@ class WorkoutExercise(Base):
     @property
     def explanation(self) -> str | None:
         return self.exercise.explanation
+
+    @property
+    def video_url(self) -> str | None:
+        video = self.exercise.videos[0] if self.exercise.videos else None
+        return video.embed_url or video.url if video else None
+
+    @property
+    def video_provider(self) -> str | None:
+        return self.exercise.videos[0].provider if self.exercise.videos else None
+
+    @property
+    def video_title(self) -> str | None:
+        return self.exercise.videos[0].title if self.exercise.videos else None

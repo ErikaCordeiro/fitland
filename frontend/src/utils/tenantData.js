@@ -25,7 +25,10 @@ export function tenantDataFromResponses(students, workouts, exercises = []) {
         setType: item.setType || item.set_type || "standard",
         techniqueConfig: item.techniqueConfig || item.technique_config || {},
         exerciseId: item.exerciseId || item.exercise_id,
-        explanation: item.explanation || item.exercise_explanation || exercise.explanation || item.notes || ""
+        explanation: item.explanation || item.exercise_explanation || exercise.explanation || item.notes || "",
+        videoUrl: item.videoUrl || item.video_url || exercise.videoUrl || exercise.video_url || "",
+        videoProvider: item.videoProvider || item.video_provider || exercise.videoProvider || exercise.video_provider || "",
+        videoTitle: item.videoTitle || item.video_title || exercise.videoTitle || exercise.video_title || ""
       };
     })
   }));

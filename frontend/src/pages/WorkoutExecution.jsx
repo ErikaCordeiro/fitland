@@ -192,6 +192,23 @@ function toYoutubeEmbedUrl(videoUrl) {
   return videoUrl;
 }
 
+function youtubeThumbnail(videoUrl) {
+  const match = String(videoUrl || "").match(/(?:embed\/|watch\?v=|youtu\.be\/)([^?&/]+)/);
+  return match?.[1] ? `https://i.ytimg.com/vi/${match[1]}/mqdefault.jpg` : "";
+}
+
+function ExerciseVideoPreview({ exercise, onOpen }) {
+  if (!exercise?.videoUrl) return <span className="exercise-video-unavailable">Vídeo não disponível</span>;
+  const thumbnail = youtubeThumbnail(exercise.videoUrl);
+  return (
+    <button className={`exercise-video-preview ${thumbnail ? "has-thumbnail" : "uploaded-video"}`} type="button" onClick={onOpen} aria-label={`Ver execução de ${exercise.name}`}>
+      {thumbnail && <img src={thumbnail} alt="" loading="lazy" />}
+      <span className="exercise-video-play"><Play size={20} fill="currentColor" /></span>
+      <small>{exercise.videoProvider === "upload" ? "Vídeo do Personal" : "Ver execução"}</small>
+    </button>
+  );
+}
+
 function buildInitialExecution(workout) {
   return {
     id: `exec-${workout.id}-${Date.now()}`,
@@ -793,7 +810,7 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
           <div>
             <span className="eyebrow">Treino do dia</span>
             <h2>{workout.name}</h2>
-            <p>{workout.focus || "Treino personalizado"}</p>
+            <p>{String(workout.focus || "Treino personalizado").replaceAll(",", " •")}</p>
           </div>
           <span className={`status-pill status-${execution.status}`}>{execution.status.replace("nao_iniciado", "não iniciado").replace("em_andamento", "em andamento")}</span>
         </header>
@@ -818,8 +835,10 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
 
         <section className="execution-v2-grid">
           <aside className="execution-v2-current premium-panel">
-            <span className="eyebrow">Exercício atual</span>
-            <h3>{currentExecution?.position || 1} de {workout.exercises.length}</h3>
+            <div className="current-exercise-heading">
+              <div><span className="eyebrow">Exercício atual</span><h3>{currentExecution?.position || 1} de {workout.exercises.length}</h3></div>
+              <ExerciseVideoPreview exercise={currentExercise} onOpen={() => setVideoExercise(currentExercise)} />
+            </div>
             <h2>{currentExercise?.name}</h2>
             <span className={`technique-badge technique-${currentTechnique.type}`}>{currentTechnique.label}</span>
             <p>{currentSet ?`Série ${currentSet.setNumber} de ${currentExecution.sets.length} • ${currentSet.prescribedReps || currentExercise?.reps || "repetições"}` : "Selecione um exercício"}</p>
@@ -872,10 +891,17 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
 
                   {exerciseExecution.expanded && (
                     <div className="exercise-expanded-content">
-                      <p>{source?.explanation || "Execute com controle, postura e amplitude segura."}</p>
-                      <div className="current-prescription small">
-                        <span>Descanso: {source?.rest || "60s"}</span>
-                        <span>Carga sugerida: {source?.load || "Livre"}</span>
+                      <div className="exercise-card-body">
+                        <div className="exercise-card-copy">
+                          <div className="exercise-metrics" aria-label="Prescrição do exercício">
+                            <span><b>{source?.sets || "-"}</b> séries</span>
+                            <span><b>{source?.reps || "-"}</b> reps</span>
+                            <span><b>{source?.load || "Livre"}</b>{source?.load ? " kg" : ""}</span>
+                            <span><b>{source?.rest || "60s"}</b> intervalo</span>
+                          </div>
+                          <p>{source?.explanation || "Execute com controle, postura e amplitude segura."}</p>
+                        </div>
+                        <ExerciseVideoPreview exercise={source} onOpen={() => setVideoExercise(source)} />
                       </div>
                       {technique.items.length > 0 && (
                         <div className="technique-summary" aria-label={`Estrutura ${technique.label}`}>
@@ -888,9 +914,10 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
                           ))}
                         </div>
                       )}
-                      {source?.videoUrl && (
-                        <button className="video-link-button" type="button" onClick={() => setVideoExercise(source)}><Video size={16} /> Ver execução do exercício</button>
-                      )}
+                      {source?.videoUrl && <button className="video-link-button" type="button" onClick={() => setVideoExercise(source)}><Video size={16} /> Ver execução</button>}
+                      <button className="exercise-start-button" type="button" onClick={() => startSet(exerciseExecution.exerciseId, exerciseExecution.sets.find((set) => set.status !== "concluida")?.setNumber)} disabled={complete || execution.status === "pausado" || execution.rest?.status === "em_andamento"}>
+                        <Play size={17} /> {exerciseExecution.status === "em_andamento" ? "Continuar" : complete ? "Concluído" : "Iniciar"}
+                      </button>
                       <div className="set-list">
                         {exerciseExecution.sets.map((set) => (
                           <button
@@ -1064,15 +1091,15 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
       )}
 
       {videoExercise && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <article className="form-modal premium-panel vivideo-modal">
+        <div className="modal-backdrop exercise-video-backdrop" role="dialog" aria-modal="true" aria-labelledby="exercise-video-title" onMouseDown={() => setVideoExercise(null)}>
+          <article className="form-modal premium-panel vivideo-modal" onMouseDown={(event) => event.stopPropagation()}>
             <button className="icon-button modal-close" type="button" onClick={() => setVideoExercise(null)} aria-label="Fechar"><X size={18} /></button>
             <span className="eyebrow">Execução</span>
-            <h3>{videoExercise.name}</h3>
-            {toYoutubeEmbedUrl(videoExercise.videoUrl).includes("youtube") ?(
+            <h3 id="exercise-video-title">{videoExercise.name}</h3>
+            {youtubeThumbnail(videoExercise.videoUrl) ? (
               <iframe src={toYoutubeEmbedUrl(videoExercise.videoUrl)} title={videoExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-            ) : null}
-            <a className="metal-button light" href={toYoutubeWatchUrl(videoExercise.videoUrl)} target="_blank" rel="noreferrer">Abrir no YouTube</a>
+            ) : <video src={videoExercise.videoUrl} controls preload="metadata" playsInline />}
+            {youtubeThumbnail(videoExercise.videoUrl) && <a className="metal-button light" href={toYoutubeWatchUrl(videoExercise.videoUrl)} target="_blank" rel="noreferrer">Abrir no YouTube</a>}
           </article>
         </div>
       )}

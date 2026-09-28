@@ -23,7 +23,7 @@ FITLAND_BRANDING = {
     "icon_url": None,
     "login_subtitle": "Performance, gestão e evolução em um só lugar.",
 }
-DEFAULT_MODULES = {key: True for key in ("workouts", "diet", "assessments", "progress", "finance", "agenda", "messages", "reports", "files", "coach", "calendar", "payments")}
+DEFAULT_MODULES = {key: True for key in ("students", "workouts", "diet", "assessments", "progress", "finance", "agenda", "messages", "reports", "files", "coach", "calendar", "payments")}
 THEME_DEFAULTS = {
     "background_color": "#050505", "surface_color": "#121416", "accent_color": "#C0C0C0",
     "border_color": "#34373A", "text_color": "#F5F5F5", "muted_text_color": "#A7ABB0",

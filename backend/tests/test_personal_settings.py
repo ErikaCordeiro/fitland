@@ -14,6 +14,8 @@ from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.branding import BrandingUpdate
 from app.services.branding_service import DEFAULT_MODULES, get_personal_branding, personal_for_user
+from app.services.student_service import create_student, list_students
+from app.schemas.student import StudentCreate
 
 
 def make_user(name, role):
@@ -82,6 +84,29 @@ def test_enabled_module_for_personal_b_is_not_affected_by_personal_a(db):
     db.add_all([make_brand(personal_a, "alpha", {"progress": False}), make_brand(personal_b, "beta", {"progress": True})])
     db.commit()
     assert require_module("progress")(current_user=personal_b, db=db).id == personal_b.id
+
+
+def test_disabling_and_reenabling_students_preserves_tenant_data(db):
+    personal = make_user("Alpha", UserRole.PERSONAL)
+    db.add(personal)
+    db.flush()
+    brand = make_brand(personal, "alpha", {"students": True})
+    db.add(brand)
+    db.commit()
+    created = create_student(db, personal, StudentCreate(
+        name="Aluno persistente", email="persistente@example.com", age=30,
+        weight=70, height=1.7, objective="Saude",
+    ))
+    brand.modules = {"students": False}
+    db.commit()
+    with pytest.raises(HTTPException) as error:
+        require_module("students")(current_user=personal, db=db)
+    assert error.value.status_code == 403
+    assert db.get(Student, created.id) is not None
+    brand.modules = {"students": True}
+    db.commit()
+    assert require_module("students")(current_user=personal, db=db).id == personal.id
+    assert [student.id for student in list_students(db, personal)] == [created.id]
 
 
 def test_branding_rejects_unsafe_contrast_and_unknown_modules():

@@ -1,5 +1,5 @@
 import React from "react";
-import { Brain, Check, Link, Plus, Save, Sparkles, Trash2, Upload, Video, X } from "lucide-react";
+import { Brain, Check, Link, Plus, Save, Sparkles, Trash2, Video, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 const blankExercise = {
@@ -10,7 +10,6 @@ const blankExercise = {
   load: "",
   explanation: "",
   videoUrl: "",
-  videoFile: "",
   setType: "standard",
   techniqueConfig: {},
   partnerName: "",
@@ -20,8 +19,6 @@ const blankExercise = {
   dropLoads: "",
   dropReps: ""
 };
-
-const preferredInstructor = "Leandro Twin";
 
 const aiErrorMessages = {
   AI_NOT_CONFIGURED: "A IA ainda não está configurada.",
@@ -37,11 +34,6 @@ export function getAISuggestionErrorMessage(error) {
   return aiErrorMessages[error?.code]
     || "A IA está temporariamente indisponível. Continue montando o treino manualmente.";
 }
-
-const buildInstructorYoutubeUrl = (exerciseName) => {
-  const query = encodeURIComponent(`${preferredInstructor} ${exerciseName} execução correta`);
-  return `https://www.youtube.com/results?search_query=${query}`;
-};
 
 function techniqueConfigFor(exercise) {
   if (exercise.setType === "biset") {
@@ -95,7 +87,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         exerciseId: suggestion.id,
         name: suggestion.name,
         explanation: suggestion.explanation,
-        videoUrl: buildInstructorYoutubeUrl(suggestion.name)
+        videoUrl: ""
       };
     }));
     setActiveSuggestId(null);
@@ -134,7 +126,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         exerciseId: item.exercise_id,
         name: item.name,
         explanation: item.reason,
-        videoUrl: buildInstructorYoutubeUrl(item.name),
+        videoUrl: "",
       }));
       const onlyBlank = current.length === 1 && !current[0].name.trim();
       return [...(onlyBlank ? [] : current), ...additions];
@@ -277,17 +269,12 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
                     <input placeholder="https://youtube.com/..." value={exercise.videoUrl} onChange={(event) => updateExercise(exercise.id, "videoUrl", event.target.value)} />
                     {exercise.videoUrl && (
                       <a className="recommended-vivideo-link" href={exercise.videoUrl} target="_blank" rel="noreferrer">
-                        Vídeo recomendado disponível - {preferredInstructor}
+                        Abrir vídeo de instrução
                       </a>
                     )}
                   </label>
-                  <label className="vivideo-input">
-                    <span><Upload size={15} /> Upload de vídeo</span>
-                    <input type="file" accept="video/*" onChange={(event) => updateExercise(exercise.id, "videoFile", event.target.files?.[0]?.name || "")} />
-                  </label>
                   <textarea placeholder="Observações e execução" value={exercise.explanation} onChange={(event) => updateExercise(exercise.id, "explanation", event.target.value)} />
                 </div>
-                {exercise.videoFile && <small className="upload-name">Vídeo selecionado: {exercise.videoFile}</small>}
               </article>
             );
           })}

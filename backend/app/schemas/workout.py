@@ -41,6 +41,7 @@ class WorkoutCreate(BaseModel):
 
 
 class WorkoutUpdate(BaseModel):
+    student_id: uuid.UUID | None = None
     name: str | None = Field(default=None, min_length=2, max_length=160)
     focus: str | None = Field(default=None, max_length=255)
     duration_minutes: int | None = Field(default=None, ge=1, le=360)

@@ -5,7 +5,7 @@ import OwnerDashboard from "../components/OwnerDashboard.jsx";
 
 const emptySummary = { personals_active: 0, personals_suspended: 0, personals_blocked: 0, students_total: 0, alerts: [] };
 const statusLabel = { active: "Ativo", suspended: "Suspenso", blocked: "Bloqueado" };
-const moduleOptions = [["workouts","Treinos"],["diet","Dietas"],["assessments","Avaliações"],["progress","Progresso"],["finance","Financeiro"],["agenda","Agenda"],["messages","Mensagens"],["reports","Relatórios"],["files","Arquivos"],["coach","Coach IA"],["calendar","Calendário"],["payments","Pagamentos"]];
+const moduleOptions = [["students","Alunos"],["workouts","Treinos"],["diet","Dietas"],["assessments","Avaliações"],["progress","Progresso"],["finance","Financeiro"],["agenda","Agenda"],["messages","Mensagens"],["reports","Relatórios"],["files","Arquivos"],["coach","Coach IA"],["calendar","Calendário"],["payments","Pagamentos"]];
 const defaultBrand = { display_name: "", slug: "", logo_url: null, icon_url: null, profile_image_url: null, banner_url: null, primary_color: "#050505", secondary_color: "#C0C0C0", background_color: "#050505", surface_color: "#121416", accent_color: "#C0C0C0", border_color: "#34373A", text_color: "#F5F5F5", muted_text_color: "#A7ABB0", font_family: "Inter", login_subtitle: "Disciplina • Foco • Propósito", modules: Object.fromEntries(moduleOptions.map(([key])=>[key,true])) };
 
 function Header({ title, subtitle, theme, setTheme }) {

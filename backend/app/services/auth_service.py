@@ -29,8 +29,6 @@ from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.user import UserCreate
 from app.services.email_service import send_password_reset_email
 
-DEFAULT_PERSONAL_EMAIL = "thiago.iron.filippo@gmail.com"
-DEFAULT_STUDENT_NAME = "Erika Gomes Cordeiro"
 LOCKOUT_WINDOW_SECONDS = 15 * 60
 MAX_FAILED_ATTEMPTS = 5
 FAILED_ATTEMPTS: dict[str, list[float]] = defaultdict(list)

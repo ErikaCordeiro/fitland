@@ -25,3 +25,36 @@ export function buildWorkoutPayload(workout, exercises) {
     })),
   };
 }
+
+export function instructionVideoPayload(videoUrl, exerciseName = "Exercicio") {
+  if (!videoUrl) return null;
+  let parsed;
+  try {
+    parsed = new URL(videoUrl);
+  } catch {
+    return null;
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  let embedUrl = parsed.toString();
+  let provider = "external";
+  if (host === "youtu.be") {
+    const id = parsed.pathname.split("/").filter(Boolean)[0];
+    if (!id) return null;
+    embedUrl = `https://www.youtube.com/embed/${id}`;
+    provider = "youtube";
+  } else if (host === "youtube.com" || host === "m.youtube.com") {
+    const id = parsed.pathname.startsWith("/embed/")
+      ? parsed.pathname.split("/").filter(Boolean)[1]
+      : parsed.searchParams.get("v");
+    if (!id) return null;
+    embedUrl = `https://www.youtube.com/embed/${id}`;
+    provider = "youtube";
+  }
+  return {
+    title: `Execucao - ${String(exerciseName).trim() || "Exercicio"}`,
+    provider,
+    url: parsed.toString(),
+    embed_url: embedUrl,
+  };
+}

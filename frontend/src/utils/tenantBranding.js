@@ -1,11 +1,11 @@
 export const DEFAULT_MODULES = Object.freeze({
-  workouts: true, diet: true, assessments: true, progress: true, finance: true,
+  students: true, workouts: true, diet: true, assessments: true, progress: true, finance: true,
   agenda: true, messages: true, reports: true, files: true, coach: true,
   calendar: true, payments: true,
 });
 
 const MODULE_BY_PAGE = {
-  "workout-builder": "workouts", "student-view": "workouts", diet: "diet",
+  students: "students", "workout-builder": "workouts", "student-view": "workouts", diet: "diet",
   assessments: "assessments", progress: "progress", finance: "finance",
   agenda: "agenda", chat: "messages", messages: "messages", reports: "reports",
   files: "files", coach: "coach", calendar: "calendar", payments: "payments",

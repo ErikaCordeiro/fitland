@@ -25,7 +25,7 @@ import { clearDemoActivityDataOnce } from "./utils/activityData.js";
 import { getRecommendedWorkout } from "./utils/workoutSchedule.js";
 import { isPageEnabled } from "./utils/tenantBranding.js";
 import { createTenantDataState, tenantDataError, tenantDataFromResponses } from "./utils/tenantData.js";
-import { buildWorkoutPayload } from "./utils/workoutPayload.js";
+import { buildWorkoutPayload, instructionVideoPayload } from "./utils/workoutPayload.js";
 import { readPendingStudents, savePendingStudents, studentScope, executionKey } from "./utils/storageScope.js";
 import {
   applyRouteBranding,
@@ -165,12 +165,16 @@ export default function App() {
       return undefined;
     }
 
+    if (brandingUserId !== session.id || !branding?.modules) return undefined;
     let cancelled = false;
     setTenantData(createTenantDataState("loading"));
-    const studentsRequest = session.role === "personal" ? apiRequest("/students") : Promise.resolve([]);
-    const exercisesRequest = session.role === "personal" ? apiRequest("/exercises") : Promise.resolve([]);
+    const studentsEnabled = session.role === "personal" && isPageEnabled("students", branding.modules);
+    const workoutsEnabled = isPageEnabled(session.role === "personal" ? "workout-builder" : "student-view", branding.modules);
+    const studentsRequest = studentsEnabled ? apiRequest("/students") : Promise.resolve([]);
+    const exercisesRequest = session.role === "personal" && workoutsEnabled ? apiRequest("/exercises") : Promise.resolve([]);
+    const workoutsRequest = workoutsEnabled ? apiRequest("/workouts") : Promise.resolve([]);
 
-    Promise.allSettled([studentsRequest, apiRequest("/workouts"), exercisesRequest])
+    Promise.allSettled([studentsRequest, workoutsRequest, exercisesRequest])
       .then(([studentResult, workoutResult, exerciseResult]) => {
         if (cancelled) return;
         const studentRows = studentResult.status === "fulfilled" ? studentResult.value : [];
@@ -178,7 +182,7 @@ export default function App() {
         const exerciseRows = exerciseResult.status === "fulfilled" ? exerciseResult.value : [];
         setExerciseLibrary(exerciseRows);
         const failures = [studentResult, workoutResult, exerciseResult].filter((result) => result.status === "rejected");
-        if (failures.length === 3 || studentResult.status === "rejected") {
+        if (failures.length === 3 || (studentsEnabled && studentResult.status === "rejected")) {
           setTenantData(tenantDataError(failures[0]?.reason?.message));
           return;
         }
@@ -189,7 +193,7 @@ export default function App() {
       .catch((error) => { if (!cancelled) setTenantData(tenantDataError(error?.message)); });
 
     return () => { cancelled = true; };
-  }, [session?.id, session?.role, dataReloadKey]);
+  }, [branding?.modules, brandingUserId, session?.id, session?.role, dataReloadKey]);
 
   useEffect(() => {
     if (session?.role === "owner") return;
@@ -624,6 +628,13 @@ export default function App() {
           body: JSON.stringify({ name: exercise.name, explanation: exercise.explanation || null }),
         });
         nextLibrary.push(record);
+      }
+      const videoPayload = instructionVideoPayload(exercise.videoUrl, exercise.name);
+      if (videoPayload) {
+        await apiRequest(`/videos/exercise/${record.id}`, {
+          method: "PUT",
+          body: JSON.stringify(videoPayload),
+        });
       }
       persistedExercises.push({ ...exercise, exerciseId: record.id });
     }

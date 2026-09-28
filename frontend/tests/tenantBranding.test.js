@@ -9,6 +9,7 @@ test("feature flags filter navigation and protect direct pages", () => {
   assert.deepEqual(filterNavigation(items, { diet: false }), [{ id: "dashboard" }, { id: "coach" }]);
   assert.equal(isPageEnabled("diet", { diet: false }), false);
   assert.equal(isPageEnabled("settings", { diet: false }), true);
+  assert.equal(isPageEnabled("students", { students: false }), false);
 });
 
 test("tenant theme uses controlled CSS variables and safe defaults", () => {

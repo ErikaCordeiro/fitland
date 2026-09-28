@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.db.session import Base
+from app.core.errors import DomainError
 from app.models import *  # noqa: F401,F403
 from app.models.exercise import Exercise
 from app.models.student import Student
@@ -14,6 +15,8 @@ from app.models.workout import Workout, WorkoutExercise
 from app.models.video import Video
 from app.schemas.workout import WorkoutCreate, WorkoutRead, WorkoutUpdate
 from app.services.workout_service import create_workout, list_workouts, update_workout
+from app.schemas.video import VideoUpsert
+from app.services.video_service import upsert_exercise_video
 
 
 @pytest.fixture()
@@ -156,6 +159,58 @@ def test_workout_schedule_day_is_optional_and_persisted(db):
     assert scheduled.day_of_week == "Quarta"
     serialized = WorkoutRead.model_validate(list_workouts(db, db.get(User, student.user_id))[0]).model_dump(mode="json")
     assert serialized["day_of_week"] == "Quarta"
+
+
+@pytest.mark.parametrize("tenant_name", ["Tenant Alpha", "Tenant Beta"])
+def test_any_personal_uses_the_same_persistent_workout_flow(db, tenant_name):
+    personal, student, exercise = records(db)
+    personal.name = tenant_name
+    created = create_workout(db, personal, WorkoutCreate(
+        student_id=student.id, name="Treino compartilhado", focus="Forca",
+        duration_minutes=45, day_of_week="Sexta", exercises=[{
+            "exercise_id": exercise.id, "order_index": 0, "sets": 4,
+            "repetitions": "8-10", "rest_seconds": 90, "load": 42.5,
+            "set_type": "biset", "technique_config": {"components": [{"exerciseName": "Supino"}, {"exerciseName": "Remada"}]},
+        }],
+    ))
+    db.expire_all()
+    persisted = list_workouts(db, personal)[0]
+    assert persisted.id == created.id
+    assert persisted.personal_id == personal.id
+    assert persisted.student_id == student.id
+    assert persisted.day_of_week == "Sexta"
+    assert persisted.exercises[0].set_type == "biset"
+
+
+def test_workout_edit_can_reassign_only_to_an_owned_student(db):
+    personal, student, exercise = records(db)
+    second = Student(id=uuid.uuid4(), personal_id=personal.id, name="Second", email="second@test.dev", age=28, weight=65, height=165, objective="Teste")
+    foreign_personal = User(id=uuid.uuid4(), name="Foreign", email="foreign-owner@test.dev", hashed_password="x", role=UserRole.PERSONAL)
+    foreign_student = Student(id=uuid.uuid4(), personal_id=foreign_personal.id, name="Foreign", email="foreign-student@test.dev", age=29, weight=66, height=166, objective="Teste")
+    db.add_all([second, foreign_personal, foreign_student])
+    db.commit()
+    workout = create_workout(db, personal, WorkoutCreate(student_id=student.id, name="Reatribuivel"))
+    assert update_workout(db, personal, workout.id, WorkoutUpdate(student_id=second.id)).student_id == second.id
+    with pytest.raises(DomainError) as error:
+        update_workout(db, personal, workout.id, WorkoutUpdate(student_id=foreign_student.id))
+    assert getattr(error.value, "status_code", None) == 403
+
+
+def test_instruction_video_upsert_is_tenant_scoped_and_visible_after_reload(db):
+    personal, student, exercise = records(db)
+    payload = VideoUpsert(
+        title="Execucao segura", provider="youtube",
+        url="https://www.youtube.com/watch?v=example123",
+        embed_url="https://www.youtube.com/embed/example123",
+    )
+    first = upsert_exercise_video(db, personal, exercise.id, payload)
+    second = upsert_exercise_video(db, personal, exercise.id, payload)
+    assert first.id == second.id
+    create_workout(db, personal, WorkoutCreate(student_id=student.id, name="Com video", exercises=[{
+        "exercise_id": exercise.id, "sets": 3, "repetitions": "10", "rest_seconds": 60,
+    }]))
+    serialized = WorkoutRead.model_validate(list_workouts(db, personal)[0]).model_dump(mode="json")
+    assert serialized["exercises"][0]["video_url"] == "https://www.youtube.com/embed/example123"
 
 
 def test_student_and_personal_workout_isolation(db):

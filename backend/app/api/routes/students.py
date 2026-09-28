@@ -3,13 +3,13 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_personal
+from app.api.deps import require_module, require_personal
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.student import StudentCreate, StudentRead, StudentUpdate
 from app.services.student_service import create_student, list_students, update_student
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_module("students"))])
 
 
 @router.get("", response_model=list[StudentRead])

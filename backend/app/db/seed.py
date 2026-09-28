@@ -1,4 +1,3 @@
-import secrets
 from datetime import date
 
 from sqlalchemy import func, select
@@ -15,7 +14,7 @@ from app.models.video import Video
 from app.models.workout import Workout, WorkoutExercise
 
 
-DEFAULT_PERSONAL_EMAIL = "thiago.iron.filippo@gmail.com"
+DEV_DEFAULT_PERSONAL_EMAIL = "thiago.iron.filippo@gmail.com"
 
 
 def normalize_email(email: str | None) -> str | None:
@@ -33,13 +32,16 @@ def seed() -> None:
         from app.services.owner_service import ensure_owner
         ensure_owner(db)
         is_production = settings.ENVIRONMENT.lower() == "production"
+        if is_production:
+            print("[seed] production tenant seed skipped; personals are managed by Owner")
+            return
         personal_email = normalize_email(settings.SEED_PERSONAL_EMAIL)
         personal_password = normalize_password(settings.SEED_PERSONAL_PASSWORD)
         student_email = normalize_email(settings.SEED_STUDENT_EMAIL)
         student_password = normalize_password(settings.SEED_STUDENT_PASSWORD)
 
         if personal_password and not personal_email:
-            personal_email = DEFAULT_PERSONAL_EMAIL
+            personal_email = DEV_DEFAULT_PERSONAL_EMAIL
             print("[seed] personal email fallback selected")
 
         print(
@@ -50,14 +52,9 @@ def seed() -> None:
 
         # Migrate branding for existing accounts without touching credentials.
         from app.services.branding_service import ensure_personal_branding
-        ensure_personal_branding(db, personal_email or DEFAULT_PERSONAL_EMAIL)
+        ensure_personal_branding(db, personal_email or DEV_DEFAULT_PERSONAL_EMAIL)
 
         legacy_personal = db.scalar(select(User).where(User.email == "thiago@personal.com"))
-        if is_production and legacy_personal and not personal_password:
-            legacy_personal.hashed_password = hash_password(secrets.token_urlsafe(48))
-            db.commit()
-            return
-
         if not personal_email or not personal_password:
             print("[seed] personal seed skipped: missing SEED_PERSONAL_EMAIL or SEED_PERSONAL_PASSWORD")
             return

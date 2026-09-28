@@ -45,6 +45,7 @@ def create_workout(db: Session, personal: User, payload: WorkoutCreate) -> Worko
         name=payload.name.strip(),
         focus=payload.focus,
         duration_minutes=payload.duration_minutes,
+        day_of_week=payload.day_of_week,
         notes=payload.notes,
     )
     db.add(workout)
@@ -60,8 +61,10 @@ def update_workout(db: Session, personal: User, workout_id: uuid.UUID, payload: 
     workout = get_owned_workout(db, workout_id, personal)
     values = payload.model_dump(exclude_unset=True)
     exercises = values.pop("exercises", None)
+    if values.get("student_id") is not None:
+        get_owned_student(db, values["student_id"], personal)
     for field, value in values.items():
-        setattr(workout, field, value)
+        setattr(workout, field, value.strip() if field == "name" and value else value)
     if exercises is not None:
         _validate_owned_exercises(db, personal, [item["exercise_id"] for item in exercises])
         workout.exercises.clear()

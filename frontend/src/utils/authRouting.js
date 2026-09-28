@@ -1,5 +1,9 @@
 function normalizePath(pathname = "") {
-  return String(pathname).toLowerCase().replace(/\/+$/, "") || "/";
+  return String(pathname).split(/[?#]/, 1)[0].toLowerCase().replace(/\/+$/, "") || "/";
+}
+
+export function getCanonicalEntryPath(pathname = "") {
+  return normalizePath(pathname) === "/" ? "/fitland/login" : null;
 }
 
 export const PERSONAL_PAGE_SEGMENTS = Object.freeze({

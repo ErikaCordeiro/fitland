@@ -29,6 +29,7 @@ import { buildWorkoutPayload } from "./utils/workoutPayload.js";
 import { readPendingStudents, savePendingStudents, studentScope, executionKey } from "./utils/storageScope.js";
 import {
   applyRouteBranding,
+  getCanonicalEntryPath,
   getContextLoginPath,
   getLegacyPersonalPage,
   getPersonalPagePath,
@@ -217,15 +218,17 @@ export default function App() {
     let mounted = true;
 
     async function restoreSession() {
+      const canonicalEntryPath = getCanonicalEntryPath(window.location.pathname);
+      if (canonicalEntryPath) window.history.replaceState(null, "", canonicalEntryPath);
+      const pathname = canonicalEntryPath || window.location.pathname;
+      const requestedContext = getRequestedContext(pathname);
       try {
-        const pathname = window.location.pathname;
-        const requestedContext = getRequestedContext(pathname);
         let user = null;
         if (getToken()) {
           try {
             user = await apiRequest("/users/me");
           } catch {
-            clearToken();
+            clearToken(requestedContext?.type);
           }
         }
 
@@ -237,7 +240,7 @@ export default function App() {
         if (!mounted) return;
         const normalizedUser = normalizeSessionUser(user);
         if (!isSessionCompatibleWithContext(normalizedUser, requestedContext)) {
-          clearToken();
+          clearToken(requestedContext?.type);
           setSession(null);
           if (!isAuthLoginPath(pathname) && requestedContext) {
             window.history.replaceState(null, "", getContextLoginPath(requestedContext));
@@ -251,7 +254,7 @@ export default function App() {
           if (normalizedUser.role !== "personal") pushRoute(normalizedUser.role);
         }
       } catch {
-        clearToken();
+        clearToken(requestedContext?.type);
       } finally {
         if (mounted) setAuthReady(true);
       }
@@ -290,7 +293,7 @@ export default function App() {
         const requestedContext = getRequestedContext(window.location.pathname);
         if (!isBrandingCompatibleWithContext(resolved, requestedContext)) {
           const loginPath = getContextLoginPath(requestedContext);
-          clearToken();
+          clearToken(requestedContext?.type);
           setSession(null);
           setBrandingUserId(null);
           setTenantData(createTenantDataState());
@@ -367,7 +370,7 @@ export default function App() {
             && branding?.personal_id
             && String(branding.personal_id) !== String(normalizedUser.id);
           if (!isSessionCompatibleWithContext(normalizedUser, requestedContext) || personalBrandMismatch) {
-            clearToken();
+            clearToken(requestedContext?.type);
             setSession(null);
             return;
           }

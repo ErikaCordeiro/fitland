@@ -39,6 +39,23 @@ test("missing branding uses a tenant fallback and Owner remains independent", ()
   assert.equal(loginBrandingFailure(owner, "", true), owner);
 });
 
+test("Owner login rejects cached Personal branding before and after the platform request", () => {
+  const stalePersonal = {
+    display_name: "MuscleBoom",
+    slug: "hugo",
+    personal_id: "tenant-hugo",
+    logo_url: "/uploads/branding/hugo.png",
+    primary_color: "#ff4b0b",
+    is_fallback: false
+  };
+  const initial = visibleLoginBranding(stalePersonal, "", true);
+  assert.equal(initial.display_name, "Fitland");
+  assert.equal(initial.slug, undefined);
+  assert.equal(initial.logo_url, "");
+  assert.equal(loginBrandingResponse(stalePersonal, "", true).display_name, "Fitland");
+  assert.equal(loginBrandingFailure(stalePersonal, "", true).display_name, "Fitland");
+});
+
 test("first mount stays neutral until a valid tenant response arrives", () => {
   const platform = { display_name: "Fitland", is_fallback: true };
   assert.equal(visibleLoginBranding(platform, "hugo", false), null);

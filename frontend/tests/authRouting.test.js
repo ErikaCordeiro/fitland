@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   getContextLoginPath,
+  getCanonicalEntryPath,
   getLegacyPersonalPage,
   getLoginEndpoint,
   getPersonalPagePath,
@@ -25,6 +26,14 @@ test("Fitland login is always routed to the owner endpoint", () => {
   assert.equal(isOwnerLoginPath("/fitland/login"), true);
   assert.equal(isOwnerLoginPath("/fitland/login/"), true);
   assert.equal(getLoginEndpoint(isOwnerLoginPath("/fitland/login")), "/auth/owner-login");
+  assert.equal(isOwnerLoginPath("/fitland/login?utm_source=chatgpt.com"), true);
+  assert.deepEqual(getRequestedContext("/fitland/login?utm_source=chatgpt.com"), { type: "owner", slug: null });
+});
+
+test("the root entry is deterministic and never selected from a stored personal session", () => {
+  assert.equal(getCanonicalEntryPath("/"), "/fitland/login");
+  assert.equal(getCanonicalEntryPath("/?from=old-session"), "/fitland/login");
+  assert.equal(getCanonicalEntryPath("/personal/hugo/login"), null);
 });
 
 test("logout uses the central context login path", () => {
@@ -142,6 +151,8 @@ test("route context, not an old session, controls cross-context navigation", () 
   assert.equal(isSessionCompatibleWithContext(thiago, personal), true);
   assert.equal(isSessionCompatibleWithContext(thiago, fitland), false);
   assert.equal(isSessionCompatibleWithContext(owner, personal), false);
+  assert.equal(isSessionCompatibleWithContext(thiago, getRequestedContext("/personal/hugo/login")), false);
+  assert.equal(isSessionCompatibleWithContext({ role: "personal", personal_slug: "hugo" }, personal), false);
 });
 
 test("personal slugs remain isolated when the session exposes tenant identity", () => {
@@ -164,10 +175,20 @@ test("authenticated branding cannot replace the tenant explicitly requested by t
 test("App clears an incompatible session before routing to the requested tenant login", () => {
   const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
   const guard = appSource.indexOf("!isBrandingCompatibleWithContext(resolved, requestedContext)");
-  const clear = appSource.indexOf("clearToken()", guard);
+  const clear = appSource.indexOf("clearToken(requestedContext?.type)", guard);
   const clearSession = appSource.indexOf("setSession(null)", guard);
   const redirect = appSource.indexOf("window.history.replaceState(null, \"\", loginPath)", guard);
   assert.ok(guard >= 0 && clear > guard && clearSession > clear && redirect > clearSession);
+});
+
+test("App canonicalizes root before token restore and clears only the requested context", () => {
+  const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  const restore = appSource.indexOf("async function restoreSession()");
+  const canonical = appSource.indexOf("getCanonicalEntryPath(window.location.pathname)", restore);
+  const requested = appSource.indexOf("getRequestedContext(pathname)", canonical);
+  const token = appSource.indexOf("getToken()", requested);
+  assert.ok(restore >= 0 && canonical > restore && requested > canonical && token > requested);
+  assert.match(appSource, /clearToken\(requestedContext\?\.type\)/);
 });
 
 test("personal pages use canonical tenant-scoped routes for any valid slug", () => {

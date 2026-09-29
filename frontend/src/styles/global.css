@@ -21190,7 +21190,7 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
 .owner-module-availability.implemented { border-color: #337a50; color: #8eea7a; }
 .owner-module-availability.partial { border-color: #816d32; color: #f4d66d; }
 .owner-module-switch { flex: 0 0 116px; min-height: 52px; display: grid; grid-template-columns: 46px 1fr; align-items: center; gap: 8px; cursor: pointer; }
-.owner-module-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.owner-module-switch input { position: absolute; width: 1px; height: 1px; min-height: 0; margin: 0; padding: 0; overflow: hidden; opacity: 0; pointer-events: none; clip-path: inset(50%); }
 .owner-module-switch > span { position: relative; width: 46px; height: 26px; border-radius: 13px; background: #3a3d41; transition: background .2s ease; }
 .owner-module-switch > span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s ease; }
 .owner-module-switch input:checked + span { background: var(--owner-accent, #7c3aed); }

@@ -12,6 +12,7 @@ import ExerciseDetail from "./pages/ExerciseDetail.jsx";
 import StudentPortal from "./pages/StudentPortal.jsx";
 import WorkoutExecution from "./pages/WorkoutExecution.jsx";
 import StudentCalendar from "./pages/StudentCalendar.jsx";
+import PersonalAgenda from "./pages/PersonalAgenda.jsx";
 import StudentSettings from "./pages/StudentSettings.jsx";
 import PersonalSettings from "./pages/PersonalSettings.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
@@ -57,7 +58,7 @@ const pageMeta = {
   reports: ["Relatórios", "Visão geral dos resultados do seu negócio e dos seus alunos."],
   assessments: ["Avaliações", "Registre, acompanhe e analise a evolução física dos seus alunos."],
   payments: ["Pagamentos", "Acompanhe suas cobranças, faturas e histórico."],
-  calendar: ["Calendário", "Sua consistência e compromissos."],
+  calendar: ["Agenda", "Seus treinos e compromissos."],
   messages: ["Mensagens", "Converse diretamente com seu personal."],
   files: ["Arquivos", "Envie e organize seus arquivos para acompanhamento do seu personal."],
   settings: ["Configurações", "Gerencie sua conta e preferências."],
@@ -726,7 +727,7 @@ export default function App() {
       {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} dataStatus={tenantData.status} dataError={tenantData.error} onRetry={() => setDataReloadKey((value) => value + 1)} onNavigate={navigate} branding={branding} theme={theme} setTheme={setTheme} />}
       {activePage === "diet" && <UnavailableDataPage className="nutrition-admin-page" title="Nenhum plano alimentar cadastrado" message="Os planos aparecerão quando houver registros reais disponíveis." />}
       {activePage === "finance" && <UnavailableDataPage className="finance-page" title="Sem dados financeiros" message="As informações financeiras aparecerão quando houver integração persistida." />}
-      {activePage === "agenda" && <UnavailableDataPage className="agenda-page" title="Nenhum compromisso cadastrado" message="A agenda ficará disponível quando houver eventos reais." />}
+      {activePage === "agenda" && <PersonalAgenda students={students} />}
       {activePage === "chat" && <UnavailableDataPage className="messages-admin-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
       {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}
       {activePage === "settings" && <PersonalSettings profile={{ ...personalProfile, email: session?.email || "" }} studentCount={students.length} workoutCount={workouts.length} theme={theme} setTheme={setTheme} />}

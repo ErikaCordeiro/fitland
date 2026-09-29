@@ -1,4 +1,5 @@
 from app.models.exercise import Exercise
+from app.models.agenda_event import AgendaEvent
 from app.models.ai_audit import AIAuditLog
 from app.models.audit_log import AuditLog
 from app.models.progress import ProgressLog
@@ -11,6 +12,7 @@ from app.models.workout_session import ProgressionAlert, WorkoutSession
 
 __all__ = [
     "Exercise",
+    "AgendaEvent",
     "AIAuditLog",
     "AuditLog",
     "ProgressLog",

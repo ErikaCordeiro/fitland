@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -21,12 +21,25 @@ import {
   Utensils,
   X
 } from "lucide-react";
+import { apiRequest } from "../services/api.js";
+import { localDateKey } from "../utils/agenda.js";
 
 export default function PersonalDashboard({ students = [], workouts = [], dataStatus = "success", dataError = "", onRetry, onNavigate, branding, theme = "dark", setTheme }) {
   const [modal, setModal] = useState(null);
+  const [todayAgenda, setTodayAgenda] = useState([]);
   const firstStudent = students[0];
   const studentCount = students.length;
   const workoutCount = workouts.length;
+
+  useEffect(() => {
+    if (branding?.modules?.calendar !== true) { setTodayAgenda([]); return undefined; }
+    const today = localDateKey(new Date());
+    let active = true;
+    apiRequest(`/agenda?start=${today}&end=${today}`)
+      .then((response) => { if (active) setTodayAgenda(response?.items || []); })
+      .catch(() => { if (active) setTodayAgenda([]); });
+    return () => { active = false; };
+  }, [branding?.modules?.calendar]);
 
   const kpis = useMemo(() => [
     { label: "Alunos ativos", value: String(studentCount), detail: studentCount ? "Dados atuais" : "Sem alunos ainda", icon: Users, page: "students" },
@@ -89,7 +102,7 @@ export default function PersonalDashboard({ students = [], workouts = [], dataSt
             <h2>Agenda de hoje</h2>
             <button type="button" onClick={() => go("agenda")}>Ver agenda</button>
           </div>
-          <div className="dashboard-inline-empty">Nenhum compromisso cadastrado.</div>
+          {todayAgenda.length ? <ul className="dashboard-agenda-list">{todayAgenda.slice(0, 4).map((item) => <li key={item.id}><time>{item.event_time ? String(item.event_time).slice(0, 5) : "Treino"}</time><span><strong>{item.title}</strong><small>{item.student_name || "Sem aluno"}</small></span></li>)}</ul> : <div className="dashboard-inline-empty">Nenhum compromisso cadastrado para hoje.</div>}
         </article>
 
         <article className="admin-panel students-panel">

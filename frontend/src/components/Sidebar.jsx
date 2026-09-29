@@ -44,7 +44,7 @@ export const studentNavItems = [
   { id: "assessments", label: "Avaliações", icon: ClipboardCheck },
   { id: "progress", label: "Progresso", icon: BarChart3 },
   { id: "payments", label: "Pagamentos", icon: CreditCard },
-  { id: "calendar", label: "Calendário", icon: CalendarDays },
+  { id: "calendar", label: "Agenda", icon: CalendarDays },
   { id: "messages", label: "Mensagens", icon: MessageCircle },
   { id: "coach", label: "Assistente Fitness", icon: Bot },
   { id: "files", label: "Arquivos", icon: FileText },

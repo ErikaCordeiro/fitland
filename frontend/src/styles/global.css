@@ -21176,6 +21176,7 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
 }
 
 .owner-personalization-modal { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; }
+.owner-personalization-modal *, .owner-personalization-modal *::before, .owner-personalization-modal *::after { box-sizing: border-box; }
 .owner-brand-colors, .owner-module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .owner-modules-fieldset .owner-field-help { margin: 0 0 14px; color: var(--owner-muted, #a7abb0); }
 .owner-module-card { min-width: 0; min-height: 126px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px; border: 1px solid #34373a; border-radius: 8px; background: #111315; }

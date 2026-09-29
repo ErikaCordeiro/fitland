@@ -5,8 +5,8 @@ import OwnerDashboard from "../components/OwnerDashboard.jsx";
 
 const emptySummary = { personals_active: 0, personals_suspended: 0, personals_blocked: 0, students_total: 0, alerts: [] };
 const statusLabel = { active: "Ativo", suspended: "Suspenso", blocked: "Bloqueado" };
-const moduleOptions = [["students","Alunos"],["workouts","Treinos"],["diet","Dietas"],["assessments","Avaliações"],["progress","Progresso"],["finance","Financeiro"],["agenda","Agenda"],["messages","Mensagens"],["reports","Relatórios"],["files","Arquivos"],["coach","Coach IA"],["calendar","Calendário"],["payments","Pagamentos"]];
-const defaultBrand = { display_name: "", slug: "", logo_url: null, icon_url: null, profile_image_url: null, banner_url: null, primary_color: "#050505", secondary_color: "#C0C0C0", background_color: "#050505", surface_color: "#121416", accent_color: "#C0C0C0", border_color: "#34373A", text_color: "#F5F5F5", muted_text_color: "#A7ABB0", font_family: "Inter", login_subtitle: "Disciplina • Foco • Propósito", modules: Object.fromEntries(moduleOptions.map(([key])=>[key,true])) };
+const defaultBrand = { display_name: "", slug: "", logo_url: null, icon_url: null, profile_image_url: null, banner_url: null, primary_color: "#050505", secondary_color: "#C0C0C0", background_color: "#050505", surface_color: "#121416", accent_color: "#C0C0C0", border_color: "#34373A", text_color: "#F5F5F5", muted_text_color: "#A7ABB0", font_family: "Inter", login_subtitle: "Disciplina • Foco • Propósito", modules: {} };
+const moduleStatusLabel = { implemented: "Disponível", partial: "Parcial", not_implemented: "Em desenvolvimento" };
 
 function Header({ title, subtitle, theme, setTheme }) {
   return <header className="owner-header"><div><h1>{title}</h1><p>{subtitle}</p></div><div className="owner-header-actions"><button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Alternar tema">{theme === "dark" ? <Sun /> : <Moon />}</button><span className="owner-secure"><ShieldCheck /> Sessão protegida</span></div></header>;
@@ -29,10 +29,24 @@ function PersonalModal({ item, onClose, onSaved }) {
   const [uploading, setUploading] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [moduleCatalog, setModuleCatalog] = useState([]);
 
   useEffect(() => {
     if (editing) apiRequest(`/branding/personal/${item.id}`).then(setBrand).catch(() => {});
   }, [editing, item?.id]);
+
+  useEffect(() => {
+    apiRequest("/owner/module-catalog").then(({ items }) => {
+      setModuleCatalog(items);
+      setBrand((current) => ({
+        ...current,
+        modules: Object.fromEntries(items.map((module) => [
+          module.key,
+          current.modules?.[module.key] ?? module.default_enabled,
+        ])),
+      }));
+    }).catch(() => setError("Não foi possível carregar o catálogo de módulos."));
+  }, []);
 
   useEffect(() => {
     if (editing || !form.name.trim()) return;
@@ -46,6 +60,7 @@ function PersonalModal({ item, onClose, onSaved }) {
       const payload = editing ? { name: form.name, email: form.email, phone: form.phone || null } : { ...form, branding: brand };
       await apiRequest(editing ? `/owner/personals/${item.id}` : "/owner/personals", { method: editing ? "PATCH" : "POST", body: JSON.stringify(payload) });
       if (editing) {
+        await apiRequest(`/owner/personals/${item.id}/modules`, { method: "PUT", body: JSON.stringify({ modules: brand.modules }) });
         const savedBranding = await apiRequest(`/branding/personal/${item.id}`, { method: "PUT", body: JSON.stringify(brand) });
         setBrand(savedBranding);
       }
@@ -84,7 +99,15 @@ function PersonalModal({ item, onClose, onSaved }) {
         {editing && <div className="owner-brand-uploads"><label>{uploading === "logo" ? "Enviando..." : "Enviar logo"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(uploading)} onChange={event=>uploadBrandAsset(event,"logo")}/></label><label>{uploading === "icon" ? "Enviando..." : "Enviar favicon"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(uploading)} onChange={event=>uploadBrandAsset(event,"icon")}/></label></div>}
         <div className="owner-brand-colors">{[["Fundo","background_color"],["Superfície","surface_color"],["Principal","primary_color"],["Destaque","accent_color"],["Borda","border_color"],["Texto","text_color"],["Texto secundário","muted_text_color"]].map(([label,key])=><label key={key}>{label}<input type="color" value={brand[key]} onChange={event=>setBrand({...brand,[key]:event.target.value})}/></label>)}</div>
       </fieldset>
-      <fieldset className="owner-brand-fields"><legend>Recursos disponíveis</legend><div className="owner-module-grid">{moduleOptions.map(([key,label])=><label className="owner-module-toggle" key={key}><input type="checkbox" checked={brand.modules?.[key] !== false} onChange={event=>setBrand({...brand,modules:{...brand.modules,[key]:event.target.checked}})}/><span>{label}</span></label>)}</div></fieldset>
+      <fieldset className="owner-brand-fields owner-modules-fieldset"><legend>Módulos do Personal</legend><p className="owner-field-help">Controle o acesso sem apagar nenhum dado já cadastrado.</p><div className="owner-module-grid">{moduleCatalog.map((module) => {
+        const enabled = module.core || brand.modules?.[module.key] === true;
+        const disabled = module.core || !module.available;
+        const state = module.core ? "CORE" : !module.available ? "EM DESENVOLVIMENTO" : enabled ? "ATIVO" : "DESATIVADO";
+        return <article className={`owner-module-card ${enabled ? "enabled" : ""} ${disabled ? "locked" : ""}`} key={module.key}>
+          <div className="owner-module-copy"><div><strong>{module.name}</strong><span className={`owner-module-availability ${module.status}`}>{moduleStatusLabel[module.status]}</span></div><p>{module.description}</p>{module.dependencies.length > 0 && <small>Requer {module.dependencies.map((key) => moduleCatalog.find((item) => item.key === key)?.name || key).join(" e ")}</small>}</div>
+          <label className="owner-module-switch"><input type="checkbox" checked={enabled} disabled={disabled} onChange={event=>setBrand({...brand,modules:{...brand.modules,[module.key]:event.target.checked}})}/><span aria-hidden="true"/><em>{state}</em></label>
+        </article>;
+      })}</div></fieldset>
       <section className="owner-brand-preview" style={{background:brand.background_color,color:brand.text_color,borderColor:brand.border_color,fontFamily:brand.font_family}}><div>{brand.logo_url ? <img src={brand.logo_url} alt=""/> : <strong>{(brand.display_name || "P").slice(0,2).toUpperCase()}</strong>}<span>{brand.display_name || "Personal"}</span></div><p style={{color:brand.muted_text_color}}>Visualização da identidade</p><button type="button" style={{background:brand.accent_color,color:brand.background_color}}>Botão de exemplo</button></section>
       <div className="owner-modal-actions"><button type="button" onClick={onClose}>Cancelar</button><button className="owner-primary" disabled={busy}>{busy ? "Salvando..." : "Salvar"}</button></div>
     </form>

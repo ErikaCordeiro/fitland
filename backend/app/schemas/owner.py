@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from app.schemas.branding import BrandingUpdate
+from app.services.module_registry import MODULE_KEYS
 
 
 class OwnerPersonalCreate(BaseModel):
@@ -22,6 +23,17 @@ class OwnerPersonalUpdate(BaseModel):
 
 class OwnerStatusChange(BaseModel):
     reason: str | None = Field(default=None, max_length=300)
+
+
+class OwnerModulesUpdate(BaseModel):
+    modules: dict[str, bool]
+
+    @field_validator("modules")
+    @classmethod
+    def valid_modules(cls, value: dict[str, bool]) -> dict[str, bool]:
+        if set(value) - MODULE_KEYS or any(type(enabled) is not bool for enabled in value.values()):
+            raise ValueError("Configuração de módulos inválida")
+        return value
 
 
 class OwnerPasswordChange(BaseModel):

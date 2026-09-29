@@ -74,6 +74,7 @@ def test_disabled_module_is_blocked_for_personal_and_student(db):
         with pytest.raises(HTTPException) as error:
             guard(current_user=current, db=db)
         assert error.value.status_code == 403
+        assert error.value.detail == {"code": "module_disabled", "module": "workouts"}
 
 
 def test_enabled_module_for_personal_b_is_not_affected_by_personal_a(db):

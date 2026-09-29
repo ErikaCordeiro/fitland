@@ -12,6 +12,7 @@ from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.branding import BrandingUpdate
 from app.services.upload_storage import relative_upload_reference
+from app.services.module_registry import DEFAULT_MODULES, resolve_modules
 
 
 FITLAND_BRANDING = {
@@ -23,7 +24,6 @@ FITLAND_BRANDING = {
     "icon_url": None,
     "login_subtitle": "Performance, gestão e evolução em um só lugar.",
 }
-DEFAULT_MODULES = {key: True for key in ("students", "workouts", "diet", "assessments", "progress", "finance", "agenda", "messages", "reports", "files", "coach", "calendar", "payments")}
 THEME_DEFAULTS = {
     "background_color": "#050505", "surface_color": "#121416", "accent_color": "#C0C0C0",
     "border_color": "#34373A", "text_color": "#F5F5F5", "muted_text_color": "#A7ABB0",
@@ -79,7 +79,7 @@ def branding_to_dict(branding: PersonalBranding | None, personal: User) -> dict:
         "text_color": branding.text_color,
         "muted_text_color": branding.muted_text_color,
         "font_family": branding.font_family,
-        "modules": {**DEFAULT_MODULES, **(branding.modules or {})},
+        "modules": resolve_modules(branding.modules),
         "initials": "".join(part[0] for part in personal.name.split()[:2]).upper(),
         "is_fallback": False,
         "created_at": branding.created_at,
@@ -103,11 +103,12 @@ def personal_for_user(db: Session, user: User) -> User | None:
 
 def save_branding(db: Session, personal: User, payload: BrandingUpdate) -> dict:
     values = payload.model_dump()
+    values.pop("modules", None)
     for field in ("logo_url", "profile_image_url", "icon_url", "banner_url"):
         values[field] = relative_upload_reference(values.get(field))
     branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal.id))
     if not branding:
-        branding = PersonalBranding(personal_id=personal.id, **values)
+        branding = PersonalBranding(personal_id=personal.id, modules=DEFAULT_MODULES.copy(), **values)
         db.add(branding)
     else:
         for key, value in values.items():

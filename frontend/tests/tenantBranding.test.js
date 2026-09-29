@@ -6,10 +6,11 @@ import { filterNavigation, getContrastText, isPageEnabled, tenantThemeStyle } fr
 
 test("feature flags filter navigation and protect direct pages", () => {
   const items = [{ id: "dashboard" }, { id: "diet" }, { id: "coach" }];
-  assert.deepEqual(filterNavigation(items, { diet: false }), [{ id: "dashboard" }, { id: "coach" }]);
+  assert.deepEqual(filterNavigation(items, { diet: false, coach: true }), [{ id: "dashboard" }, { id: "coach" }]);
   assert.equal(isPageEnabled("diet", { diet: false }), false);
   assert.equal(isPageEnabled("settings", { diet: false }), true);
   assert.equal(isPageEnabled("students", { students: false }), false);
+  assert.equal(isPageEnabled("students", {}), false);
 });
 
 test("tenant theme uses controlled CSS variables and safe defaults", () => {
@@ -102,4 +103,20 @@ test("application source contains no client-specific branding hardcode", () => {
   visit(sourceRoot);
   const source = files.map((path) => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(source, /Thiago|Fillippo|Filippo|lion-juda-logo/i);
+});
+
+test("owner module management is catalog-driven and uses its dedicated endpoint", () => {
+  const owner = readFileSync(new URL("../src/pages/OwnerPortal.jsx", import.meta.url), "utf8");
+  assert.match(owner, /apiRequest\("\/owner\/module-catalog"\)/);
+  assert.match(owner, /\/owner\/personals\/\$\{item\.id\}\/modules/);
+  assert.doesNotMatch(owner, /const moduleOptions\s*=/);
+  assert.match(owner, /EM DESENVOLVIMENTO/);
+  assert.match(owner, /module\.core/);
+});
+
+test("student dashboard hides tenant-dependent features through the shared module guard", () => {
+  const dashboard = readFileSync(new URL("../src/pages/Dashboard.jsx", import.meta.url), "utf8");
+  assert.match(dashboard, /isPageEnabled\("student-view", modules\)/);
+  assert.match(dashboard, /isPageEnabled\("progress", modules\)/);
+  assert.match(dashboard, /isPageEnabled\("coach", modules\)/);
 });

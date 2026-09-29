@@ -9,10 +9,11 @@ from app.api.deps import require_owner
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
-from app.schemas.owner import OwnerPersonalCreate, OwnerPersonalUpdate, OwnerSettingsUpdate, OwnerStatusChange
+from app.schemas.owner import OwnerModulesUpdate, OwnerPersonalCreate, OwnerPersonalUpdate, OwnerSettingsUpdate, OwnerStatusChange
 from app.services.auth_service import request_password_reset
 from app.services.owner_service import (audit, change_status, create_personal, dashboard_summary,
-    get_personal, list_personals, personal_to_dict, soft_delete, update_personal)
+    get_personal, list_personals, personal_to_dict, soft_delete, update_personal, update_personal_modules)
+from app.services.module_registry import module_catalog
 
 router = APIRouter()
 AVATAR_DIR = Path(__file__).resolve().parents[3] / "uploads" / "owners"
@@ -49,6 +50,26 @@ def personal_detail(personal_id: uuid.UUID, _: User = Depends(require_owner), db
 def edit_personal(personal_id: uuid.UUID, payload: OwnerPersonalUpdate, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
     user, students, workouts = get_personal(db, personal_id)
     return personal_to_dict(update_personal(db, owner, user, payload), students, workouts)
+
+
+@router.get("/module-catalog")
+def modules_catalog(_: User = Depends(require_owner)):
+    return {"items": module_catalog()}
+
+
+@router.put("/personals/{personal_id}/modules")
+def edit_personal_modules(
+    personal_id: uuid.UUID,
+    payload: OwnerModulesUpdate,
+    owner: User = Depends(require_owner),
+    db: Session = Depends(get_db),
+):
+    user, _, _ = get_personal(db, personal_id)
+    try:
+        modules = update_personal_modules(db, owner, user, payload.modules)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"personal_id": personal_id, "modules": modules}
 
 
 def _status(personal_id, value, payload, owner, db):

@@ -1,7 +1,6 @@
 export const DEFAULT_MODULES = Object.freeze({
-  students: true, workouts: true, diet: true, assessments: true, progress: true, finance: true,
-  agenda: true, messages: true, reports: true, files: true, coach: true,
-  calendar: true, payments: true,
+  dashboard: true,
+  settings: true,
 });
 
 const MODULE_BY_PAGE = {
@@ -9,6 +8,7 @@ const MODULE_BY_PAGE = {
   assessments: "assessments", progress: "progress", finance: "finance",
   agenda: "agenda", chat: "messages", messages: "messages", reports: "reports",
   files: "files", coach: "coach", calendar: "calendar", payments: "payments",
+  "about-personal": "about",
 };
 
 export function getContrastText(background = "#000000") {
@@ -29,7 +29,7 @@ export function resolvedModules(modules = {}) {
 
 export function isPageEnabled(page, modules = {}) {
   const module = MODULE_BY_PAGE[page];
-  return !module || resolvedModules(modules)[module] !== false;
+  return !module || resolvedModules(modules)[module] === true;
 }
 
 export function filterNavigation(items, modules = {}) {

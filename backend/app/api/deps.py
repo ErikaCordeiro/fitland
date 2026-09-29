@@ -10,7 +10,7 @@ from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
-from app.services.branding_service import DEFAULT_MODULES
+from app.services.module_registry import module_disabled_error, resolve_modules
 from sqlalchemy import select
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -69,8 +69,8 @@ def require_module(module: str):
                 raise HTTPException(status_code=403, detail="Student profile required")
             personal_id = student.personal_id
         branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal_id))
-        modules = {**DEFAULT_MODULES, **((branding.modules if branding else None) or {})}
-        if modules.get(module) is False:
-            raise HTTPException(status_code=403, detail="Module not available")
+        modules = resolve_modules((branding.modules if branding else None) or {})
+        if modules.get(module) is not True:
+            raise module_disabled_error(module)
         return current_user
     return dependency

@@ -38,7 +38,7 @@ def status(
 @router.post(
     "/personal/students/{student_id}/exercise-suggestions",
     response_model=ExerciseSuggestionResponse,
-    dependencies=[Depends(require_module("workouts"))],
+    dependencies=[Depends(require_module("workouts")), Depends(require_module("coach"))],
 )
 def exercise_suggestions(
     student_id: uuid.UUID,

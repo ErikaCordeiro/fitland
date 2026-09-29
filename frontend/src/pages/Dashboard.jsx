@@ -27,6 +27,7 @@ import {
 } from "../utils/activityData.js";
 import { syncWorkoutHistory } from "../services/workoutSessions.js";
 import { getRecommendedWorkout } from "../utils/workoutSchedule.js";
+import { isPageEnabled } from "../utils/tenantBranding.js";
 
 const week = ["S", "T", "Q", "Q", "S", "S", "D"];
 
@@ -46,7 +47,7 @@ function currentWeekDoneSet(history) {
   }).filter((value) => value !== null));
 }
 
-export default function StudentDashboard({ students, workouts, onNavigate, onStartWorkout, branding, scope, theme = "dark", setTheme }) {
+export default function StudentDashboard({ students, workouts, onNavigate, onStartWorkout, branding, modules, scope, theme = "dark", setTheme }) {
   const student = students[0];
   const todayWorkout = getRecommendedWorkout(workouts, new Date());
   const [history, setHistory] = useState(() => loadWorkoutHistory(scope));
@@ -113,7 +114,7 @@ export default function StudentDashboard({ students, workouts, onNavigate, onSta
         <span>{totalVolume ?"Volume registrado" : "Volume real"}</span>
       </section>
 
-      <section className="student-workout-hero">
+      {isPageEnabled("student-view", modules) && <section className="student-workout-hero">
         <div>
           <p className="eyebrow">Treino do dia</p>
           <h2>{todayWorkout?.name || "Dia de descanso"}</h2>
@@ -126,16 +127,16 @@ export default function StudentDashboard({ students, workouts, onNavigate, onSta
         <div className="student-workout-avatar premium-photo">
           <img src={student?.avatar || branding?.profile_image_url || branding?.icon_url || "/fitland-icon.svg"} alt={student?.name || "Aluno"} />
         </div>
-      </section>
+      </section>}
 
-      <section className="student-progress-card">
+      {isPageEnabled("progress", modules) && <section className="student-progress-card">
         <p className="eyebrow">Progresso geral</p>
         <div className="progress-ring neon-ring" style={{ "--value": completedWorkouts.length ? "100%" : "0%" }}>
           <strong>{completedWorkouts.length}</strong>
         </div>
         <b>{completedWorkouts.length ? "Treino registrado" : "Primeiro treino Aguardando"}</b>
         <span>{completedWorkouts.length} treino(s) finalizado(s)</span>
-      </section>
+      </section>}
 
       <section className="student-metrics-grid">
         {[
@@ -160,9 +161,9 @@ export default function StudentDashboard({ students, workouts, onNavigate, onSta
         <p className="empty-history-text">{completedWorkouts.length ? `${completedWorkouts.length} treino(s) e ${Math.round(totalVolume).toLocaleString("pt-BR")} kg de volume registrados.` : `Nenhuma atividade registrada ainda. ${emptyMessage}`}</p>
       </section>
 
-      <section className="student-diet-card"><p className="eyebrow">Dieta de hoje</p><div><Utensils size={26} /><strong>Não disponível</strong></div><span>Nenhuma refeição registrada hoje</span><div className="xp-bar"><span style={{ width: "0%" }} /></div><button type="button" onClick={() => onNavigate?.("diet")}>Ver plano alimentar</button></section>
+      {isPageEnabled("diet", modules) && <section className="student-diet-card"><p className="eyebrow">Dieta de hoje</p><div><Utensils size={26} /><strong>Não disponível</strong></div><span>Nenhuma refeição registrada hoje</span><div className="xp-bar"><span style={{ width: "0%" }} /></div><button type="button" onClick={() => onNavigate?.("diet")}>Ver plano alimentar</button></section>}
 
-      <section className="student-coach-panel"><div><p className="eyebrow">Coach IA <span>Novo</span></p><h2>Seu assistente inteligente para te ajudar a evoluir todos os dias.</h2><div>{["Tirar dúvidas", "Sugestão de treino", "Analisar evolução", "Sugerir refeição", "Motivação"].map((action) => <button key={action} type="button" onClick={() => onNavigate?.("coach")}><Sparkles size={16} />{action}</button>)}</div></div><img src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt="" /></section>
+      {isPageEnabled("coach", modules) && <section className="student-coach-panel"><div><p className="eyebrow">Coach IA <span>Novo</span></p><h2>Seu assistente inteligente para te ajudar a evoluir todos os dias.</h2><div>{["Tirar dúvidas", "Sugestão de treino", "Analisar evolução", "Sugerir refeição", "Motivação"].map((action) => <button key={action} type="button" onClick={() => onNavigate?.("coach")}><Sparkles size={16} />{action}</button>)}</div></div><img src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt="" /></section>}
 
       <section className="student-quick-access"><p className="eyebrow">Acessos rápidos</p><div>{[["Exercícios", Dumbbell], ["Medidas", ClipboardCheck], ["Fotos", Image], ["Relatórios", FileText], ["Avaliações", CalendarDays], ["Calendário", Camera]].map(([label, Icon]) => <button key={label} type="button"><Icon size={20} />{label}</button>)}</div></section>
 

@@ -3,14 +3,12 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from app.services.module_registry import MODULE_KEYS
 
 
 HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SAFE_FONTS = {"Inter", "Poppins", "Montserrat", "Roboto", "Open Sans"}
-MODULE_KEYS = {"workouts", "diet", "assessments", "progress", "finance", "agenda", "messages", "reports", "files", "coach", "calendar", "payments"}
-
-
 def _luminance(color: str) -> float:
     channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
     linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels]

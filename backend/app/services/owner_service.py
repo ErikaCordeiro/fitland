@@ -17,6 +17,7 @@ from app.models.workout import Workout
 from app.schemas.owner import OwnerPersonalCreate, OwnerPersonalUpdate
 from app.schemas.branding import BrandingUpdate
 from app.services.branding_service import brand_slug
+from app.services.module_registry import DEFAULT_MODULES, validate_module_configuration
 
 
 def audit(db: Session, actor: User | None, action: str, entity_type: str, entity_id=None, details=None, result="success"):
@@ -140,7 +141,12 @@ def create_personal(db: Session, actor: User, payload: OwnerPersonalCreate):
     db.add(user)
     db.flush()
     branding = payload.branding or BrandingUpdate(display_name=f"Personal {user.name}", slug=brand_slug(user.name))
-    db.add(PersonalBranding(personal_id=user.id, **branding.model_dump()))
+    branding_values = branding.model_dump()
+    try:
+        branding_values["modules"] = validate_module_configuration(branding_values.get("modules") or DEFAULT_MODULES)
+    except ValueError as exc:
+        raise DomainError(str(exc), status.HTTP_422_UNPROCESSABLE_ENTITY) from exc
+    db.add(PersonalBranding(personal_id=user.id, **branding_values))
     audit(db, actor, "personal_created", "user", user.id, {"status": payload.status})
     db.commit()
     db.refresh(user)
@@ -155,6 +161,25 @@ def update_personal(db: Session, actor: User, user: User, payload: OwnerPersonal
         if duplicate: raise DomainError("Email already registered", status.HTTP_409_CONFLICT)
     for key, value in changes.items(): setattr(user, key, value)
     audit(db, actor, "personal_updated", "user", user.id, {"fields": sorted(changes)}); db.commit(); db.refresh(user); return user
+
+
+def update_personal_modules(db: Session, actor: User, user: User, modules: dict[str, bool]) -> dict[str, bool]:
+    resolved = validate_module_configuration(modules)
+    branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == user.id))
+    if not branding:
+        branding = PersonalBranding(
+            personal_id=user.id,
+            display_name=f"Personal {user.name}",
+            slug=brand_slug(user.name),
+            modules=resolved,
+        )
+        db.add(branding)
+    else:
+        branding.modules = resolved
+    audit(db, actor, "personal_modules_updated", "personal_branding", user.id, {"modules": resolved})
+    db.commit()
+    db.refresh(branding)
+    return resolved
 
 
 def change_status(db: Session, actor: User, user: User, value: str, reason=None):

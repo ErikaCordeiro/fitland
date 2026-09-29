@@ -290,8 +290,9 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    setBrandingError(false);
-    apiRequest("/branding/me")
+    const loadBranding = () => {
+      setBrandingError(false);
+      return apiRequest("/branding/me")
       .then((resolved) => {
         if (cancelled) return;
         const requestedContext = getRequestedContext(window.location.pathname);
@@ -319,7 +320,11 @@ export default function App() {
             is_fallback: true
           });
       } });
-    return () => { cancelled = true; };
+    };
+    loadBranding();
+    const refreshOnFocus = () => loadBranding();
+    window.addEventListener("focus", refreshOnFocus);
+    return () => { cancelled = true; window.removeEventListener("focus", refreshOnFocus); };
   }, [session?.id, session?.role]);
 
   useEffect(() => {
@@ -700,7 +705,7 @@ export default function App() {
     return (
       <>
       <StudentLayout {...commonLayoutProps}>
-        {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} theme={theme} setTheme={setTheme} />}
+        {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} modules={branding?.modules} scope={scope} theme={theme} setTheme={setTheme} />}
         {activePage === "diet" && <UnavailableDataPage className="student-diet-page" title="Nenhum plano alimentar disponível" message="Um plano prescrito aparecerá aqui quando estiver disponível no sistema." />}
         {activePage === "assessments" && <UnavailableDataPage className="student-assessments-page" title="Nenhuma avaliação disponível" message="Suas avaliações aparecerão quando houver registros persistidos." />}
         {activePage === "payments" && <UnavailableDataPage className="student-payments-page" title="Sem dados de pagamento" message="As cobranças aparecerão quando houver integração financeira real." />}

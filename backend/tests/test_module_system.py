@@ -63,7 +63,7 @@ def test_catalog_has_core_status_order_and_explicit_availability():
     progress = next(item for item in catalog if item["key"] == "progress")
     assert dashboard["core"] is True and dashboard["configurable"] is False
     assert diets["status"] == "not_implemented" and diets["available"] is False
-    assert progress["status"] == "partial" and progress["dependencies"] == ["workouts"]
+    assert progress["status"] == "implemented" and progress["dependencies"] == ["workouts"]
 
 
 def test_unavailable_and_core_modules_cannot_be_overridden():

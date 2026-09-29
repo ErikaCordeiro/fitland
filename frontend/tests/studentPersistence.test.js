@@ -17,10 +17,10 @@ test("student form persists through the authenticated students API", () => {
 });
 
 test("progress distinguishes loading, empty, data and error states", () => {
-  const source = readFileSync(new URL("../src/pages/PersonalProgress.jsx", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../src/pages/ProgressModule.jsx", import.meta.url), "utf8");
   assert.match(source, /status === "loading"/);
+  assert.match(source, /status === "empty"/);
   assert.match(source, /status === "error"/);
-  assert.match(source, /Nenhum progresso registrado ainda/);
-  assert.match(source, /history\.map/);
-  assert.match(source, /setStatus\("ready"\)/);
+  assert.match(source, /status: "success"/);
+  assert.match(source, /progress\/overview/);
 });

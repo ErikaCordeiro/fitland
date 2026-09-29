@@ -21201,6 +21201,40 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
 .owner-logs-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
 .owner-logs-toolbar p { margin: 0; color: var(--owner-muted); }
 .owner-logs-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; white-space: nowrap; }
+.progress-module-page { display: grid; gap: 18px; min-width: 0; }
+.progress-controls { display: flex; justify-content: flex-end; gap: 12px; }
+.progress-controls label, .progress-load-panel label { display: grid; gap: 6px; color: var(--text-muted); font-size: 13px; font-weight: 700; }
+.progress-controls select, .progress-load-panel select { min-height: 44px; min-width: 180px; padding: 0 38px 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-primary); }
+.progress-overview { display: grid; gap: 18px; min-width: 0; }
+.progress-overview-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.progress-overview-heading h2 { margin: 2px 0 0; font-size: clamp(24px, 3vw, 38px); letter-spacing: 0; }
+.progress-overview-heading > span { color: var(--text-muted); font-weight: 700; }
+.progress-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.progress-summary article, .progress-panel { min-width: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-primary); }
+.progress-summary article { display: grid; gap: 7px; min-height: 148px; padding: 18px; }
+.progress-summary article svg { color: var(--personal-accent, #c0c0c0); }
+.progress-summary article small, .progress-summary article span, .progress-panel > p { color: var(--text-muted); }
+.progress-summary article strong { font-size: 24px; letter-spacing: 0; overflow-wrap: anywhere; }
+.progress-content-grid, .progress-foot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.progress-panel { padding: 20px; }
+.progress-panel h3 { margin: 2px 0 0; font-size: 19px; letter-spacing: 0; }
+.progress-empty { margin: 24px 0 0; color: var(--text-muted); line-height: 1.5; }
+.progress-empty-main { margin: 0; padding: 22px; border: 1px dashed var(--border); border-radius: 8px; text-align: center; }
+.progress-empty-main p { margin: 6px 0 0; }
+.progress-frequency, .progress-highlights, .progress-trend ol { list-style: none; margin: 16px 0 0; padding: 0; }
+.progress-frequency li, .progress-trend li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.progress-best { display: flex; justify-content: space-between; gap: 12px; margin: 16px 0 0; }
+.progress-trend { min-width: 0; margin-top: 16px; }
+.progress-trend svg { display: block; width: 100%; height: 190px; overflow: visible; }
+.progress-trend polyline { fill: none; stroke: var(--personal-accent, #c0c0c0); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.progress-trend ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.progress-trend li { display: grid; font-size: 12px; }
+.progress-feature-value { display: block; margin-top: 10px; font-size: 28px; letter-spacing: 0; }
+.progress-highlights { display: grid; gap: 10px; }
+.progress-highlights li { padding-left: 18px; position: relative; line-height: 1.45; }
+.progress-highlights li::before { content: ""; position: absolute; left: 0; top: .55em; width: 7px; height: 7px; border-radius: 50%; background: var(--personal-accent, #c0c0c0); }
+@media (max-width: 900px) { .progress-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .progress-controls, .progress-overview-heading { align-items: stretch; flex-direction: column; } .progress-controls select { width: 100%; } .progress-summary, .progress-content-grid, .progress-foot-grid { grid-template-columns: 1fr; } .progress-summary article { min-height: 124px; } .progress-panel { padding: 16px; } .progress-trend svg { height: 150px; } }
 .owner-brand-preview { display: grid; gap: 12px; padding: 18px; border: 1px solid; border-radius: 8px; }
 .owner-brand-preview div { display: flex; align-items: center; gap: 12px; }
 .owner-brand-preview img { width: 48px; height: 48px; object-fit: contain; }

@@ -37,7 +37,7 @@ MODULE_REGISTRY = (
     ModuleDefinition("dashboard", "Dashboard", "Visão geral do Personal", IMPLEMENTED, 10, True, True, False),
     ModuleDefinition("students", "Alunos", "Gerenciamento de alunos", IMPLEMENTED, 20, True),
     ModuleDefinition("workouts", "Treinos", "Criação e acompanhamento de treinos", IMPLEMENTED, 30, True),
-    ModuleDefinition("progress", "Progresso", "Evolução baseada nos treinos concluídos", PARTIAL, 40, True, dependencies=("workouts",)),
+    ModuleDefinition("progress", "Progresso", "Evolução baseada nos treinos concluídos", IMPLEMENTED, 40, True, dependencies=("workouts",)),
     ModuleDefinition("calendar", "Calendário", "Agenda pessoal do aluno", PARTIAL, 50, True),
     ModuleDefinition("coach", "Coach IA", "Sugestões inteligentes para o Personal", PARTIAL, 60, True, dependencies=("students", "workouts")),
     ModuleDefinition("about", "Sobre o Personal", "Identidade e informações públicas do Personal", PARTIAL, 70, True),

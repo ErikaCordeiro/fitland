@@ -10,8 +10,6 @@ test("modules without persistence render honest empty states before legacy sampl
     "PersonalDiet.jsx": "Nenhum plano alimentar cadastrado",
     "PersonalAgenda.jsx": "Nenhum compromisso cadastrado",
     "PersonalReports.jsx": "Nenhum relatório disponível",
-    "PersonalProgress.jsx": "Nenhum progresso registrado ainda",
-    "PersonalStudentProgress.jsx": "Sem dados individuais de progresso",
     "StudentPayments.jsx": "Sem dados de pagamento",
     "PersonalMessages.jsx": "Nenhuma mensagem disponível",
     "StudentMessages.jsx": "Nenhuma mensagem disponível",

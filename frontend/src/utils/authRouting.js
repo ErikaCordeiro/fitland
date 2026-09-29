@@ -86,6 +86,7 @@ export function resolvePersonalNavigation(pathname, authenticatedSlug) {
   return {
     page,
     path,
+    ...(currentRoute?.studentId ? { studentId: currentRoute.studentId } : {}),
     redirect: normalizePath(pathname) !== path,
   };
 }

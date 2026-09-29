@@ -14,8 +14,7 @@ import WorkoutExecution from "./pages/WorkoutExecution.jsx";
 import StudentCalendar from "./pages/StudentCalendar.jsx";
 import StudentSettings from "./pages/StudentSettings.jsx";
 import PersonalSettings from "./pages/PersonalSettings.jsx";
-import Progress from "./pages/Progress.jsx";
-import PersonalProgress from "./pages/PersonalProgress.jsx";
+import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
 import OwnerPortal from "./pages/OwnerPortal.jsx";
@@ -331,6 +330,7 @@ export default function App() {
     if (session?.role !== "personal" || brandingUserId !== session.id || !branding?.slug) return;
     const route = resolvePersonalNavigation(window.location.pathname, branding.slug);
     setActivePage(route.page);
+    if (route.studentId) setSelectedStudentId(route.studentId);
     if (route.redirect) {
       window.history.replaceState(null, "", route.path);
     }
@@ -581,7 +581,7 @@ export default function App() {
         />
       )}
       {isStudent && activePage === "progress" && (
-        <Progress student={students[0]} students={students} branding={branding} scope={scope} />
+        <StudentProgress />
       )}
       {activePage === "coach" && (
         <CoachIA
@@ -731,9 +731,9 @@ export default function App() {
       {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}
       {activePage === "settings" && <PersonalSettings profile={{ ...personalProfile, email: session?.email || "" }} studentCount={students.length} workoutCount={workouts.length} theme={theme} setTheme={setTheme} />}
       {activePage === "assessments" && <UnavailableDataPage className="assessments-admin-page" title="Nenhuma avaliação disponível" message="As avaliações aparecerão quando houver registros persistidos." />}
-      {activePage === "progress" && <PersonalProgress />}
+      {activePage === "progress" && <PersonalProgressModule students={students} initialStudentId={selectedStudentId} />}
       {activePage === "student-progress-detail" && (
-        <UnavailableDataPage className="personal-progress-page" title="Sem dados individuais de progresso" message="As métricas aparecerão quando o aluno registrar avaliações e atividades reais." />
+        <PersonalProgressModule students={students} initialStudentId={selectedStudentId} />
       )}
       {activePage === "students" && (
         <Students

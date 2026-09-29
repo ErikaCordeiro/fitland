@@ -22,7 +22,7 @@ test("service worker fallbacks always resolve to a Response", () => {
 });
 
 test("service worker forces an update and removes old caches", () => {
-  assert.match(source, /`\$\{CACHE_PREFIX\}v7`/);
+  assert.match(source, /`\$\{CACHE_PREFIX\}v8`/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /caches\.delete\(key\)/);

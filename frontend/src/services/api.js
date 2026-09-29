@@ -110,6 +110,32 @@ export async function apiRequest(path, options = {}) {
   return parseResponse(response);
 }
 
+function attachmentFilename(header, fallback) {
+  const encoded = header?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const plain = header?.match(/filename="?([^";]+)"?/i)?.[1];
+  try {
+    return decodeURIComponent(encoded || plain || fallback);
+  } catch {
+    return fallback;
+  }
+}
+
+export async function apiDownload(path, options = {}) {
+  let response = await rawRequest(path, options);
+  if (response.status === 401 && !options.skipAuthRefresh) {
+    await refreshSession();
+    response = await rawRequest(path, options);
+  }
+  if (!response.ok) {
+    const error = await parseResponse(response) || { detail: "Não foi possível baixar o arquivo" };
+    throw new Error(error.detail || error.message || "Não foi possível baixar o arquivo");
+  }
+  return {
+    blob: await response.blob(),
+    filename: attachmentFilename(response.headers.get("Content-Disposition"), "fitland-export.csv"),
+  };
+}
+
 export async function login(email, password, keepConnected = true, ownerContext = false) {
   authCoordinator.beginAuthentication();
   const endpoint = getLoginEndpoint(ownerContext);

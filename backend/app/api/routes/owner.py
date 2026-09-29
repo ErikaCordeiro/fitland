@@ -1,7 +1,7 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -14,6 +14,7 @@ from app.services.auth_service import request_password_reset
 from app.services.owner_service import (audit, change_status, create_personal, dashboard_summary,
     get_personal, list_personals, personal_to_dict, soft_delete, update_personal, update_personal_modules)
 from app.services.module_registry import module_catalog
+from app.services.audit_export_service import audit_log_query, export_audit_logs_csv
 
 router = APIRouter()
 AVATAR_DIR = Path(__file__).resolve().parents[3] / "uploads" / "owners"
@@ -109,14 +110,27 @@ def remove(personal_id: uuid.UUID, owner: User = Depends(require_owner), db: Ses
 @router.get("/audit-logs")
 def logs(action: str | None = None, result: str | None = None, page: int = Query(1, ge=1), size: int = Query(20, ge=1, le=100),
          _: User = Depends(require_owner), db: Session = Depends(get_db)):
-    query = select(AuditLog, User.name).outerjoin(User, User.id == AuditLog.actor_user_id)
-    if action: query = query.where(AuditLog.action == action)
-    if result: query = query.where(AuditLog.result == result)
+    query = audit_log_query(action, result)
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     rows = db.execute(query.order_by(AuditLog.created_at.desc()).offset((page - 1) * size).limit(size)).all()
     return {"items": [{"id": log.id, "actor_name": name, "action": log.action, "entity_type": log.entity_type,
                        "entity_id": log.entity_id, "result": log.result, "details": log.details, "created_at": log.created_at}
                       for log, name in rows], "total": total, "page": page, "size": size}
+
+
+@router.get("/audit-logs/export")
+def export_logs(
+    action: str | None = None,
+    result: str | None = None,
+    _: User = Depends(require_owner),
+    db: Session = Depends(get_db),
+):
+    filename, content = export_audit_logs_csv(db, action, result)
+    return Response(
+        content=content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/settings")

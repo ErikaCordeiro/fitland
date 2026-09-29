@@ -21198,12 +21198,16 @@ body.owner-light .owner-shell{--owner-bg:#e9eaec;--owner-panel:#f4f4f3;--owner-l
 .owner-module-switch input:focus-visible + span { outline: 3px solid #fff; outline-offset: 3px; }
 .owner-module-switch input:disabled + span { opacity: .55; }
 .owner-module-switch em { color: #d5d8dc; font-size: 10px; font-style: normal; font-weight: 800; text-align: center; }
+.owner-logs-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+.owner-logs-toolbar p { margin: 0; color: var(--owner-muted); }
+.owner-logs-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; white-space: nowrap; }
 .owner-brand-preview { display: grid; gap: 12px; padding: 18px; border: 1px solid; border-radius: 8px; }
 .owner-brand-preview div { display: flex; align-items: center; gap: 12px; }
 .owner-brand-preview img { width: 48px; height: 48px; object-fit: contain; }
 .owner-brand-preview button { width: fit-content; min-height: 44px; padding: 0 18px; border: 0; border-radius: 6px; font-weight: 700; }
 @media (max-width: 700px) { .owner-brand-colors, .owner-module-grid { grid-template-columns: 1fr; } .owner-module-card { min-height: 140px; } }
 @media (max-width: 390px) { .owner-module-card { align-items: stretch; flex-direction: column; gap: 10px; } .owner-module-switch { width: 100%; grid-template-columns: 46px 1fr; } .owner-module-switch em { text-align: left; } }
+@media (max-width: 600px) { .owner-logs-toolbar { align-items: stretch; flex-direction: column; } .owner-logs-toolbar button { width: 100%; } }
 /* Accessible Personal/Student navigation and workout controls. */
 .personal-layout .sidebar,
 .student-layout-shell .sidebar {

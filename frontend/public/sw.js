@@ -1,9 +1,9 @@
 const CACHE_PREFIX = "fitland-app-";
-const CACHE_NAME = `${CACHE_PREFIX}v7`;
+const CACHE_NAME = `${CACHE_PREFIX}v8`;
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
-  "/lion-juda-logo.png",
+  "/fitland-icon.svg?v=2",
   "/apple-touch-icon.png",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png"

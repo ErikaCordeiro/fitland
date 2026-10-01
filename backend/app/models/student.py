@@ -28,3 +28,4 @@ class Student(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="student_profile")
     workouts = relationship("Workout", back_populates="student", cascade="all, delete-orphan")
     progress_logs = relationship("ProgressLog", back_populates="student", cascade="all, delete-orphan")
+    assessments = relationship("StudentAssessment", back_populates="student", cascade="all, delete-orphan")

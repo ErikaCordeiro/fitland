@@ -20,7 +20,7 @@ test("student progress derives identity from the authenticated endpoint", () => 
 });
 
 test("progress exposes loading empty error and real-data states without fake metrics", () => {
-  for (const text of ["Carregando progresso", "Nenhum aluno disponível", "Não foi possível carregar o progresso", "Nenhum treino concluído ainda", "Sem dados de carga executada", "Sem histórico de medidas"])
+  for (const text of ["Carregando progresso", "Nenhum aluno disponível", "Não foi possível carregar o progresso", "Nenhum treino concluído ainda", "Sem dados de carga executada", "Nenhuma medida registrada"])
     assert.match(page + view, new RegExp(text));
   assert.doesNotMatch(view, /Math\.random|Score do Leão|Insights da IA|70kg|80kg/);
   assert.doesNotMatch(view, /Invalid Date|undefined|NaN/);

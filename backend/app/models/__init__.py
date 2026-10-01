@@ -5,6 +5,7 @@ from app.models.audit_log import AuditLog
 from app.models.progress import ProgressLog
 from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
+from app.models.student_assessment import StudentAssessment
 from app.models.user import User, UserRole
 from app.models.video import Video
 from app.models.workout import Workout, WorkoutExercise
@@ -18,6 +19,7 @@ __all__ = [
     "ProgressLog",
     "PersonalBranding",
     "Student",
+    "StudentAssessment",
     "User",
     "UserRole",
     "Video",

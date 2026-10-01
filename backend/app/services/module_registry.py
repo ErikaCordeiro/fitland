@@ -43,7 +43,7 @@ MODULE_REGISTRY = (
     ModuleDefinition("about", "Sobre o Personal", "Identidade e informações públicas do Personal", PARTIAL, 70, True),
     ModuleDefinition("settings", "Configurações e branding", "Identidade visual e preferências essenciais", IMPLEMENTED, 80, True, True, False),
     ModuleDefinition("diet", "Dietas", "Planejamento alimentar", NOT_IMPLEMENTED, 90, False, False, False),
-    ModuleDefinition("assessments", "Avaliações", "Avaliações físicas e registros", NOT_IMPLEMENTED, 100, False, False, False),
+    ModuleDefinition("assessments", "Avaliações", "Avaliações físicas e registros históricos", IMPLEMENTED, 100, False),
     ModuleDefinition("finance", "Financeiro", "Gestão financeira do Personal", NOT_IMPLEMENTED, 110, False, False, False),
     ModuleDefinition("payments", "Pagamentos", "Pagamentos do aluno", NOT_IMPLEMENTED, 120, False, False, False),
     ModuleDefinition("messages", "Mensagens", "Comunicação entre Personal e aluno", NOT_IMPLEMENTED, 140, False, False, False),

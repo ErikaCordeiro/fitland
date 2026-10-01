@@ -40,6 +40,13 @@ class WorkoutFrequencyPoint(BaseModel):
     count: int
 
 
+class MeasurementProgress(BaseModel):
+    key: str
+    label: str
+    unit: str
+    points: list[ProgressPoint]
+
+
 class ProgressOverview(BaseModel):
     student_id: uuid.UUID
     student_name: str
@@ -52,6 +59,6 @@ class ProgressOverview(BaseModel):
     current_weight: float | None
     weight_history: list[ProgressPoint]
     measurements_supported: bool = False
-    measurements: list = Field(default_factory=list)
+    measurements: list[MeasurementProgress] = Field(default_factory=list)
     real_volume: float | None
     highlights: list[str]

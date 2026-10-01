@@ -5,12 +5,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.progress import ProgressLog
+from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
+from app.models.student_assessment import StudentAssessment
 from app.models.user import UserRole
 from app.models.workout_session import WorkoutSession
 from app.models.user import User
 from app.schemas.progress import ProgressLogCreate
 from app.services.access import get_owned_student
+from app.services.module_registry import resolve_modules
+
+
+MEASUREMENTS = {
+    "waist": "Cintura", "abdomen": "Abdômen", "hips": "Quadril",
+    "neck": "Pescoço", "shoulders": "Ombros", "chest": "Peitoral/Tórax",
+    "right_arm": "Braço direito", "left_arm": "Braço esquerdo",
+    "right_thigh": "Coxa direita", "left_thigh": "Coxa esquerda",
+    "right_calf": "Panturrilha direita", "left_calf": "Panturrilha esquerda",
+    "body_fat_percentage": "Gordura corporal",
+}
 
 
 def list_progress(db: Session, current_user: User, student_id) -> list[ProgressLog]:
@@ -92,11 +105,30 @@ def progress_overview(db: Session, current_user: User, student_id=None, period_d
         ProgressLog.student_id == student.id,
         ProgressLog.body_weight.is_not(None),
     ).order_by(ProgressLog.log_date.asc(), ProgressLog.created_at.asc())))
+    branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == student.personal_id))
+    assessments_enabled = resolve_modules((branding.modules if branding else None) or {}).get("assessments") is True
+    assessments = list(db.scalars(select(StudentAssessment).where(
+        StudentAssessment.student_id == student.id,
+        StudentAssessment.personal_id == student.personal_id,
+    ).order_by(StudentAssessment.assessment_date.asc(), StudentAssessment.created_at.asc()))) if assessments_enabled else []
+
+    weights_by_date = {item.log_date: float(item.body_weight) for item in weight_logs}
+    for item in assessments:
+        if item.weight is not None:
+            weights_by_date[item.assessment_date] = float(item.weight)
     weight_history = [{
-        "date": datetime.combine(item.log_date, datetime.min.time(), tzinfo=timezone.utc),
-        "value": float(item.body_weight),
-    } for item in weight_logs]
+        "date": datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=12), "value": value,
+    } for day, value in sorted(weights_by_date.items())]
     current_weight = weight_history[-1]["value"] if weight_history else float(student.weight) if student.weight else None
+
+    measurements = []
+    for key, label in MEASUREMENTS.items():
+        points = [{
+            "date": datetime.combine(item.assessment_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=12),
+            "value": float(getattr(item, key)),
+        } for item in assessments if getattr(item, key) is not None]
+        if points:
+            measurements.append({"key": key, "label": label, "unit": "%" if key == "body_fat_percentage" else "cm", "points": points})
 
     highlights = []
     if sessions:
@@ -117,8 +149,8 @@ def progress_overview(db: Session, current_user: User, student_id=None, period_d
         "exercise_progress": exercise_progress,
         "current_weight": current_weight,
         "weight_history": weight_history,
-        "measurements_supported": False,
-        "measurements": [],
+        "measurements_supported": assessments_enabled,
+        "measurements": measurements,
         "real_volume": round(volume, 2) if volume_samples else None,
         "highlights": highlights,
     }

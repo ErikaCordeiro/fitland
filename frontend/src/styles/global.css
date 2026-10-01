@@ -22388,3 +22388,54 @@ body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :w
 @media (max-width: 360px) {
   .agenda-filters button { padding: 0 4px; font-size: .68rem; white-space: nowrap; }
 }
+/* Persisted physical assessments */
+.assessments-v2-page { display: grid; gap: 18px; }
+.assessments-v2-header, .assessment-toolbar, .assessment-history-list > article, .student-assessment-list > article { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.assessments-v2-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; }
+.assessments-v2-header h2 { margin: 2px 0 6px; font-size: 1.75rem; }
+.assessments-v2-header p { margin: 0; color: var(--text-secondary); }
+.assessment-primary { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; border: 0; border-radius: 6px; color: var(--text-on-accent); background: var(--personal-accent); font-weight: 800; }
+.assessment-toolbar { display: flex; align-items: end; gap: 16px; padding: 16px 20px; }
+.assessment-toolbar label { display: grid; min-width: min(360px, 100%); gap: 6px; font-weight: 800; }
+.assessment-toolbar select, .assessment-modal input, .assessment-modal textarea { min-height: 46px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); background: var(--surface-2, var(--surface)); }
+.assessment-history-list, .student-assessment-list { display: grid; gap: 10px; }
+.assessment-history-list > article { display: flex; min-height: 88px; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; }
+.assessment-history-list article > div:first-child { display: grid; grid-template-columns: repeat(3, minmax(120px, auto)); align-items: center; gap: 18px; }
+.assessment-history-list time { font-weight: 800; }
+.assessment-history-list span { color: var(--text-secondary); }
+.assessment-row-actions { display: flex; gap: 8px; }
+.assessment-row-actions button, .assessment-close { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); background: transparent; }
+.assessment-row-actions svg, .assessment-close svg { width: 19px; }
+.assessment-modal-backdrop { position: fixed; z-index: 3500; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.72); }
+.assessment-modal { position: relative; width: min(760px, 100%); max-height: 92vh; overflow: auto; padding: 26px; border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); background: var(--surface); }
+.assessment-close { position: absolute; top: 14px; right: 14px; }
+.assessment-modal form, .assessment-modal form > label { display: grid; gap: 8px; }
+.assessment-modal form { gap: 18px; }
+.assessment-modal fieldset { margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 6px; }
+.assessment-modal legend { padding: 0 8px; font-weight: 900; }
+.assessment-input-grid, .assessment-comparison { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.assessment-input-grid label { display: grid; gap: 6px; color: var(--text-secondary); font-weight: 700; }
+.assessment-modal textarea { min-height: 100px; resize: vertical; }
+.assessment-comparison div { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
+.assessment-comparison span, .assessment-comparison small { color: var(--text-secondary); }
+.assessment-error { color: var(--danger, #d94b55); }
+.student-assessment-list > article { padding: 20px; }
+.student-assessment-list article > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.student-assessment-list article > header time { font-size: 1.1rem; font-weight: 900; }
+.student-assessment-list article > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.student-assessment-list dl { margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
+.student-assessment-list dt { color: var(--text-secondary); font-size: .8rem; }
+.student-assessment-list dd { margin: 5px 0 0; font-weight: 900; }
+@media (max-width: 768px) {
+  .assessments-v2-header { align-items: stretch; flex-direction: column; }
+  .assessment-primary { width: 100%; }
+  .assessment-input-grid, .assessment-comparison, .student-assessment-list article > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .assessment-history-list article > div:first-child { grid-template-columns: 1fr; gap: 4px; }
+}
+@media (max-width: 375px) {
+  .assessment-toolbar { align-items: stretch; flex-direction: column; }
+  .assessment-input-grid, .assessment-comparison, .student-assessment-list article > div { grid-template-columns: 1fr; }
+  .assessment-history-list > article { align-items: flex-start; flex-direction: column; }
+  .assessment-row-actions { width: 100%; justify-content: flex-end; }
+  .assessment-modal { padding: 22px 16px; }
+}

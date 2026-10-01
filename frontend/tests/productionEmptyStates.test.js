@@ -13,8 +13,6 @@ test("modules without persistence render honest empty states before legacy sampl
     "PersonalMessages.jsx": "Nenhuma mensagem disponível",
     "StudentMessages.jsx": "Nenhuma mensagem disponível",
     "StudentFiles.jsx": "Nenhum arquivo disponível",
-    "PersonalAssessments.jsx": "Nenhuma avaliação disponível",
-    "StudentAssessments.jsx": "Nenhuma avaliação disponível",
   };
 
   for (const [file, message] of Object.entries(expectations)) {

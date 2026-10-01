@@ -15,6 +15,8 @@ import StudentCalendar from "./pages/StudentCalendar.jsx";
 import PersonalAgenda from "./pages/PersonalAgenda.jsx";
 import StudentSettings from "./pages/StudentSettings.jsx";
 import PersonalSettings from "./pages/PersonalSettings.jsx";
+import PersonalAssessments from "./pages/PersonalAssessments.jsx";
+import StudentAssessments from "./pages/StudentAssessments.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
@@ -360,7 +362,7 @@ export default function App() {
     return (
       <Login
         context={isOwnerLoginPath(loginPath) ? "owner" : requestedLoginContext?.type || "personal"}
-        brandSlug={personalLoginMatch?.[1] || ""}
+        brandSlug={personalLoginMatch?.[1] || requestedLoginContext?.slug || ""}
         branding={branding}
         onBrandingResolved={setBranding}
         onSignup={(student, personalId) => {
@@ -708,7 +710,7 @@ export default function App() {
       <StudentLayout {...commonLayoutProps}>
         {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} modules={branding?.modules} scope={scope} theme={theme} setTheme={setTheme} />}
         {activePage === "diet" && <UnavailableDataPage className="student-diet-page" title="Nenhum plano alimentar disponível" message="Um plano prescrito aparecerá aqui quando estiver disponível no sistema." />}
-        {activePage === "assessments" && <UnavailableDataPage className="student-assessments-page" title="Nenhuma avaliação disponível" message="Suas avaliações aparecerão quando houver registros persistidos." />}
+        {activePage === "assessments" && <StudentAssessments />}
         {activePage === "payments" && <UnavailableDataPage className="student-payments-page" title="Sem dados de pagamento" message="As cobranças aparecerão quando houver integração financeira real." />}
         {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} />}
         {activePage === "messages" && <UnavailableDataPage className="student-messages-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
@@ -731,7 +733,7 @@ export default function App() {
       {activePage === "chat" && <UnavailableDataPage className="messages-admin-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
       {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}
       {activePage === "settings" && <PersonalSettings profile={{ ...personalProfile, email: session?.email || "" }} studentCount={students.length} workoutCount={workouts.length} theme={theme} setTheme={setTheme} />}
-      {activePage === "assessments" && <UnavailableDataPage className="assessments-admin-page" title="Nenhuma avaliação disponível" message="As avaliações aparecerão quando houver registros persistidos." />}
+      {activePage === "assessments" && <PersonalAssessments students={students} />}
       {activePage === "progress" && <PersonalProgressModule students={students} initialStudentId={selectedStudentId} />}
       {activePage === "student-progress-detail" && (
         <PersonalProgressModule students={students} initialStudentId={selectedStudentId} />

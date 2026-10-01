@@ -6,6 +6,7 @@ from app.models.progress import ProgressLog
 from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
 from app.models.student_assessment import StudentAssessment
+from app.models.meal_plan import MealPlan, MealPlanItem, MealPlanMeal, MealPlanStatus
 from app.models.user import User, UserRole
 from app.models.video import Video
 from app.models.workout import Workout, WorkoutExercise
@@ -20,6 +21,10 @@ __all__ = [
     "PersonalBranding",
     "Student",
     "StudentAssessment",
+    "MealPlan",
+    "MealPlanMeal",
+    "MealPlanItem",
+    "MealPlanStatus",
     "User",
     "UserRole",
     "Video",

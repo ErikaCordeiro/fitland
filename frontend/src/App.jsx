@@ -17,6 +17,8 @@ import StudentSettings from "./pages/StudentSettings.jsx";
 import PersonalSettings from "./pages/PersonalSettings.jsx";
 import PersonalAssessments from "./pages/PersonalAssessments.jsx";
 import StudentAssessments from "./pages/StudentAssessments.jsx";
+import PersonalDiet from "./pages/PersonalDiet.jsx";
+import StudentDiet from "./pages/StudentDiet.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
@@ -709,7 +711,7 @@ export default function App() {
       <>
       <StudentLayout {...commonLayoutProps}>
         {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} modules={branding?.modules} scope={scope} theme={theme} setTheme={setTheme} />}
-        {activePage === "diet" && <UnavailableDataPage className="student-diet-page" title="Nenhum plano alimentar disponível" message="Um plano prescrito aparecerá aqui quando estiver disponível no sistema." />}
+        {activePage === "diet" && <StudentDiet />}
         {activePage === "assessments" && <StudentAssessments />}
         {activePage === "payments" && <UnavailableDataPage className="student-payments-page" title="Sem dados de pagamento" message="As cobranças aparecerão quando houver integração financeira real." />}
         {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} />}
@@ -727,7 +729,7 @@ export default function App() {
     <>
     <PersonalLayout {...commonLayoutProps}>
       {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} dataStatus={tenantData.status} dataError={tenantData.error} onRetry={() => setDataReloadKey((value) => value + 1)} onNavigate={navigate} branding={branding} theme={theme} setTheme={setTheme} />}
-      {activePage === "diet" && <UnavailableDataPage className="nutrition-admin-page" title="Nenhum plano alimentar cadastrado" message="Os planos aparecerão quando houver registros reais disponíveis." />}
+      {activePage === "diet" && <PersonalDiet students={students} />}
       {activePage === "finance" && <UnavailableDataPage className="finance-page" title="Sem dados financeiros" message="As informações financeiras aparecerão quando houver integração persistida." />}
       {activePage === "agenda" && <PersonalAgenda students={students} />}
       {activePage === "chat" && <UnavailableDataPage className="messages-admin-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}

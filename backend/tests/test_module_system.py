@@ -63,7 +63,7 @@ def test_catalog_has_core_status_order_and_explicit_availability():
     progress = next(item for item in catalog if item["key"] == "progress")
     agenda = next(item for item in catalog if item["key"] == "calendar")
     assert dashboard["core"] is True and dashboard["configurable"] is False
-    assert diets["status"] == "not_implemented" and diets["available"] is False
+    assert diets["status"] == "implemented" and diets["available"] is True and diets["default_enabled"] is False
     assert progress["status"] == "implemented" and progress["dependencies"] == ["workouts"]
     assert agenda["name"] == "Agenda" and agenda["status"] == "implemented" and agenda["dependencies"] == []
     assert not any(item["key"] == "agenda" for item in catalog)
@@ -73,7 +73,7 @@ def test_unavailable_and_core_modules_cannot_be_overridden():
     modules = resolve_modules({"dashboard": False, "settings": False, "diet": True})
     assert modules["dashboard"] is True
     assert modules["settings"] is True
-    assert modules["diet"] is False
+    assert modules["diet"] is True
 
 
 def test_impossible_dependency_configuration_is_rejected():

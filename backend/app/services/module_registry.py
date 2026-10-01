@@ -42,7 +42,7 @@ MODULE_REGISTRY = (
     ModuleDefinition("coach", "Coach IA", "Sugestões inteligentes para o Personal", PARTIAL, 60, True, dependencies=("students", "workouts")),
     ModuleDefinition("about", "Sobre o Personal", "Identidade e informações públicas do Personal", PARTIAL, 70, True),
     ModuleDefinition("settings", "Configurações e branding", "Identidade visual e preferências essenciais", IMPLEMENTED, 80, True, True, False),
-    ModuleDefinition("diet", "Dietas", "Planejamento alimentar", NOT_IMPLEMENTED, 90, False, False, False),
+    ModuleDefinition("diet", "Dietas", "Plano alimentar estruturado", IMPLEMENTED, 90, False),
     ModuleDefinition("assessments", "Avaliações", "Avaliações físicas e registros históricos", IMPLEMENTED, 100, False),
     ModuleDefinition("finance", "Financeiro", "Gestão financeira do Personal", NOT_IMPLEMENTED, 110, False, False, False),
     ModuleDefinition("payments", "Pagamentos", "Pagamentos do aluno", NOT_IMPLEMENTED, 120, False, False, False),

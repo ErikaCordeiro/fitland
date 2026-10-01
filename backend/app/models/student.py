@@ -29,3 +29,4 @@ class Student(Base):
     workouts = relationship("Workout", back_populates="student", cascade="all, delete-orphan")
     progress_logs = relationship("ProgressLog", back_populates="student", cascade="all, delete-orphan")
     assessments = relationship("StudentAssessment", back_populates="student", cascade="all, delete-orphan")
+    meal_plans = relationship("MealPlan", back_populates="student", cascade="all, delete-orphan")

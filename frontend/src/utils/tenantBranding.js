@@ -7,7 +7,7 @@ const MODULE_BY_PAGE = {
   students: "students", "workout-builder": "workouts", "student-view": "workouts", diet: "diet",
   assessments: "assessments", progress: "progress", finance: "finance",
   agenda: "calendar", chat: "messages", messages: "messages", reports: "reports",
-  files: "files", coach: "coach", calendar: "calendar", payments: "payments",
+  files: "files", coach: "coach", calendar: "calendar",
   "about-personal": "about",
 };
 

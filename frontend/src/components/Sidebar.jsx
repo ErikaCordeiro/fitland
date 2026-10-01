@@ -43,7 +43,7 @@ export const studentNavItems = [
   { id: "diet", label: "Dieta", icon: Apple },
   { id: "assessments", label: "Avaliações", icon: ClipboardCheck },
   { id: "progress", label: "Progresso", icon: BarChart3 },
-  { id: "payments", label: "Pagamentos", icon: CreditCard },
+  { id: "finance", label: "Meus Pagamentos", icon: CreditCard },
   { id: "calendar", label: "Agenda", icon: CalendarDays },
   { id: "messages", label: "Mensagens", icon: MessageCircle },
   { id: "coach", label: "Assistente Fitness", icon: Bot },
@@ -68,7 +68,7 @@ export default function Sidebar({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const effectiveCollapsed = collapsed && !mobileOpen;
-  const isStudentMenu = navItems.some((item) => item.id === "payments");
+  const isStudentMenu = navItems === studentNavItems;
   const inactive = new Set(["profile"]);
   const handleNavigate = (item) => {
     onNavigate(inactive.has(item.id) ? "dashboard" : item.id);

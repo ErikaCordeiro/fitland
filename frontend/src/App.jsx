@@ -19,6 +19,8 @@ import PersonalAssessments from "./pages/PersonalAssessments.jsx";
 import StudentAssessments from "./pages/StudentAssessments.jsx";
 import PersonalDiet from "./pages/PersonalDiet.jsx";
 import StudentDiet from "./pages/StudentDiet.jsx";
+import PersonalFinance from "./pages/PersonalFinance.jsx";
+import StudentPayments from "./pages/StudentPayments.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
@@ -61,7 +63,6 @@ const pageMeta = {
   chat: ["Mensagens", "Converse com seus alunos e acompanhe todas as mensagens."],
   reports: ["Relatórios", "Visão geral dos resultados do seu negócio e dos seus alunos."],
   assessments: ["Avaliações", "Registre, acompanhe e analise a evolução física dos seus alunos."],
-  payments: ["Pagamentos", "Acompanhe suas cobranças, faturas e histórico."],
   calendar: ["Agenda", "Seus treinos e compromissos."],
   messages: ["Mensagens", "Converse diretamente com seu personal."],
   files: ["Arquivos", "Envie e organize seus arquivos para acompanhamento do seu personal."],
@@ -90,7 +91,7 @@ function pageFromPath(pathname, role) {
     "/aluno/dieta": "diet",
     "/aluno/avaliacao": "assessments",
     "/aluno/avaliacoes": "assessments",
-    "/aluno/pagamentos": "payments",
+    "/aluno/pagamentos": "finance",
     "/aluno/calendario": "calendar",
     "/aluno/mensagens": "messages",
     "/aluno/arquivos": "files",
@@ -436,7 +437,7 @@ export default function App() {
       window.history.replaceState(null, "", "/aluno/dieta");
     } else if (isStudent && page === "assessments") {
       window.history.replaceState(null, "", "/aluno/avaliacao");
-    } else if (isStudent && page === "payments") {
+    } else if (isStudent && page === "finance") {
       window.history.replaceState(null, "", "/aluno/pagamentos");
     } else if (isStudent && page === "calendar") {
       window.history.replaceState(null, "", "/aluno/calendario");
@@ -713,7 +714,7 @@ export default function App() {
         {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} modules={branding?.modules} scope={scope} theme={theme} setTheme={setTheme} />}
         {activePage === "diet" && <StudentDiet />}
         {activePage === "assessments" && <StudentAssessments />}
-        {activePage === "payments" && <UnavailableDataPage className="student-payments-page" title="Sem dados de pagamento" message="As cobranças aparecerão quando houver integração financeira real." />}
+        {activePage === "finance" && <StudentPayments />}
         {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} />}
         {activePage === "messages" && <UnavailableDataPage className="student-messages-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
         {activePage === "files" && <UnavailableDataPage className="student-files-page" title="Nenhum arquivo disponível" message="Os arquivos aparecerão quando houver armazenamento persistido." />}
@@ -730,7 +731,7 @@ export default function App() {
     <PersonalLayout {...commonLayoutProps}>
       {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} dataStatus={tenantData.status} dataError={tenantData.error} onRetry={() => setDataReloadKey((value) => value + 1)} onNavigate={navigate} branding={branding} theme={theme} setTheme={setTheme} />}
       {activePage === "diet" && <PersonalDiet students={students} />}
-      {activePage === "finance" && <UnavailableDataPage className="finance-page" title="Sem dados financeiros" message="As informações financeiras aparecerão quando houver integração persistida." />}
+      {activePage === "finance" && <PersonalFinance students={students} />}
       {activePage === "agenda" && <PersonalAgenda students={students} />}
       {activePage === "chat" && <UnavailableDataPage className="messages-admin-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
       {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}

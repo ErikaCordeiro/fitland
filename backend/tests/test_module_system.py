@@ -62,10 +62,13 @@ def test_catalog_has_core_status_order_and_explicit_availability():
     diets = next(item for item in catalog if item["key"] == "diet")
     progress = next(item for item in catalog if item["key"] == "progress")
     agenda = next(item for item in catalog if item["key"] == "calendar")
+    finance = next(item for item in catalog if item["key"] == "finance")
     assert dashboard["core"] is True and dashboard["configurable"] is False
     assert diets["status"] == "implemented" and diets["available"] is True and diets["default_enabled"] is False
     assert progress["status"] == "implemented" and progress["dependencies"] == ["workouts"]
     assert agenda["name"] == "Agenda" and agenda["status"] == "implemented" and agenda["dependencies"] == []
+    assert finance["status"] == "implemented" and finance["default_enabled"] is False
+    assert not any(item["key"] == "payments" for item in catalog)
     assert not any(item["key"] == "agenda" for item in catalog)
 
 

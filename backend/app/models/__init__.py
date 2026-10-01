@@ -8,6 +8,7 @@ from app.models.student import Student
 from app.models.student_assessment import StudentAssessment
 from app.models.meal_plan import MealPlan, MealPlanItem, MealPlanMeal, MealPlanStatus
 from app.models.finance import FinancialCharge, FinancialPayment
+from app.models.message import Conversation, Message
 from app.models.user import User, UserRole
 from app.models.video import Video
 from app.models.workout import Workout, WorkoutExercise
@@ -28,6 +29,8 @@ __all__ = [
     "MealPlanStatus",
     "FinancialCharge",
     "FinancialPayment",
+    "Conversation",
+    "Message",
     "User",
     "UserRole",
     "Video",

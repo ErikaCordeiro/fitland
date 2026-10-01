@@ -18,7 +18,8 @@ export default function PersonalLayout({
   onApproveStudent,
   branding,
   theme,
-  setTheme
+  setTheme,
+  messageUnreadCount
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -45,6 +46,7 @@ export default function PersonalLayout({
         profileName={branding?.display_name || session?.name || "Personal"}
         branding={branding}
         modules={branding?.modules}
+        messageUnreadCount={messageUnreadCount}
         profileRole="Personal trainer"
         profileInitials={branding?.initials || (session?.name || "Personal").split(/\s+/).slice(0,2).map(part=>part[0]).join("").toUpperCase()}
         onLogout={onLogout}

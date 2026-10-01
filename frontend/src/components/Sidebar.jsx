@@ -64,7 +64,8 @@ export default function Sidebar({
   profileInitials = "TF",
   onLogout,
   branding,
-  modules
+  modules,
+  messageUnreadCount = 0
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const effectiveCollapsed = collapsed && !mobileOpen;
@@ -119,6 +120,7 @@ export default function Sidebar({
               >
                 <Icon size={19} />
                 <span>{item.label}</span>
+                {(["chat", "messages"].includes(item.id) && messageUnreadCount > 0) ? <b className="nav-unread-badge" aria-label={`${messageUnreadCount} mensagens não lidas`}>{messageUnreadCount}</b> : null}
               </button>
             );
           })}

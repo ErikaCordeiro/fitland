@@ -17,7 +17,8 @@ export default function StudentLayout({
   onNotificationAction,
   branding,
   theme,
-  setTheme
+  setTheme,
+  messageUnreadCount
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -44,6 +45,7 @@ export default function StudentLayout({
         profileName={student?.name || session?.name || "Aluno"}
         branding={branding}
         modules={branding?.modules}
+        messageUnreadCount={messageUnreadCount}
         profileRole="Aluno"
         profileInitials={(student?.name || session?.name || "Aluno").slice(0, 2)}
         onLogout={onLogout}

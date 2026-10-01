@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.api.routes import agenda, ai, assessments, auth, branding, exercises, finance, meal_plans, owner, progress, students, users, videos, workouts, workout_sessions
+from app.api.routes import agenda, ai, assessments, auth, branding, exercises, finance, meal_plans, messages, owner, progress, students, users, videos, workouts, workout_sessions
 from app.core.config import settings
 from app.core.errors import register_error_handlers
 from app.core.observability import build_identity, request_id_context
@@ -107,6 +107,7 @@ app.include_router(agenda.router, prefix="/api/agenda", tags=["agenda"])
 app.include_router(assessments.router, prefix="/api/assessments", tags=["assessments"])
 app.include_router(meal_plans.router, prefix="/api/meal-plans", tags=["meal-plans"])
 app.include_router(finance.router, prefix="/api/finance", tags=["finance"])
+app.include_router(messages.router, prefix="/api/messages", tags=["messages"])
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
 app.include_router(owner.router, prefix="/api/owner", tags=["owner"])
 app.include_router(branding.router, prefix="/api/branding", tags=["branding"])

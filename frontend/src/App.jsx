@@ -21,6 +21,8 @@ import PersonalDiet from "./pages/PersonalDiet.jsx";
 import StudentDiet from "./pages/StudentDiet.jsx";
 import PersonalFinance from "./pages/PersonalFinance.jsx";
 import StudentPayments from "./pages/StudentPayments.jsx";
+import PersonalMessages from "./pages/PersonalMessages.jsx";
+import StudentMessages from "./pages/StudentMessages.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
@@ -155,6 +157,7 @@ export default function App() {
   const [executionWorkoutId, setExecutionWorkoutId] = useState(null);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [focusedPendingStudentId, setFocusedPendingStudentId] = useState(null);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [personalProfile, setPersonalProfile] = useState({
     name: "Seu personal",
     email: session?.email || "",
@@ -162,6 +165,20 @@ export default function App() {
 
   const meta = pageMeta[activePage] || pageMeta.dashboard;
   const activeWorkout = useMemo(() => getRecommendedWorkout(workouts, new Date()) || workouts[0] || null, [workouts]);
+
+  useEffect(() => {
+    if (!session || session.role === "owner" || !branding?.modules?.messages) {
+      setMessageUnreadCount(0);
+      return undefined;
+    }
+    let cancelled = false;
+    const refreshUnread = () => apiRequest("/messages/unread-count")
+      .then((result) => { if (!cancelled) setMessageUnreadCount(result.count || 0); })
+      .catch(() => { if (!cancelled) setMessageUnreadCount(0); });
+    refreshUnread();
+    const timer = window.setInterval(refreshUnread, 20000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [session?.id, session?.role, branding?.modules?.messages]);
 
   useEffect(() => {
     if (!session || session.role === "owner") {
@@ -547,7 +564,8 @@ export default function App() {
     onApproveStudent: approvePendingStudent,
     branding,
     theme,
-    setTheme
+    setTheme,
+    messageUnreadCount
   };
 
   const sharedPages = (
@@ -716,7 +734,7 @@ export default function App() {
         {activePage === "assessments" && <StudentAssessments />}
         {activePage === "finance" && <StudentPayments />}
         {activePage === "calendar" && <StudentCalendar student={students[0]} workouts={workouts} onStartWorkout={openWorkoutExecution} branding={branding} scope={scope} />}
-        {activePage === "messages" && <UnavailableDataPage className="student-messages-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
+        {activePage === "messages" && <StudentMessages branding={branding} onUnreadChange={setMessageUnreadCount} />}
         {activePage === "files" && <UnavailableDataPage className="student-files-page" title="Nenhum arquivo disponível" message="Os arquivos aparecerão quando houver armazenamento persistido." />}
         {activePage === "settings" && <StudentSettings student={students[0]} branding={branding} theme={theme} setTheme={setTheme} />}
         {sharedPages}
@@ -733,7 +751,7 @@ export default function App() {
       {activePage === "diet" && <PersonalDiet students={students} />}
       {activePage === "finance" && <PersonalFinance students={students} />}
       {activePage === "agenda" && <PersonalAgenda students={students} />}
-      {activePage === "chat" && <UnavailableDataPage className="messages-admin-page" title="Nenhuma mensagem disponível" message="As conversas aparecerão quando houver integração persistida." />}
+      {activePage === "chat" && <PersonalMessages onUnreadChange={setMessageUnreadCount} />}
       {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}
       {activePage === "settings" && <PersonalSettings profile={{ ...personalProfile, email: session?.email || "" }} studentCount={students.length} workoutCount={workouts.length} theme={theme} setTheme={setTheme} />}
       {activePage === "assessments" && <PersonalAssessments students={students} />}

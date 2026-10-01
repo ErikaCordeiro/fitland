@@ -1,7 +1,7 @@
 from sqlalchemy import text
 
 from app.db.session import Base, engine
-from app.models import agenda_event, ai_audit, audit_log, exercise, finance, meal_plan, personal_branding, progress, student, student_assessment, user, video, workout, workout_session  # noqa: F401
+from app.models import agenda_event, ai_audit, audit_log, exercise, finance, meal_plan, message, personal_branding, progress, student, student_assessment, user, video, workout, workout_session  # noqa: F401
 
 
 def init_db() -> None:

@@ -1,11 +1,11 @@
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_owner
+from app.core.config import settings as app_settings
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
@@ -15,9 +15,10 @@ from app.services.owner_service import (audit, change_status, create_personal, d
     get_personal, list_personals, personal_to_dict, soft_delete, update_personal, update_personal_modules)
 from app.services.module_registry import module_catalog
 from app.services.audit_export_service import audit_log_query, export_audit_logs_csv
+from app.services.upload_storage import public_asset_url
 
 router = APIRouter()
-AVATAR_DIR = Path(__file__).resolve().parents[3] / "uploads" / "owners"
+AVATAR_DIR = app_settings.UPLOADS_DIR / "owners"
 AVATAR_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_AVATAR_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 
@@ -159,8 +160,8 @@ async def upload_avatar(request: Request, owner: User = Depends(require_owner), 
         raise HTTPException(status_code=413, detail="A imagem deve ter no máximo 3 MB.")
     filename = f"{owner.id}-{uuid.uuid4().hex}{extension}"
     (AVATAR_DIR / filename).write_bytes(content)
-    owner.avatar_url = str(request.url_for("uploads", path=f"owners/{filename}"))
+    owner.avatar_url = f"/uploads/owners/{filename}"
     audit(db, owner, "owner_avatar_updated", "user", owner.id)
     db.commit()
     db.refresh(owner)
-    return {"avatar_url": owner.avatar_url}
+    return {"avatar_url": public_asset_url(request, owner.avatar_url)}

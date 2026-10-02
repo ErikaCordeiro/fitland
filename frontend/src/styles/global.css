@@ -22469,3 +22469,25 @@ body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :w
 .message-empty,.message-center-state{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:24px}.message-empty svg,.message-center-state svg{opacity:.55}.message-empty span{opacity:.7}.message-center-state{margin:24px;border:1px solid var(--brand-border,#ddd);border-radius:8px}.message-load-earlier{align-self:center;background:transparent;color:inherit;border:1px solid var(--brand-border,#ccc)}
 @media(max-width:768px){.message-center{height:calc(100dvh - 150px);min-height:520px;grid-template-columns:1fr;margin:0 12px 18px}.message-thread-pane{display:none}.message-center.mobile-thread-open .message-conversation-pane{display:none}.message-center.mobile-thread-open .message-thread-pane,.message-center-student .message-thread-pane{display:flex}.message-back{display:grid;place-items:center}.message-center-student .message-back{display:none}.message-row>div{max-width:88%}}
 @media(max-width:375px){.message-center{margin-inline:8px}.message-thread{padding:14px 10px}.message-composer{padding:10px}.message-composer>div{align-items:stretch}.message-composer button{padding:0 10px}.message-row>div{max-width:94%}}
+
+/* Private student files */
+.private-files-page { display: grid; gap: 18px; }
+.private-files-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.private-files-heading h2 { margin: 4px 0; font-size: 28px; }
+.private-files-heading p { margin: 0; color: var(--text-secondary); }
+.private-files-heading label, .private-files-upload label { display: grid; gap: 7px; font-weight: 700; }
+.private-files-heading select, .private-files-upload input, .private-files-upload select, .private-files-upload textarea { min-height: 44px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface); color: var(--text-primary); font: inherit; }
+.private-files-upload { display: grid; grid-template-columns: 1.2fr 1fr .8fr; gap: 14px; padding: 18px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface); }
+.private-files-upload .wide { grid-column: 1 / -1; }
+.private-file-checkbox { display: flex !important; align-items: center; gap: 10px; }
+.private-file-checkbox input { width: 20px; min-height: 20px; }
+.private-files-grid { display: grid; gap: 10px; }
+.private-file-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface); }
+.private-file-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 8px; background: var(--surface-muted); }
+.private-file-copy { min-width: 0; display: grid; gap: 4px; }
+.private-file-copy strong, .private-file-copy span { overflow-wrap: anywhere; }
+.private-file-copy span, .private-file-copy p, .private-file-copy em { margin: 0; color: var(--text-secondary); font-size: 14px; font-style: normal; }
+.private-file-actions { display: flex; gap: 6px; }
+.private-files-empty, .private-files-state { min-height: 190px; display: grid; place-content: center; justify-items: center; gap: 8px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--text-secondary); text-align: center; }
+.private-files-message { padding: 12px 14px; border-left: 3px solid var(--accent-color); background: var(--surface); }
+@media (max-width: 760px) { .private-files-heading { align-items: stretch; flex-direction: column; } .private-files-upload { grid-template-columns: 1fr; } .private-files-upload .wide { grid-column: auto; } .private-file-card { grid-template-columns: 40px minmax(0, 1fr); } .private-file-actions, .private-file-card > .icon-action { grid-column: 1 / -1; justify-content: flex-end; } }

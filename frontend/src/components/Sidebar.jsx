@@ -31,6 +31,7 @@ export const personalNavItems = [
   { id: "finance", label: "Financeiro", icon: CreditCard },
   { id: "agenda", label: "Agenda", icon: CalendarDays },
   { id: "chat", label: "Mensagens", icon: MessageCircle },
+  { id: "files", label: "Arquivos", icon: FileText },
   { id: "reports", label: "Relatórios", icon: FileText },
   { id: "coach", label: "Coach IA", icon: Bot },
   { id: "about-personal", label: "Sobre o Personal", icon: Info },

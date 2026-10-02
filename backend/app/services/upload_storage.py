@@ -36,8 +36,7 @@ def public_asset_url(request: Request, value: str | None) -> str | None:
     reference = relative_upload_reference(value)
     if not reference or not reference.startswith(UPLOAD_PREFIX):
         return reference
-    asset_path = reference.removeprefix(UPLOAD_PREFIX)
-    url = request.url_for("uploads", path=asset_path)
+    url = request.base_url.replace(path=reference)
     forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip().lower()
     if forwarded_proto in {"http", "https"}:
         url = url.replace(scheme=forwarded_proto)

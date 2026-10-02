@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.api.routes import agenda, ai, assessments, auth, branding, exercises, finance, meal_plans, messages, owner, progress, students, users, videos, workouts, workout_sessions
+from app.api.routes import agenda, ai, assessments, auth, branding, exercises, files, finance, meal_plans, messages, owner, progress, students, users, videos, workouts, workout_sessions
 from app.core.config import settings
 from app.core.errors import register_error_handlers
 from app.core.observability import build_identity, request_id_context
@@ -108,6 +108,7 @@ app.include_router(assessments.router, prefix="/api/assessments", tags=["assessm
 app.include_router(meal_plans.router, prefix="/api/meal-plans", tags=["meal-plans"])
 app.include_router(finance.router, prefix="/api/finance", tags=["finance"])
 app.include_router(messages.router, prefix="/api/messages", tags=["messages"])
+app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
 app.include_router(owner.router, prefix="/api/owner", tags=["owner"])
 app.include_router(branding.router, prefix="/api/branding", tags=["branding"])
@@ -197,7 +198,11 @@ def diagnostic_post():
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 UPLOADS_DIR = settings.UPLOADS_DIR
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+PUBLIC_UPLOAD_AREAS = ("branding", "owners")
+for public_area in PUBLIC_UPLOAD_AREAS:
+    directory = UPLOADS_DIR / public_area
+    directory.mkdir(parents=True, exist_ok=True)
+    app.mount(f"/uploads/{public_area}", StaticFiles(directory=directory), name=f"uploads_{public_area}")
 
 if FRONTEND_DIST.exists():
     assets_dir = FRONTEND_DIST / "assets"
@@ -206,7 +211,7 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_frontend(full_path: str):
-        if full_path.startswith("api/"):
+        if full_path.startswith("api/") or full_path.startswith("uploads/"):
             raise HTTPException(status_code=404, detail="Not found")
 
         requested_path = FRONTEND_DIST / full_path

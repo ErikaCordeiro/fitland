@@ -30,3 +30,9 @@ CREATE INDEX IF NOT EXISTS ix_messages_personal_id ON messages(personal_id);
 CREATE INDEX IF NOT EXISTS ix_messages_student_id ON messages(student_id);
 CREATE INDEX IF NOT EXISTS ix_messages_conversation_created ON messages(conversation_id, created_at, id);
 CREATE INDEX IF NOT EXISTS ix_messages_tenant_unread ON messages(personal_id, student_id, read_at);
+
+-- The key could exist as a legacy selection while the module was unavailable.
+-- This data migration runs once with the release so existing tenants opt in explicitly.
+UPDATE personal_brandings
+SET modules = jsonb_set(COALESCE(modules, '{}'::jsonb), '{messages}', 'false'::jsonb, true)
+WHERE COALESCE(modules->>'messages', 'false') = 'true';

@@ -2,7 +2,7 @@ import os
 import uuid
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
@@ -34,12 +34,15 @@ def list_student_files(db: Session, user: User, student_id: uuid.UUID | None) ->
             StudentFile.student_id == student.id,
             StudentFile.visible_to_student.is_(True),
         ]
+    conditions.append(or_(StudentFile.resource_type.is_(None), ~StudentFile.resource_type.like("assessment_photo:%")))
     return list(db.scalars(select(StudentFile).where(*conditions).order_by(StudentFile.created_at.desc())).all())
 
 
 def get_accessible_file(db: Session, user: User, file_id: uuid.UUID, *, write: bool = False) -> StudentFile:
     row = db.get(StudentFile, file_id)
     if not row:
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    if (row.resource_type or "").startswith("assessment_photo:"):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
     if user.role == UserRole.PERSONAL:
         if row.personal_id != user.id:

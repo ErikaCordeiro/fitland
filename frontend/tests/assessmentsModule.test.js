@@ -23,6 +23,22 @@ test("student assessments are read-only and use the authenticated endpoint", () 
   assert.match(student, /apiRequest\("\/assessments"\)/);
   assert.doesNotMatch(student, /method:\s*"(?:POST|PATCH|DELETE)"/);
   assert.match(student, /Histórico registrado pelo seu Personal/);
+  assert.match(student, /\/assessments\/\$\{item\.id\}\/photos/);
+  assert.match(student, /apiDownload/);
+  assert.match(student, /URL\.revokeObjectURL/);
+  assert.doesNotMatch(student, /type="file"|Adicionar foto|visible_to_student/);
+});
+
+test("assessment photos use protected endpoints and expose complete personal UX", () => {
+  assert.match(personal, /Fotos desta avaliação/);
+  assert.match(personal, /accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(personal, /visible_to_student/);
+  assert.match(personal, /Visível para o aluno/);
+  assert.match(personal, /assessment-photo-preview/);
+  assert.match(personal, /apiDownload/);
+  assert.match(personal, /method: "DELETE"/);
+  assert.match(personal, /URL\.revokeObjectURL/);
+  assert.doesNotMatch(personal, /storage_key|uploads\/private|Gemini|Analisar com IA/);
 });
 
 test("progress renders real selectable measurement series", () => {
@@ -41,4 +57,6 @@ test("assessment layout protects mobile inputs and avoids wide tables", () => {
   assert.match(styles, /@media \(max-width: 375px\)/);
   assert.match(styles, /\.assessment-input-grid/);
   assert.match(styles, /min-height: 46px/);
+  assert.match(styles, /\.assessment-photo-grid/);
+  assert.match(styles, /object-fit: contain/);
 });

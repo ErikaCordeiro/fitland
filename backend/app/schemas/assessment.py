@@ -81,6 +81,7 @@ class AssessmentRead(AssessmentValues):
     personal_id: uuid.UUID
     student_id: uuid.UUID
     bmi: float | None = None
+    photo_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -88,3 +89,17 @@ class AssessmentRead(AssessmentValues):
 class AssessmentDetail(AssessmentRead):
     previous: AssessmentRead | None = None
     differences: dict[str, float] = Field(default_factory=dict)
+
+
+class AssessmentPhotoRead(BaseModel):
+    id: uuid.UUID
+    assessment_id: uuid.UUID
+    student_id: uuid.UUID
+    original_filename: str
+    mime_type: str
+    size_bytes: int
+    photo_type: str
+    photo_type_label: str
+    description: str | None
+    visible_to_student: bool
+    created_at: datetime

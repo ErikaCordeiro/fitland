@@ -8,12 +8,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.db.session import Base, get_db
 from app.main import app
 from app.models.personal_branding import PersonalBranding
 from app.models.progress import ProgressLog
 from app.models.student import Student
+from app.models.student_file import StudentFile
 from app.models.user import User, UserRole
+from app.services.private_file_storage import MAX_PRIVATE_FILE_BYTES, resolve_storage_key
 
 
 def user(role):
@@ -21,7 +24,8 @@ def user(role):
 
 
 @pytest.fixture()
-def context():
+def context(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "UPLOADS_DIR", tmp_path)
     engine = create_engine("sqlite+pysqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     db = Session(engine)
@@ -46,6 +50,11 @@ def client(user_row):
 
 def payload(student_id, day="2026-09-01", weight=80):
     return {"student_id": str(student_id), "assessment_date": day, "weight": weight, "height": 170, "waist": 90, "body_fat_percentage": 25}
+
+
+def image_upload(api, assessment_id, *, content=None, filename="frente.png", content_type="image/png", photo_type="front", visible="false"):
+    content = content if content is not None else b"\x89PNG\r\n\x1a\nprivate-photo"
+    return api.post(f"/api/assessments/{assessment_id}/photos", data={"photo_type": photo_type, "description": "Evolução", "visible_to_student": visible}, files={"file": (filename, content, content_type)})
 
 
 def test_personal_crud_preserves_history_and_comparison(context):
@@ -111,3 +120,110 @@ def test_progress_omits_assessment_data_when_module_disabled(context):
     data = api.get(f"/api/progress/overview/{own.id}").json()
     assert data["measurements_supported"] is False and data["measurements"] == []
     assert data["weight_history"] == []
+
+
+def test_assessment_photos_use_private_storage_and_work_with_files_disabled(context):
+    db, personal, _, _, own, _ = context; api = client(personal)
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    response = image_upload(api, assessment["id"], visible="true")
+    assert response.status_code == 201
+    body = response.json()
+    assert body["assessment_id"] == assessment["id"] and body["photo_type"] == "front"
+    assert "storage_key" not in body and "path" not in body
+    row = db.get(StudentFile, uuid.UUID(body["id"]))
+    assert row.resource_type == "assessment_photo:front" and row.resource_id == uuid.UUID(assessment["id"])
+    assert row.storage_key.startswith(f"private/{personal.id}/{own.id}/")
+    assert api.get(f"/uploads/{row.storage_key}").status_code == 404
+    assert api.get(f"/api/assessments/{assessment['id']}/photos/{body['id']}/view").headers["cache-control"] == "private, no-store"
+
+
+def test_student_visibility_read_only_and_cross_student_access(context):
+    db, personal, _, student_user, own, foreign = context; api = client(personal)
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    hidden = image_upload(api, assessment["id"]).json()
+    visible = image_upload(api, assessment["id"], photo_type="back", visible="true").json()
+    student_api = client(student_user)
+    assessment_list = student_api.get("/api/assessments").json()
+    assert assessment_list[0]["photo_count"] == 1
+    assert [row["id"] for row in student_api.get(f"/api/assessments/{assessment['id']}/photos").json()] == [visible["id"]]
+    assert student_api.get(f"/api/assessments/{assessment['id']}/photos/{hidden['id']}/view").status_code == 403
+    assert student_api.post(f"/api/assessments/{assessment['id']}/photos", data={"photo_type": "front"}, files={"file": ("x.png", b"\x89PNG\r\n\x1a\nx", "image/png")}).status_code == 403
+    assert student_api.delete(f"/api/assessments/{assessment['id']}/photos/{visible['id']}").status_code == 403
+    foreign_user = db.get(User, foreign.user_id)
+    assert client(foreign_user).get(f"/api/assessments/{assessment['id']}/photos").status_code == 403
+
+
+def test_assessment_photos_are_not_exposed_or_mutated_by_general_files_module(context):
+    db, personal, _, _, own, _ = context; api = client(personal)
+    branding = db.query(PersonalBranding).filter_by(personal_id=personal.id).one()
+    branding.modules = {"assessments": True, "files": True}; db.commit()
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    photo = image_upload(api, assessment["id"]).json()
+    assert client(personal).get(f"/api/files?student_id={own.id}").json() == []
+    assert client(personal).get(f"/api/files/{photo['id']}/download").status_code == 404
+    assert client(personal).delete(f"/api/files/{photo['id']}").status_code == 404
+
+
+def test_other_tenant_cannot_upload_view_or_delete_assessment_photo(context):
+    _, personal, other, _, own, foreign = context
+    own_assessment = client(personal).post("/api/assessments", json=payload(own.id)).json()
+    photo = image_upload(client(personal), own_assessment["id"]).json()
+    assert image_upload(client(other), own_assessment["id"]).status_code == 403
+    assert client(other).get(f"/api/assessments/{own_assessment['id']}/photos/{photo['id']}/view").status_code == 403
+    assert client(other).delete(f"/api/assessments/{own_assessment['id']}/photos/{photo['id']}").status_code == 403
+    foreign_assessment = client(other).post("/api/assessments", json=payload(foreign.id)).json()
+    assert image_upload(client(personal), foreign_assessment["id"]).status_code == 403
+
+
+@pytest.mark.parametrize("filename,content_type,content,expected", [
+    ("photo.jpg", "image/jpeg", b"\xff\xd8\xffphoto", 201),
+    ("photo.webp", "image/webp", b"RIFFxxxxWEBPphoto", 201),
+    ("document.pdf", "application/pdf", b"%PDF-1.7", 415),
+    ("fake.png", "image/png", b"MZ executable", 415),
+    ("empty.png", "image/png", b"", 422),
+    ("../escape.png", "image/png", b"\x89PNG\r\n\x1a\nphoto", 422),
+])
+def test_assessment_photo_formats_and_content_validation(context, filename, content_type, content, expected):
+    _, personal, _, _, own, _ = context; api = client(personal)
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    assert image_upload(api, assessment["id"], filename=filename, content_type=content_type, content=content).status_code == expected
+
+
+def test_assessment_photo_rejects_oversized_content(context):
+    _, personal, _, _, own, _ = context; api = client(personal)
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    content = b"\x89PNG\r\n\x1a\n" + b"x" * MAX_PRIVATE_FILE_BYTES
+    assert image_upload(api, assessment["id"], content=content).status_code == 413
+
+
+def test_photo_and_assessment_deletion_remove_metadata_and_physical_files(context):
+    db, personal, _, _, own, _ = context; api = client(personal)
+    first = api.post("/api/assessments", json=payload(own.id)).json()
+    first_photo = image_upload(api, first["id"]).json(); first_row = db.get(StudentFile, uuid.UUID(first_photo["id"]))
+    first_path = resolve_storage_key(first_row.storage_key)
+    assert api.delete(f"/api/assessments/{first['id']}/photos/{first_photo['id']}").status_code == 204
+    assert not first_path.exists() and db.get(StudentFile, first_row.id) is None
+    second = api.post("/api/assessments", json=payload(own.id, "2026-10-01")).json()
+    second_photo = image_upload(api, second["id"]).json(); second_row = db.get(StudentFile, uuid.UUID(second_photo["id"])); second_path = resolve_storage_key(second_row.storage_key)
+    assert api.delete(f"/api/assessments/{second['id']}").status_code == 204
+    assert not second_path.exists() and db.get(StudentFile, second_row.id) is None
+
+
+def test_missing_physical_photo_preserves_assessment_and_metadata(context):
+    db, personal, _, _, own, _ = context; api = client(personal)
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    photo = image_upload(api, assessment["id"]).json(); row = db.get(StudentFile, uuid.UUID(photo["id"]))
+    resolve_storage_key(row.storage_key).unlink()
+    response = api.delete(f"/api/assessments/{assessment['id']}")
+    assert response.status_code == 409
+    assert db.get(StudentFile, row.id) is not None
+    assert api.get(f"/api/assessments/{assessment['id']}").status_code == 200
+
+
+def test_assessment_module_flag_controls_photos_independently_of_files(context):
+    db, personal, _, _, own, _ = context; api = client(personal)
+    assessment = api.post("/api/assessments", json=payload(own.id)).json()
+    branding = db.query(PersonalBranding).filter_by(personal_id=personal.id).one()
+    branding.modules = {"assessments": False, "files": True}; db.commit()
+    response = api.get(f"/api/assessments/{assessment['id']}/photos")
+    assert response.status_code == 403 and response.json()["detail"]["module"] == "assessments"

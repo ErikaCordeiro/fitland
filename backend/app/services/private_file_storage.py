@@ -45,13 +45,22 @@ def resolve_storage_key(storage_key: str) -> Path:
     return path
 
 
-async def store_private_upload(upload: UploadFile, personal_id: uuid.UUID, student_id: uuid.UUID) -> dict:
+async def store_private_upload(
+    upload: UploadFile,
+    personal_id: uuid.UUID,
+    student_id: uuid.UUID,
+    *,
+    allowed_mime_types: set[str] | None = None,
+) -> dict:
     original = validate_original_filename(upload.filename)
     declared = (upload.content_type or "").lower()
     allowed = ALLOWED_TYPES.get(declared)
     suffix = Path(original).suffix.lower()
+    if allowed_mime_types is not None and declared not in allowed_mime_types:
+        raise HTTPException(status_code=415, detail="Envie uma imagem JPG, PNG ou WebP")
     if not allowed or suffix not in allowed["extensions"]:
-        raise HTTPException(status_code=415, detail="Envie um arquivo PDF, JPG, PNG ou WebP")
+        detail = "Envie uma imagem JPG, PNG ou WebP" if allowed_mime_types is not None else "Envie um arquivo PDF, JPG, PNG ou WebP"
+        raise HTTPException(status_code=415, detail=detail)
 
     storage_key = f"private/{personal_id}/{student_id}/{uuid.uuid4().hex}{suffix}"
     final_path = resolve_storage_key(storage_key)

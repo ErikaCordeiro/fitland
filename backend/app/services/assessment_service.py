@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from fastapi import HTTPException
@@ -6,9 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.models.student import Student
 from app.models.student_assessment import StudentAssessment
+from app.models.student_file import StudentFile
 from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentCreate, AssessmentUpdate, MEASURE_FIELDS
 from app.services.access import get_owned_student
+from app.services.private_file_storage import resolve_storage_key
 
 
 COMPARABLE_FIELDS = (*MEASURE_FIELDS, "body_fat_percentage")
@@ -24,6 +27,20 @@ def _bmi(item: StudentAssessment) -> float | None:
 def serialize(item: StudentAssessment) -> dict:
     data = {column.name: getattr(item, column.name) for column in item.__table__.columns}
     data["bmi"] = _bmi(item)
+    return data
+
+
+def _with_photo_count(db: Session, item: StudentAssessment, user: User) -> dict:
+    data = serialize(item)
+    conditions = [
+        StudentFile.personal_id == item.personal_id,
+        StudentFile.student_id == item.student_id,
+        StudentFile.resource_id == item.id,
+        StudentFile.resource_type.like("assessment_photo:%"),
+    ]
+    if user.role == UserRole.STUDENT:
+        conditions.append(StudentFile.visible_to_student.is_(True))
+    data["photo_count"] = len(db.scalars(select(StudentFile.id).where(*conditions)).all())
     return data
 
 
@@ -46,7 +63,7 @@ def list_assessments(db: Session, user: User, student_id: uuid.UUID | None = Non
         StudentAssessment.student_id == student.id,
         StudentAssessment.personal_id == student.personal_id,
     ).order_by(StudentAssessment.assessment_date.desc(), StudentAssessment.created_at.desc())).all()
-    return [serialize(row) for row in rows]
+    return [_with_photo_count(db, row, user) for row in rows]
 
 
 def get_assessment(db: Session, user: User, assessment_id: uuid.UUID) -> StudentAssessment:
@@ -66,7 +83,7 @@ def assessment_detail(db: Session, user: User, assessment_id: uuid.UUID) -> dict
         StudentAssessment.personal_id == item.personal_id,
         StudentAssessment.assessment_date < item.assessment_date,
     ).order_by(StudentAssessment.assessment_date.desc(), StudentAssessment.created_at.desc()))
-    data = serialize(item)
+    data = _with_photo_count(db, item, user)
     data["previous"] = serialize(previous) if previous else None
     data["differences"] = {
         field: round(float(getattr(item, field)) - float(getattr(previous, field)), 2)
@@ -92,4 +109,27 @@ def update_assessment(db: Session, personal: User, assessment_id: uuid.UUID, pay
 
 
 def delete_assessment(db: Session, personal: User, assessment_id: uuid.UUID) -> None:
-    db.delete(get_assessment(db, personal, assessment_id)); db.commit()
+    item = get_assessment(db, personal, assessment_id)
+    photos = list(db.scalars(select(StudentFile).where(
+        StudentFile.personal_id == item.personal_id,
+        StudentFile.student_id == item.student_id,
+        StudentFile.resource_id == item.id,
+        StudentFile.resource_type.like("assessment_photo:%"),
+    )).all())
+    paths = [(photo, resolve_storage_key(photo.storage_key)) for photo in photos]
+    if any(not path.is_file() for _, path in paths):
+        raise HTTPException(status_code=409, detail="Uma foto física está indisponível; a avaliação foi preservada")
+    quarantined = []
+    try:
+        for photo, path in paths:
+            quarantine = path.with_name(f".{path.name}.deleting-{uuid.uuid4().hex}")
+            os.replace(path, quarantine); quarantined.append((path, quarantine))
+            db.delete(photo)
+        db.delete(item); db.commit()
+    except Exception:
+        db.rollback()
+        for path, quarantine in quarantined:
+            if quarantine.exists(): os.replace(quarantine, path)
+        raise
+    for _, quarantine in quarantined:
+        quarantine.unlink(missing_ok=True)

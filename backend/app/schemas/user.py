@@ -24,5 +24,6 @@ class UserRead(BaseModel):
     avatar_url: str | None = None
     theme_preference: str = "auto"
     created_at: datetime
+    onboarding_completed_at: datetime | None = None
 
     model_config = {"from_attributes": True}

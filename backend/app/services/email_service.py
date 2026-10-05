@@ -26,3 +26,23 @@ def send_password_reset_email(recipient: str, reset_url: str) -> None:
         if settings.SMTP_USERNAME:
             smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD or "")
         smtp.send_message(message)
+
+
+def send_student_access_invite_email(recipient: str, invite_url: str, personal_name: str) -> None:
+    if not settings.SMTP_HOST or not settings.SMTP_FROM_EMAIL:
+        raise RuntimeError("Email provider is not configured")
+    message = EmailMessage()
+    message["Subject"] = f"Seu acesso ao Fitland com {personal_name}"
+    message["From"] = settings.SMTP_FROM_EMAIL
+    message["To"] = recipient
+    message.set_content(
+        "Você recebeu um convite para criar seu acesso. "
+        f"O link é válido por 24 horas: {invite_url}\n\n"
+        "Se você não esperava este convite, ignore esta mensagem."
+    )
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as smtp:
+        if settings.SMTP_USE_TLS:
+            smtp.starttls()
+        if settings.SMTP_USERNAME:
+            smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD or "")
+        smtp.send_message(message)

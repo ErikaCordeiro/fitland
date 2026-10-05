@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 MEASURE_FIELDS = (
-    "weight", "height", "neck", "shoulders", "chest", "right_arm", "left_arm",
-    "waist", "abdomen", "hips", "right_thigh", "left_thigh", "right_calf", "left_calf",
+    "weight", "height", "neck", "shoulders", "chest", "right_arm", "left_arm", "right_forearm", "left_forearm",
+    "waist", "abdomen", "hips", "glutes", "right_thigh", "left_thigh", "right_calf", "left_calf",
 )
 
 
@@ -20,9 +20,12 @@ class AssessmentValues(BaseModel):
     chest: float | None = Field(default=None, ge=0)
     right_arm: float | None = Field(default=None, ge=0)
     left_arm: float | None = Field(default=None, ge=0)
+    right_forearm: float | None = Field(default=None, ge=0)
+    left_forearm: float | None = Field(default=None, ge=0)
     waist: float | None = Field(default=None, ge=0)
     abdomen: float | None = Field(default=None, ge=0)
     hips: float | None = Field(default=None, ge=0)
+    glutes: float | None = Field(default=None, ge=0)
     right_thigh: float | None = Field(default=None, ge=0)
     left_thigh: float | None = Field(default=None, ge=0)
     right_calf: float | None = Field(default=None, ge=0)
@@ -51,9 +54,12 @@ class AssessmentUpdate(BaseModel):
     chest: float | None = Field(default=None, ge=0)
     right_arm: float | None = Field(default=None, ge=0)
     left_arm: float | None = Field(default=None, ge=0)
+    right_forearm: float | None = Field(default=None, ge=0)
+    left_forearm: float | None = Field(default=None, ge=0)
     waist: float | None = Field(default=None, ge=0)
     abdomen: float | None = Field(default=None, ge=0)
     hips: float | None = Field(default=None, ge=0)
+    glutes: float | None = Field(default=None, ge=0)
     right_thigh: float | None = Field(default=None, ge=0)
     left_thigh: float | None = Field(default=None, ge=0)
     right_calf: float | None = Field(default=None, ge=0)

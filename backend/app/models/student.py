@@ -23,6 +23,7 @@ class Student(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    access_activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     personal = relationship("User", foreign_keys=[personal_id], back_populates="personal_students")
     user = relationship("User", foreign_keys=[user_id], back_populates="student_profile")

@@ -12,6 +12,7 @@ from app.schemas.auth import (
     SessionResponse,
     TokenResponse,
 )
+from app.schemas.student import StudentAccessActivation, StudentInviteValidation
 from app.schemas.user import UserCreate, UserRead
 from app.services.auth_service import (
     authenticate,
@@ -23,6 +24,7 @@ from app.services.auth_service import (
     request_password_reset,
     revoke_refresh_token,
 )
+from app.services.student_invite_service import activate_invite, validate_invite
 
 router = APIRouter()
 
@@ -82,6 +84,17 @@ def password_reset_confirm(payload: PasswordResetConfirm, db: Session = Depends(
         raise HTTPException(status_code=422, detail="As senhas nao coincidem.")
     context = confirm_password_reset(db, payload.token, payload.new_password)
     return {"context": context}
+
+
+@router.get("/student-invites/validate", response_model=StudentInviteValidation)
+def student_invite_validate(token: str, slug: str, db: Session = Depends(get_db)):
+    return validate_invite(db, token, slug)
+
+
+@router.post("/student-invites/activate")
+def student_invite_activate(payload: StudentAccessActivation, db: Session = Depends(get_db)):
+    slug = activate_invite(db, payload)
+    return {"status": "activated", "login_path": f"/personal/{slug}/aluno/login"}
 
 
 @router.post("/refresh", response_model=SessionResponse)

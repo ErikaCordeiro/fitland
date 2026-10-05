@@ -5,7 +5,8 @@ import { apiDownload, apiRequest } from "../services/api.js";
 const groups = [
   ["Dados gerais", [["weight", "Peso", "kg"], ["height", "Altura", "cm"], ["body_fat_percentage", "Gordura corporal", "%"]]],
   ["Tronco", [["neck", "Pescoço", "cm"], ["shoulders", "Ombros", "cm"], ["chest", "Peitoral/Tórax", "cm"], ["waist", "Cintura", "cm"], ["abdomen", "Abdômen", "cm"], ["hips", "Quadril", "cm"]]],
-  ["Membros", [["right_arm", "Braço direito", "cm"], ["left_arm", "Braço esquerdo", "cm"], ["right_thigh", "Coxa direita", "cm"], ["left_thigh", "Coxa esquerda", "cm"], ["right_calf", "Panturrilha direita", "cm"], ["left_calf", "Panturrilha esquerda", "cm"]]],
+  ["Membros", [["right_arm", "Braço direito", "cm"], ["left_arm", "Braço esquerdo", "cm"], ["right_forearm", "Antebraço direito", "cm"], ["left_forearm", "Antebraço esquerdo", "cm"], ["right_thigh", "Coxa direita", "cm"], ["left_thigh", "Coxa esquerda", "cm"], ["right_calf", "Panturrilha direita", "cm"], ["left_calf", "Panturrilha esquerda", "cm"]]],
+  ["Glúteo", [["glutes", "Circunferência do glúteo", "cm"]]],
 ];
 const fields = groups.flatMap(([, values]) => values);
 const photoTypes = [["front", "Frente"], ["back", "Costas"], ["left", "Lateral esquerda"], ["right", "Lateral direita"], ["other", "Outra"]];

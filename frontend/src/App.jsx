@@ -25,6 +25,7 @@ import PersonalMessages from "./pages/PersonalMessages.jsx";
 import StudentMessages from "./pages/StudentMessages.jsx";
 import PersonalFiles from "./pages/PersonalFiles.jsx";
 import StudentFiles from "./pages/StudentFiles.jsx";
+import StudentFirstAccess from "./pages/StudentFirstAccess.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
@@ -379,8 +380,10 @@ export default function App() {
 
   if (!session) {
     const loginPath = window.location.pathname.toLowerCase();
+    const firstAccessMatch = loginPath.match(/^\/personal\/([^/]+)\/aluno\/primeiro-acesso\/?$/);
     const personalLoginMatch = loginPath.match(/^\/personal\/([^/]+)(?:\/aluno)?\/login\/?$/);
     const requestedLoginContext = getRequestedContext(loginPath);
+    if (firstAccessMatch) return <StudentFirstAccess slug={firstAccessMatch[1]} branding={branding}/>;
     return (
       <Login
         context={isOwnerLoginPath(loginPath) ? "owner" : requestedLoginContext?.type || "personal"}
@@ -728,6 +731,7 @@ export default function App() {
   }
 
   if (isStudent) {
+    const welcome = session.onboarding_completed_at ? null : <div className="student-welcome-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="student-welcome-title"><p className="eyebrow">Primeiro acesso</p><h2 id="student-welcome-title">Bem-vindo(a), {session.name?.split(/\s+/)[0] || "Aluno"}!</h2><p>Seu Personal já pode compartilhar treinos, avaliações, agenda e outros recursos disponíveis para você.</p><button className="metal-button" type="button" onClick={async () => { const updated = await apiRequest("/users/me/onboarding", { method: "PATCH" }); setSession(normalizeSessionUser(updated)); }}>Começar</button></section></div>;
     return (
       <>
       <StudentLayout {...commonLayoutProps}>
@@ -742,6 +746,7 @@ export default function App() {
         {sharedPages}
       </StudentLayout>
       {logoutModal}
+      {welcome}
       </>
     );
   }
@@ -776,6 +781,10 @@ export default function App() {
           focusedPendingStudentId={focusedPendingStudentId}
           onPendingStudentViewed={() => setFocusedPendingStudentId(null)}
           onSaveStudent={saveStudent}
+          onSendAccess={async (student) => {
+            await apiRequest(`/students/${student.id}/access-invite`, { method: "POST" });
+            setStudents((current) => current.map((item) => String(item.id) === String(student.id) ? { ...item, access_status: "pending" } : item));
+          }}
         />
       )}
       {activePage === "workout-builder" && (

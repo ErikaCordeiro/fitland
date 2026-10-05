@@ -10,9 +10,10 @@ test("student form persists through the authenticated students API", () => {
   assert.doesNotMatch(app, /onSaveStudent=\{\(student\).*crypto\.randomUUID/s);
   assert.match(form, /await onSaveStudent/);
   assert.match(form, /disabled=\{saving\}/);
-  assert.match(form, /criação de login e o envio de convite ainda não estão disponíveis/);
+  assert.match(form, /Acesso à plataforma/);
+  assert.match(form, /Reenviar convite/);
   const card = readFileSync(new URL("../src/components/StudentCard.jsx", import.meta.url), "utf8");
-  assert.match(card, /Boolean\(student\.user_id \|\| student\.userId\)/);
+  assert.match(card, /student\.access_status/);
   assert.match(card, /Acesso não criado/);
 });
 

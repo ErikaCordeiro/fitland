@@ -20,6 +20,8 @@ MEASUREMENTS = {
     "waist": "Cintura", "abdomen": "Abdômen", "hips": "Quadril",
     "neck": "Pescoço", "shoulders": "Ombros", "chest": "Peitoral/Tórax",
     "right_arm": "Braço direito", "left_arm": "Braço esquerdo",
+    "right_forearm": "Antebraço direito", "left_forearm": "Antebraço esquerdo",
+    "glutes": "Glúteo",
     "right_thigh": "Coxa direita", "left_thigh": "Coxa esquerda",
     "right_calf": "Panturrilha direita", "left_calf": "Panturrilha esquerda",
     "body_fat_percentage": "Gordura corporal",

@@ -11,6 +11,7 @@ export default function Students({
   pendingStudents = [],
   workouts,
   onSaveStudent,
+  onSendAccess,
   onApproveStudent,
   onDeleteStudent,
   onOpenProgress,
@@ -24,6 +25,7 @@ export default function Students({
   const [approvalChecked, setApprovalChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [accessBusy, setAccessBusy] = useState(false);
   const filtered = useMemo(
     () => students.filter((student) => `${student.name} ${student.objective}`.toLowerCase().includes(query.toLowerCase())),
     [students, query]
@@ -76,6 +78,14 @@ export default function Students({
     setEditingStudent(student);
     setSaveError("");
     setIsModalOpen(true);
+  };
+
+  const sendAccess = async () => {
+    if (!editingStudent || accessBusy) return;
+    setAccessBusy(true); setSaveError("");
+    try { await onSendAccess(editingStudent); setEditingStudent({ ...editingStudent, access_status: "pending" }); }
+    catch (error) { setSaveError(error?.message || "Não foi possível enviar o convite."); }
+    finally { setAccessBusy(false); }
   };
 
   return (
@@ -226,11 +236,13 @@ export default function Students({
               <label><span>Peso</span><input name="weight" type="number" min="30" step="0.1" required defaultValue={editingStudent?.weight || ""} /></label>
               <label><span>Altura</span><input name="height" type="number" min="1" max="2.5" step="0.01" required defaultValue={editingStudent?.height || ""} /></label>
               <label><span>Objetivo</span><input name="objective" required placeholder="Hipertrofia, definição, performance..." defaultValue={editingStudent?.objective || ""} /></label>
-              <div className="wide access-toggle-card">
+              <div className="wide access-toggle-card student-access-panel">
                 <span>
-                  <strong>Acesso ao app do aluno</strong>
-                  <small>Este cadastro cria o perfil do aluno. A criação de login e o envio de convite ainda não estão disponíveis.</small>
+                  <strong>Acesso à plataforma</strong>
+                  <small>E-mail: {editingStudent?.email || "Salve o aluno antes de enviar o acesso."}</small>
+                  <small>Status: {{ no_access: "Não enviado", pending: "Convite enviado", expired: "Convite expirado", active: "Ativo" }[editingStudent?.access_status] || "Não enviado"}</small>
                 </span>
+                {editingStudent && editingStudent.access_status !== "active" && <button className="ghost-button inline" type="button" disabled={accessBusy || saving} onClick={sendAccess}>{accessBusy ? "Enviando..." : editingStudent.access_status === "pending" ? "Reenviar convite" : "Enviar acesso"}</button>}
               </div>
               <label className="wide">
                 <span>Observações</span>

@@ -73,6 +73,19 @@ def test_personal_crud_preserves_history_and_comparison(context):
     assert len(api.get(f"/api/assessments?student_id={own.id}").json()) == 1
 
 
+def test_forearms_and_glutes_persist_edit_and_reach_progress(context):
+    _, personal, _, student_user, own, _ = context; api = client(personal)
+    data = payload(own.id); data.update(right_forearm=28, left_forearm=27.5, glutes=101)
+    created = api.post("/api/assessments", json=data).json()
+    assert created["right_forearm"] == 28 and created["left_forearm"] == 27.5 and created["glutes"] == 101
+    updated = api.patch(f"/api/assessments/{created['id']}", json={"glutes": 100}).json()
+    assert updated["glutes"] == 100
+    assert client(student_user).get(f"/api/assessments/{created['id']}").json()["right_forearm"] == 28
+    progress = client(personal).get(f"/api/progress/overview/{own.id}").json()
+    keys = {item["key"] for item in progress["measurements"]}
+    assert {"right_forearm", "left_forearm", "glutes"}.issubset(keys)
+
+
 def test_cross_tenant_and_student_read_only(context):
     _, personal, _, student_user, own, foreign = context
     assert client(personal).post("/api/assessments", json=payload(foreign.id)).status_code == 403

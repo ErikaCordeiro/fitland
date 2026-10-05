@@ -2,7 +2,9 @@ import React from "react";
 import { LineChart, Mail, Target, Trash2 } from "lucide-react";
 
 export default function StudentCard({ student, onOpen, onOpenProgress, onDelete }) {
-  const hasAccess = Boolean(student.user_id || student.userId);
+  const accessStatus = student.access_status || (student.user_id || student.userId ? "active" : "no_access");
+  const hasAccess = accessStatus === "active";
+  const accessLabel = { active: "Acesso liberado", pending: "Convite enviado", expired: "Convite expirado", no_access: "Acesso não criado" }[accessStatus];
 
   return (
     <article className="student-card" onClick={onOpen}>
@@ -13,7 +15,7 @@ export default function StudentCard({ student, onOpen, onOpenProgress, onDelete 
           <span>{student.age} anos - {student.weight} kg - {student.height} m</span>
         </div>
         <span className={`student-access-badge ${hasAccess ? "approved" : "pending"}`}>
-          {hasAccess ? "Acesso liberado" : "Acesso não criado"}
+          {accessLabel}
         </span>
         <p><Target size={15} /> {student.objective}</p>
         <p><Mail size={15} /> {student.email}</p>

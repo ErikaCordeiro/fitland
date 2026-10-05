@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ClipboardCheck, X } from "lucide-react";
 import { apiDownload, apiRequest } from "../services/api.js";
 
-const measures = [["weight", "Peso", "kg"], ["height", "Altura", "cm"], ["body_fat_percentage", "Gordura corporal", "%"], ["waist", "Cintura", "cm"], ["abdomen", "Abdômen", "cm"], ["hips", "Quadril", "cm"], ["right_arm", "Braço direito", "cm"], ["left_arm", "Braço esquerdo", "cm"], ["right_thigh", "Coxa direita", "cm"], ["left_thigh", "Coxa esquerda", "cm"]];
+const measures = [["weight", "Peso", "kg"], ["height", "Altura", "cm"], ["body_fat_percentage", "Gordura corporal", "%"], ["waist", "Cintura", "cm"], ["abdomen", "Abdômen", "cm"], ["hips", "Quadril", "cm"], ["glutes", "Glúteo", "cm"], ["right_arm", "Braço direito", "cm"], ["left_arm", "Braço esquerdo", "cm"], ["right_forearm", "Antebraço direito", "cm"], ["left_forearm", "Antebraço esquerdo", "cm"], ["right_thigh", "Coxa direita", "cm"], ["left_thigh", "Coxa esquerda", "cm"]];
 const format = (value, unit = "") => value == null ? "—" : `${Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ""}`;
 const dateLabel = (value) => new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 

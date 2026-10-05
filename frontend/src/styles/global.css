@@ -22448,12 +22448,26 @@ body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :w
 .assessment-lightbox { position: fixed; z-index: 4100; inset: 0; display: grid; place-items: center; padding: 70px 18px 18px; background: rgba(0,0,0,.9); }
 .assessment-lightbox > button { position: absolute; top: 16px; right: 16px; color: #fff; background: #17191b; }
 .assessment-lightbox > img { max-width: min(1100px, 100%); max-height: calc(100vh - 100px); object-fit: contain; }
+.workout-list-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.student-access-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.student-first-access, .student-welcome-backdrop { min-height: 100vh; display: grid; place-items: center; padding: 20px; color: var(--text-primary); background: var(--page-bg); }
+.student-first-access > section, .student-welcome-backdrop > section { width: min(560px, 100%); padding: 28px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.student-first-access header { text-align: center; }
+.student-first-access header img { width: min(220px, 70%); max-height: 160px; object-fit: contain; }
+.student-first-access form, .student-first-access fieldset, .student-first-access label { display: grid; gap: 10px; }
+.student-first-access form { gap: 18px; }
+.student-first-access fieldset { margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 6px; }
+.student-first-access input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); background: var(--surface-2, var(--surface)); }
+.student-first-access .password-field { display: grid; grid-template-columns: 1fr 46px; }
+.student-first-access .password-field button { display: grid; min-width: 46px; place-items: center; border: 1px solid var(--border); color: var(--text-primary); background: transparent; }
+.student-welcome-backdrop { position: fixed; z-index: 5000; inset: 0; background: rgba(0,0,0,.78); }
 @media (max-width: 768px) {
   .assessments-v2-header { align-items: stretch; flex-direction: column; }
   .assessment-primary { width: 100%; }
   .assessment-input-grid, .assessment-comparison, .student-assessment-list article > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .assessment-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .assessment-photo-upload { grid-template-columns: 1fr; }
+  .workout-list-heading, .student-access-panel { align-items: stretch; flex-direction: column; }
   .assessment-history-list article > div:first-child { grid-template-columns: 1fr; gap: 4px; }
 }
 @media (max-width: 375px) {
@@ -22463,6 +22477,8 @@ body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :w
   .assessment-history-list > article { align-items: flex-start; flex-direction: column; }
   .assessment-row-actions { width: 100%; justify-content: flex-end; }
   .assessment-modal { padding: 22px 16px; }
+  .student-first-access, .student-welcome-backdrop { padding: 10px; }
+  .student-first-access > section, .student-welcome-backdrop > section { padding: 20px 14px; }
 }
 /* Structured meal plans */
 .meal-plan-page,.student-meal-plan{display:grid;gap:20px;min-width:0}.meal-plan-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}.meal-plan-header h2,.student-meal-plan h2{margin:4px 0 6px}.meal-plan-header button,.meal-builder button,.meal-history button,.tenant-data-state button{min-height:44px}.meal-plan-header>button,.meal-builder-title>button,.meal-builder footer button:last-child{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;border:1px solid var(--tenant-border);background:var(--tenant-accent);color:var(--tenant-accent-contrast,#050505);font-weight:700}.meal-student-select{display:grid;gap:7px;max-width:420px}.meal-student-select span,.meal-plan-fields span,.meal-item-editor span{font-size:.8rem;font-weight:700}.meal-student-select select,.meal-plan-fields input,.meal-plan-fields select,.meal-plan-fields textarea,.meal-item-editor input,.meal-item-editor select{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--tenant-border);background:var(--tenant-surface);color:var(--tenant-text);border-radius:6px}.meal-history{display:grid;gap:10px}.meal-history article{display:grid;grid-template-columns:minmax(180px,1fr) auto auto auto;align-items:center;gap:12px;padding:16px;border:1px solid var(--tenant-border);background:var(--tenant-surface);border-radius:8px}.meal-history article>div{display:grid;gap:4px}.meal-history mark{padding:5px 9px;border-radius:999px}.meal-builder-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:#000b}.meal-builder{width:min(960px,100%);max-height:calc(100vh - 40px);overflow:auto;padding:22px;background:var(--tenant-background);color:var(--tenant-text);border:1px solid var(--tenant-border);border-radius:8px}.meal-builder>header,.meal-builder-title,.meal-builder footer{display:flex;align-items:center;justify-content:space-between;gap:14px}.meal-builder>header>button,.meal-editor-actions button,.meal-item-editor>div button{width:44px;height:44px;display:inline-grid;place-items:center}.meal-plan-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}.meal-plan-fields label,.meal-item-editor label{display:grid;gap:6px;min-width:0}.meal-plan-fields .wide{grid-column:1/-1}.meal-builder-title{margin:20px 0 10px}.meal-editor{position:relative;margin:14px 0;padding:18px;border:1px solid var(--tenant-border);border-radius:8px}.meal-editor-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px}.meal-items{display:grid;gap:10px}.meal-item-editor{display:grid;grid-template-columns:2fr .8fr .9fr 1.6fr auto;align-items:end;gap:10px;padding:12px;background:var(--tenant-surface);border-radius:6px}.meal-item-editor>div{display:flex}.add-food{justify-self:start;padding:0 14px}.meal-builder footer{position:sticky;bottom:-22px;margin:22px -22px -22px;padding:14px 22px;background:var(--tenant-background);border-top:1px solid var(--tenant-border)}.student-meal-plan>header{padding:22px;border:1px solid var(--tenant-border);background:var(--tenant-surface);border-radius:8px}.student-meal-list{display:grid;gap:12px}.student-meal-list article{display:grid;grid-template-columns:130px 1fr;gap:20px;padding:20px;border:1px solid var(--tenant-border);background:var(--tenant-surface);border-radius:8px}.student-meal-time{display:flex;align-items:center;gap:8px;font-weight:800}.student-meal-list h3{margin:0 0 8px}.student-meal-list ul{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none}.student-meal-list li{display:grid;grid-template-columns:120px 1fr;gap:4px 12px;padding:10px 0;border-top:1px solid var(--tenant-border)}.student-meal-list li small{grid-column:2;color:var(--tenant-muted-text)}

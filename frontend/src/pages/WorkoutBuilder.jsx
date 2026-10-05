@@ -141,6 +141,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
 
   const submit = async (event) => {
     event.preventDefault();
+    if (saving) return;
     const form = new FormData(event.currentTarget);
     setSaving(true);
     setSaveError("");
@@ -180,6 +181,14 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
       dropLoads: (exercise.techniqueConfig?.drops || exercise.technique_config?.drops || []).map((item) => item.prescribedLoad || "").join(", "),
       dropReps: (exercise.techniqueConfig?.drops || exercise.technique_config?.drops || []).map((item) => item.prescribedRepetitions || "").join(", "),
     })));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const startNewWorkout = () => {
+    if (saving) return;
+    setEditingWorkout(null);
+    setExercises([{ ...blankExercise, id: crypto.randomUUID() }]);
+    setSaveError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -284,10 +293,11 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
           <button className="ghost-button" type="button" onClick={addExercise}><Plus size={18} /> Adicionar exercício</button>
           <button className="metal-button inline" type="button" onClick={requestSuggestions} disabled={!studentId || aiLoading}><Sparkles size={18} /> Sugerir com IA</button>
           {editingWorkout && (
-            <button className="ghost-button" type="button" onClick={() => { setEditingWorkout(null); setExercises([{ ...blankExercise, id: crypto.randomUUID() }]); }}>
+            <button className="ghost-button" type="button" onClick={startNewWorkout}>
               Novo treino
             </button>
           )}
+          <button className="metal-button inline" type="submit" disabled={saving}><Save size={18} /> {saving ? "Salvando..." : editingWorkout ? "Salvar edição" : "Salvar treino"}</button>
         </div>
       </form>
       {aiOpen && <div className="ai-suggestion-backdrop" role="presentation" onMouseDown={() => setAiOpen(false)}>
@@ -306,8 +316,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
         </section>
       </div>}
       <aside className="workout-list">
-        <p className="eyebrow">Histórico</p>
-        <h2>Histórico de treinos</h2>
+        <div className="workout-list-heading"><div><p className="eyebrow">Histórico</p><h2>Histórico de treinos</h2></div><button className="metal-button inline" type="button" onClick={startNewWorkout} disabled={saving}><Plus size={18}/> Criar treino</button></div>
         {workoutHistory.map((workout) => (
           <article key={workout.id} className={`workout-card ${editingWorkout?.id === workout.id ? "active-edit" : ""}`}>
             <div className="workout-card-header" onClick={() => editWorkout(workout)} role="button" tabIndex="0">

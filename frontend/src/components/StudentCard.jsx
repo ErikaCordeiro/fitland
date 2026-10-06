@@ -1,10 +1,12 @@
 import React from "react";
 import { LineChart, Mail, Target, Trash2 } from "lucide-react";
+import { studentSummary } from "../utils/studentPresentation.js";
 
 export default function StudentCard({ student, onOpen, onOpenProgress, onDelete }) {
   const accessStatus = student.access_status || (student.user_id || student.userId ? "active" : "no_access");
   const hasAccess = accessStatus === "active";
   const accessLabel = { active: "Acesso liberado", pending: "Convite enviado", expired: "Convite expirado", no_access: "Acesso não criado" }[accessStatus];
+  const summary = studentSummary(student);
 
   return (
     <article className="student-card" onClick={onOpen}>
@@ -12,12 +14,12 @@ export default function StudentCard({ student, onOpen, onOpenProgress, onDelete 
       <div className="student-card-body">
         <div>
           <h3>{student.name}</h3>
-          <span>{student.age} anos - {student.weight} kg - {student.height} m</span>
+          <span>{summary.age} - {summary.weight} - {summary.height}</span>
         </div>
         <span className={`student-access-badge ${hasAccess ? "approved" : "pending"}`}>
           {accessLabel}
         </span>
-        <p><Target size={15} /> {student.objective}</p>
+        <p><Target size={15} /> {summary.objective}</p>
         <p><Mail size={15} /> {student.email}</p>
         <div className="mini-progress">
           <span style={{ width: `${student.adherence}%` }} />

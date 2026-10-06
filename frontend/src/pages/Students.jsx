@@ -3,6 +3,7 @@ import { Plus, Save, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import StudentCard from "../components/StudentCard.jsx";
 import { apiRequest } from "../services/api.js";
+import { optionalFormNumber } from "../utils/studentPresentation.js";
 
 export default function Students({
   students,
@@ -28,7 +29,7 @@ export default function Students({
   const [saveError, setSaveError] = useState("");
   const [accessBusy, setAccessBusy] = useState(false);
   const filtered = useMemo(
-    () => students.filter((student) => `${student.name} ${student.objective}`.toLowerCase().includes(query.toLowerCase())),
+    () => students.filter((student) => `${student.name} ${student.objective ?? ""}`.toLowerCase().includes(query.toLowerCase())),
     [students, query]
   );
 
@@ -71,9 +72,9 @@ export default function Students({
         id: editingStudent?.id,
         name: form.get("name"),
         email: form.get("email"),
-        age: Number(form.get("age")),
-        weight: Number(form.get("weight")),
-        height: Number(form.get("height")),
+        age: optionalFormNumber(form.get("age")),
+        weight: optionalFormNumber(form.get("weight")),
+        height: optionalFormNumber(form.get("height")),
         objective: form.get("objective"),
         notes: form.get("notes"),
       });
@@ -194,10 +195,10 @@ export default function Students({
             <div className="form-grid">
               <label><span>Nome</span><input name="name" required placeholder="Nome completo" defaultValue={editingStudent?.name || ""} /></label>
               <label><span>Email</span><input name="email" type="email" required placeholder="aluno@email.com" defaultValue={editingStudent?.email || ""} /></label>
-              <label><span>Idade</span><input name="age" type="number" min="12" max="100" required defaultValue={editingStudent?.age || ""} /></label>
-              <label><span>Peso</span><input name="weight" type="number" min="30" step="0.1" required defaultValue={editingStudent?.weight || ""} /></label>
-              <label><span>Altura</span><input name="height" type="number" min="1" max="2.5" step="0.01" required defaultValue={editingStudent?.height || ""} /></label>
-              <label><span>Objetivo</span><input name="objective" required placeholder="Hipertrofia, definição, performance..." defaultValue={editingStudent?.objective || ""} /></label>
+              <label><span>Idade</span><input name="age" type="number" min="12" max="100" required defaultValue={editingStudent?.age ?? ""} /></label>
+              <label><span>Peso</span><input name="weight" type="number" min="30" step="0.1" required defaultValue={editingStudent?.weight ?? ""} /></label>
+              <label><span>Altura</span><input name="height" type="number" min="1" max="2.5" step="0.01" required defaultValue={editingStudent?.height ?? ""} /></label>
+              <label><span>Objetivo</span><input name="objective" required placeholder="Hipertrofia, definição, performance..." defaultValue={editingStudent?.objective ?? ""} /></label>
               <div className="wide access-toggle-card student-access-panel">
                 <span>
                   <strong>Acesso à plataforma</strong>

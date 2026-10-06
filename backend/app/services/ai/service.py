@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Any, Callable
 
@@ -14,6 +15,9 @@ from app.services.ai.providers.base import AIProvider
 from app.services.ai.providers.gemini_provider import GeminiProvider
 from app.services.ai.providers.openai_provider import OpenAIProvider
 from app.services.ai.quota import enforce_daily_quota
+
+
+logger = logging.getLogger(__name__)
 
 
 def build_provider(config: Settings) -> AIProvider:
@@ -85,6 +89,83 @@ class AIService:
         except Exception as exc:
             error = AIServiceError(AIErrorCode.UNAVAILABLE, "AI provider is unavailable")
             self._audit(scope, operation, "unavailable", self._elapsed(started), error_code=error.code)
+            raise error from exc
+
+    def _log_image_event(
+        self,
+        event: str,
+        scope: AIScope,
+        *,
+        duration_ms: int,
+        item_count: int | None = None,
+        error_code: AIErrorCode | None = None,
+    ) -> None:
+        logger.info(
+            "[ai-meal-photo] event=%s personal_id=%s student_id=%s provider=%s model=%s duration_ms=%s item_count=%s error_code=%s",
+            event,
+            scope.personal_id,
+            scope.student_id,
+            self.provider.name,
+            self.provider.model,
+            duration_ms,
+            item_count,
+            error_code.value if error_code else None,
+        )
+
+    def analyze_image_structured(
+        self,
+        *,
+        user: User,
+        operation: AIOperation,
+        instructions: str,
+        image_bytes: bytes,
+        mime_type: str,
+        response_model: type[BaseModel],
+        result_validator: Callable[[BaseModel], BaseModel] | None = None,
+    ) -> BaseModel:
+        scope = resolve_ai_scope(self.db, user=user, operation=operation)
+        enforce_daily_quota(self.db, scope=scope, operation=operation, limit=self.config.AI_DAILY_LIMIT)
+        if not self.provider.configured:
+            self._audit(scope, operation, "not_configured", 0, error_code=AIErrorCode.NOT_CONFIGURED)
+            raise AIServiceError(AIErrorCode.NOT_CONFIGURED, "AI provider is not configured")
+
+        started = time.monotonic()
+        self._log_image_event("meal_photo_ai_requested", scope, duration_ms=0)
+        try:
+            result = self.provider.analyze_image(
+                instructions=instructions,
+                image_bytes=image_bytes,
+                mime_type=mime_type,
+                response_model=response_model,
+            )
+            parsed = self._validate_result(result, response_model)
+            if result_validator:
+                parsed = result_validator(parsed)
+            duration_ms = self._elapsed(started)
+            self._audit(scope, operation, "success", duration_ms, result=result)
+            self._log_image_event(
+                "meal_photo_ai_completed",
+                scope,
+                duration_ms=duration_ms,
+                item_count=len(getattr(parsed, "foods", [])),
+            )
+            return parsed
+        except AIServiceError as exc:
+            duration_ms = self._elapsed(started)
+            self._audit(scope, operation, self._status_for_error(exc.code), duration_ms, error_code=exc.code)
+            self._log_image_event("meal_photo_ai_failed", scope, duration_ms=duration_ms, error_code=exc.code)
+            raise
+        except TimeoutError as exc:
+            error = AIServiceError(AIErrorCode.TIMEOUT, "AI provider timed out")
+            duration_ms = self._elapsed(started)
+            self._audit(scope, operation, "timeout", duration_ms, error_code=error.code)
+            self._log_image_event("meal_photo_ai_failed", scope, duration_ms=duration_ms, error_code=error.code)
+            raise error from exc
+        except Exception as exc:
+            error = AIServiceError(AIErrorCode.UNAVAILABLE, "AI provider is unavailable")
+            duration_ms = self._elapsed(started)
+            self._audit(scope, operation, "unavailable", duration_ms, error_code=error.code)
+            self._log_image_event("meal_photo_ai_failed", scope, duration_ms=duration_ms, error_code=error.code)
             raise error from exc
 
     @staticmethod

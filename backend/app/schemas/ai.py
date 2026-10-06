@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AIOperation(StrEnum):
@@ -101,3 +101,47 @@ class ExerciseSuggestionResponse(BaseModel):
     suggestions: list[ExerciseSuggestionRead]
     requires_professional_review: bool = False
     warnings: list[str] = Field(default_factory=list)
+
+
+class FoodVisionConfidence(StrEnum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class FoodVisionUnit(StrEnum):
+    GRAM = "g"
+    MILLILITER = "ml"
+    UNIT = "unit"
+    SLICE = "slice"
+    PORTION = "portion"
+
+
+class FoodVisionItem(StructuredAIResponse):
+    name: str = Field(min_length=1, max_length=120)
+    estimated_amount: float | None = Field(default=None, ge=0, le=5000)
+    unit: FoodVisionUnit | None = None
+    range_min: float | None = Field(default=None, ge=0, le=5000)
+    range_max: float | None = Field(default=None, ge=0, le=5000)
+    confidence: FoodVisionConfidence
+    note: str | None = Field(default=None, max_length=300)
+
+    @model_validator(mode="after")
+    def validate_estimate(self):
+        if self.estimated_amount is not None and self.unit is None:
+            raise ValueError("Estimated amounts require a unit")
+        if (self.range_min is None) != (self.range_max is None):
+            raise ValueError("Estimate ranges require both bounds")
+        if self.range_min is not None and self.range_max is not None and self.range_min > self.range_max:
+            raise ValueError("Estimate range is invalid")
+        return self
+
+
+class MealPhotoAnalysisModelResponse(StructuredAIResponse):
+    foods: list[FoodVisionItem] = Field(default_factory=list, max_length=20)
+    overall_confidence: FoodVisionConfidence
+    limitations: list[str] = Field(default_factory=list, max_length=8)
+
+
+class MealPhotoAnalysisResponse(MealPhotoAnalysisModelResponse):
+    disclaimer: str

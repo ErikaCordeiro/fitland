@@ -38,6 +38,12 @@ def require_personal(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+def require_student(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Student role required")
+    return current_user
+
+
 def require_student_or_personal(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role not in {UserRole.PERSONAL, UserRole.STUDENT}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid role")

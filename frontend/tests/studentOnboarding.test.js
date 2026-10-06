@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
+import { FIRST_ACCESS_BRANDING_FALLBACK, firstAccessBrandingEndpoint, resolveFirstAccessBranding } from "../src/utils/firstAccessBranding.js";
+
 const students = fs.readFileSync(new URL("../src/pages/Students.jsx", import.meta.url), "utf8");
 const firstAccess = fs.readFileSync(new URL("../src/pages/StudentFirstAccess.jsx", import.meta.url), "utf8");
 const app = fs.readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
@@ -38,4 +40,26 @@ test("first access is contextual, accessible, and never stores its token", () =>
   assert.match(routing, /aluno\\\/primeiro-acesso/);
   assert.match(app, /onboarding_completed_at/);
   assert.match(app, /\/users\/me\/onboarding/);
+});
+
+test("first access branding stays contextual independently of token state", () => {
+  const fixtures = [
+    ["hugo", "MuscleBoom"],
+    ["thiago-fillipo", "Personal Thiago Fillipo"],
+    ["future-personal", "Future Brand"],
+  ];
+  for (const [slug, display_name] of fixtures) {
+    const branding = { slug, display_name, logo_url: `/uploads/${slug}.png` };
+    assert.equal(firstAccessBrandingEndpoint(slug), `/branding/public?slug=${encodeURIComponent(slug)}`);
+    assert.deepEqual(resolveFirstAccessBranding(branding, slug), branding);
+  }
+  for (const tokenState of ["missing", "invalid", "expired"]) {
+    assert.equal(resolveFirstAccessBranding({ slug: "hugo", display_name: "MuscleBoom", tokenState }, "hugo").display_name, "MuscleBoom");
+  }
+});
+
+test("first access never exposes branding from another tenant and fails safely", () => {
+  assert.equal(resolveFirstAccessBranding({ slug: "other", display_name: "Other Tenant" }, "hugo"), FIRST_ACCESS_BRANDING_FALLBACK);
+  assert.equal(resolveFirstAccessBranding(null, "hugo"), FIRST_ACCESS_BRANDING_FALLBACK);
+  assert.doesNotMatch(firstAccess, /hugo.*MuscleBoom|thiago-fillipo.*Thiago/i);
 });

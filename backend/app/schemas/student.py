@@ -28,10 +28,17 @@ class StudentUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=3000)
 
 
-class StudentRead(StudentBase):
+class StudentRead(BaseModel):
     id: uuid.UUID
     personal_id: uuid.UUID
     user_id: uuid.UUID | None
+    name: str
+    email: EmailStr
+    age: int | None = None
+    weight: float | None = None
+    height: float | None = None
+    objective: str | None = None
+    notes: str | None = None
     created_at: datetime
     access_status: str = "no_access"
     access_activated_at: datetime | None = None

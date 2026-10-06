@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Apple, Chrome, Download, Eye, EyeOff, Lock, Mail, UserPlus, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Apple, Chrome, Download, Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import LionLogo from "../components/LionLogo.jsx";
 import { apiRequest, confirmPasswordReset, login as apiLogin, requestPasswordReset } from "../services/api.js";
 import { applyRouteBranding } from "../utils/authRouting.js";
 import { createLoginBrandingRequest, loginBrandingFailure, visibleLoginBranding } from "../utils/loginBranding.js";
 
-export default function Login({ onLogin, onSignup, onBrandingResolved, context = "platform", branding: initialBranding = null, brandSlug = "" }) {
+export default function Login({ onLogin, onBrandingResolved, context = "platform", branding: initialBranding = null, brandSlug = "" }) {
   const [credentials, setCredentials] = useState({
     email: "",
     password: ""
@@ -15,17 +15,12 @@ export default function Login({ onLogin, onSignup, onBrandingResolved, context =
   const [loginError, setLoginError] = useState("");
   const [keepConnected, setKeepConnected] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [signupOpen, setSignupOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetMessage, setResetMessage] = useState("");
   const [resetError, setResetError] = useState("");
-  const [signupMessage, setSignupMessage] = useState("");
-  const [signupErrors, setSignupErrors] = useState({});
   const [branding, setBranding] = useState(() => visibleLoginBranding(initialBranding, brandSlug, context === "owner"));
   const [brandingLoadError, setBrandingLoadError] = useState(false);
   const [brandingRetry, setBrandingRetry] = useState(0);
-  const signupDialogRef = useRef(null);
-  const signupTriggerRef = useRef(null);
   const isOwnerContext = context === "owner";
   const visualBranding = visibleLoginBranding(branding, brandSlug, isOwnerContext);
   const resetToken = new URLSearchParams(window.location.search).get("token");
@@ -163,90 +158,6 @@ export default function Login({ onLogin, onSignup, onBrandingResolved, context =
     }
   };
 
-  const submitSignup = (event) => {
-    event.preventDefault();
-    if (!brandSlug || !branding?.personal_id || branding.slug !== brandSlug) {
-      setSignupMessage("Não foi possível identificar o personal. Abra o link de cadastro fornecido por ele.");
-      return;
-    }
-    const form = new FormData(event.currentTarget);
-    const errors = {};
-    const name = String(form.get("name") || "").trim();
-    const email = String(form.get("email") || "").trim();
-    const age = Number(form.get("age"));
-    const weight = Number(form.get("weight"));
-    const height = Number(form.get("height"));
-    const objective = String(form.get("objective") || "").trim();
-
-    if (!name) errors.name = "Informe seu nome completo.";
-    if (!email) errors.email = "Informe seu e-mail.";
-    else if (!event.currentTarget.elements.email.validity.valid) errors.email = "Informe um e-mail válido.";
-    if (!age || age < 12 || age > 100) errors.age = "Informe uma idade entre 12 e 100 anos.";
-    if (!weight || weight < 30) errors.weight = "Informe um peso a partir de 30 kg.";
-    if (!height || height < 1 || height > 2.5) errors.height = "Informe a altura em metros, por exemplo 1,67.";
-    if (!objective) errors.objective = "Informe seu principal objetivo.";
-
-    if (Object.keys(errors).length) {
-      setSignupErrors(errors);
-      event.currentTarget.querySelector(`[name="${Object.keys(errors)[0]}"]`)?.focus();
-      return;
-    }
-
-    const saved = onSignup?.({
-      name,
-      email,
-      age,
-      weight,
-      height,
-      objective,
-      notes: form.get("notes")
-    }, branding.personal_id);
-    if (!saved) {
-      setSignupMessage("Não foi possível identificar o personal. Abra o link de cadastro fornecido por ele.");
-      return;
-    }
-    setSignupMessage("Cadastro enviado. aguarde aprovação do personal para liberar seu acesso.");
-    setSignupOpen(false);
-    event.currentTarget.reset();
-  };
-
-  const closeSignup = () => {
-    setSignupOpen(false);
-    setSignupErrors({});
-    window.requestAnimationFrame(() => signupTriggerRef.current?.focus());
-  };
-
-  const clearSignupError = (event) => {
-    const { name } = event.currentTarget;
-    if (signupErrors[name]) setSignupErrors((current) => ({ ...current, [name]: undefined }));
-  };
-
-  useEffect(() => {
-    if (!signupOpen) return undefined;
-    const dialog = signupDialogRef.current;
-    dialog?.querySelector("input")?.focus();
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeSignup();
-        return;
-      }
-      if (event.key !== "Tab" || !dialog) return;
-      const focusable = [...dialog.querySelectorAll("button, input, textarea")].filter((element) => !element.disabled);
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [signupOpen]);
-
   if (!isOwnerContext && brandSlug && !visualBranding?.display_name) {
     return brandingLoadError
       ? <main className="login-screen login-loading-screen" role="alert"><p>Não foi possível carregar a identidade visual.</p><button type="button" onClick={() => setBrandingRetry((current) => current + 1)}>Tentar novamente</button></main>
@@ -332,13 +243,10 @@ export default function Login({ onLogin, onSignup, onBrandingResolved, context =
             <button type="button" aria-label="Entrar com Google"><Chrome size={22} /></button>
             <button type="button" aria-label="Entrar com Apple"><Apple size={23} /></button>
           </div>
-          {!isOwnerContext && <small>
+          {context === "student" && brandSlug && <small>
             Não tem uma conta?{" "}
-            <button ref={signupTriggerRef} className="signup-link-button" type="button" onClick={() => setSignupOpen(true)}>
-              Cadastre-se
-            </button>
+            <a className="signup-link-button" href={`/personal/${encodeURIComponent(brandSlug)}/aluno/cadastro`}>Cadastre-se</a>
           </small>}
-          {signupMessage ? <p className="signup-success-message">{signupMessage}</p> : null}
         </form>}
       </section>
       {resetOpen && (
@@ -352,38 +260,6 @@ export default function Login({ onLogin, onSignup, onBrandingResolved, context =
             {resetMessage ? <p className="signup-success-message">{resetMessage}</p> : null}
             {resetError ? <p className="login-error">{resetError}</p> : null}
             <button className="metal-button inline" type="submit">Enviar link</button>
-          </form>
-        </div>
-      )}
-      {signupOpen && (
-        <div className="signup-modal-backdrop" onMouseDown={closeSignup}>
-          <form ref={signupDialogRef} className="signup-modal" role="dialog" aria-modal="true" aria-labelledby="signup-title" aria-describedby="signup-description" noValidate onSubmit={submitSignup} onMouseDown={(event) => event.stopPropagation()}>
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Cadastro do aluno</p>
-                <h2 id="signup-title">Solicitar acesso ao app</h2>
-                <span id="signup-description">Preencha seus dados. O personal aprova seu cadastro antes de liberar o acesso.</span>
-              </div>
-              <button className="icon-button signup-close-button" type="button" onClick={closeSignup} aria-label="Fechar cadastro">
-                <X size={22} />
-              </button>
-            </div>
-            <div className="form-grid">
-              <label><span>Nome completo</span><input name="name" required autoComplete="name" placeholder="Seu nome" aria-invalid={Boolean(signupErrors.name)} aria-describedby={signupErrors.name ? "signup-name-error" : undefined} onInput={clearSignupError} />{signupErrors.name && <small className="signup-field-error" id="signup-name-error" role="alert">{signupErrors.name}</small>}</label>
-              <label><span>E-mail</span><input name="email" type="email" required autoComplete="email" placeholder="voce@email.com" aria-invalid={Boolean(signupErrors.email)} aria-describedby={signupErrors.email ? "signup-email-error" : undefined} onInput={clearSignupError} />{signupErrors.email && <small className="signup-field-error" id="signup-email-error" role="alert">{signupErrors.email}</small>}</label>
-              <label><span>Idade</span><input name="age" type="number" min="12" max="100" inputMode="numeric" required placeholder="Ex.: 65" aria-invalid={Boolean(signupErrors.age)} aria-describedby={signupErrors.age ? "signup-age-error" : undefined} onInput={clearSignupError} />{signupErrors.age && <small className="signup-field-error" id="signup-age-error" role="alert">{signupErrors.age}</small>}</label>
-              <label><span>Peso</span><div className="signup-unit-field"><input name="weight" type="number" min="30" step="0.1" inputMode="decimal" required placeholder="70" aria-invalid={Boolean(signupErrors.weight)} aria-describedby={signupErrors.weight ? "signup-weight-error" : undefined} onInput={clearSignupError} /><span aria-hidden="true">kg</span></div>{signupErrors.weight && <small className="signup-field-error" id="signup-weight-error" role="alert">{signupErrors.weight}</small>}</label>
-              <label><span>Altura</span><div className="signup-unit-field"><input name="height" type="number" min="1" max="2.5" step="0.01" inputMode="decimal" required placeholder="1,67" aria-invalid={Boolean(signupErrors.height)} aria-describedby={signupErrors.height ? "signup-height-error" : "signup-height-hint"} onInput={clearSignupError} /><span aria-hidden="true">m</span></div><small className={signupErrors.height ? "signup-field-error" : "signup-field-hint"} id={signupErrors.height ? "signup-height-error" : "signup-height-hint"} role={signupErrors.height ? "alert" : undefined}>{signupErrors.height || "Use metros, por exemplo 1,67 m."}</small></label>
-              <label><span>Objetivo</span><input name="objective" required placeholder="Emagrecimento, hipertrofia..." aria-invalid={Boolean(signupErrors.objective)} aria-describedby={signupErrors.objective ? "signup-objective-error" : undefined} onInput={clearSignupError} />{signupErrors.objective && <small className="signup-field-error" id="signup-objective-error" role="alert">{signupErrors.objective}</small>}</label>
-              <label className="wide">
-                <span>Observações</span>
-                <textarea name="notes" rows="4" placeholder="Lesões, rotina, restrições, preferências ou objetivo principal." />
-              </label>
-            </div>
-            <button className="metal-button inline" type="submit">
-              <UserPlus size={18} />
-              Enviar cadastro
-            </button>
           </form>
         </div>
       )}

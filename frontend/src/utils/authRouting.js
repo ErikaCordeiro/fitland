@@ -149,7 +149,7 @@ export function isAuthLoginPath(pathname = "") {
     || normalized === "/aluno/login"
     || /^\/personal\/[^/]+\/login$/.test(normalized)
     || /^\/personal\/[^/]+\/aluno\/login$/.test(normalized)
-    || /^\/personal\/[^/]+\/aluno\/primeiro-acesso$/.test(normalized);
+    || /^\/personal\/[^/]+\/aluno\/(?:primeiro-acesso|cadastro)$/.test(normalized);
 }
 
 export function getLoginEndpoint(ownerContext = false) {
@@ -161,7 +161,7 @@ export function getRequestedContext(pathname = "") {
   if (normalized.startsWith("/fitland/") || normalized.startsWith("/owner/")) {
     return { type: "owner", slug: null };
   }
-  const brandedStudentMatch = normalized.match(/^\/personal\/([^/]+)\/aluno\/(?:login|primeiro-acesso)$/);
+  const brandedStudentMatch = normalized.match(/^\/personal\/([^/]+)\/aluno\/(?:login|primeiro-acesso|cadastro)$/);
   if (brandedStudentMatch) {
     return { type: "student", slug: brandedStudentMatch[1] };
   }

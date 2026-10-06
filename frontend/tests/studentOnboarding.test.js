@@ -37,7 +37,7 @@ test("first access is contextual, accessible, and never stores its token", () =>
   assert.match(firstAccess, /minLength="10"/);
   assert.match(firstAccess, /Mostrar senha/);
   assert.doesNotMatch(firstAccess, /localStorage|sessionStorage/);
-  assert.match(routing, /aluno\\\/primeiro-acesso/);
+  assert.match(routing, /primeiro-acesso\|cadastro/);
   assert.match(app, /onboarding_completed_at/);
   assert.match(app, /\/users\/me\/onboarding/);
 });

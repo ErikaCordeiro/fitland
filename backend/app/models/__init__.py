@@ -8,6 +8,7 @@ from app.models.student import Student
 from app.models.student_assessment import StudentAssessment
 from app.models.student_file import StudentFile
 from app.models.student_access_invite import StudentAccessInvite
+from app.models.student_access_request import StudentAccessRequest
 from app.models.meal_plan import MealPlan, MealPlanItem, MealPlanMeal, MealPlanStatus
 from app.models.finance import FinancialCharge, FinancialPayment
 from app.models.message import Conversation, Message
@@ -27,6 +28,7 @@ __all__ = [
     "StudentAssessment",
     "StudentFile",
     "StudentAccessInvite",
+    "StudentAccessRequest",
     "MealPlan",
     "MealPlanMeal",
     "MealPlanItem",

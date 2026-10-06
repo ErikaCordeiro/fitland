@@ -56,7 +56,7 @@ def access_status(db: Session, student: Student) -> tuple[str, datetime | None]:
     if invite: return "expired", invite.expires_at
     return "no_access", None
 
-def create_invite(db: Session, personal: User, student_id: uuid.UUID) -> dict:
+def create_invite(db: Session, personal: User, student_id: uuid.UUID, *, commit: bool = True) -> dict:
     student = get_owned_student(db, student_id, personal)
     current, _ = access_status(db, student)
     if current == "active": raise HTTPException(status_code=409, detail="Este aluno já possui acesso ativo.")
@@ -76,7 +76,11 @@ def create_invite(db: Session, personal: User, student_id: uuid.UUID) -> dict:
     except (OSError, RuntimeError, smtplib.SMTPException) as exc:
         db.rollback(); raise HTTPException(status_code=503, detail="O envio de e-mail ainda não está configurado.") from exc
     db.add(AuditLog(actor_user_id=personal.id, action="student_access_invite_resent" if pending else "student_access_invite_created", entity_type="student", entity_id=str(student.id), details={"expires_at": expires.isoformat()}))
-    db.commit(); INVITE_ATTEMPTS[key].append(now_ts)
+    if commit:
+        db.commit()
+    else:
+        db.flush()
+    INVITE_ATTEMPTS[key].append(now_ts)
     return {"status": "pending", "expires_at": expires, "delivery": "email"}
 
 def _find_invite(db: Session, token: str, slug: str) -> tuple[StudentAccessInvite, Student, PersonalBranding]:

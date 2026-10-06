@@ -26,6 +26,7 @@ import StudentMessages from "./pages/StudentMessages.jsx";
 import PersonalFiles from "./pages/PersonalFiles.jsx";
 import StudentFiles from "./pages/StudentFiles.jsx";
 import StudentFirstAccess from "./pages/StudentFirstAccess.jsx";
+import StudentAccessRequest from "./pages/StudentAccessRequest.jsx";
 import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
 import CoachIA from "./pages/CoachIA.jsx";
 import AboutPersonal from "./pages/AboutPersonal.jsx";
@@ -37,7 +38,7 @@ import { getRecommendedWorkout } from "./utils/workoutSchedule.js";
 import { isPageEnabled } from "./utils/tenantBranding.js";
 import { createTenantDataState, tenantDataError, tenantDataFromResponses } from "./utils/tenantData.js";
 import { buildWorkoutPayload, instructionVideoPayload } from "./utils/workoutPayload.js";
-import { readPendingStudents, savePendingStudents, studentScope, executionKey } from "./utils/storageScope.js";
+import { studentScope, executionKey } from "./utils/storageScope.js";
 import {
   applyRouteBranding,
   getCanonicalEntryPath,
@@ -152,14 +153,11 @@ export default function App() {
     ...current,
     workouts: typeof update === "function" ? update(current.workouts) : update
   }));
-  const [pendingState, setPendingState] = useState({ personalId: null, items: [] });
-  const pendingStudents = session?.role === "personal" && pendingState.personalId === String(session.id) ? pendingState.items : [];
   const scope = session?.role === "student" && brandingUserId === session.id ? studentScope(branding?.personal_id, session.id) : null;
   const [completed, setCompleted] = useState(() => new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [executionWorkoutId, setExecutionWorkoutId] = useState(null);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [focusedPendingStudentId, setFocusedPendingStudentId] = useState(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [personalProfile, setPersonalProfile] = useState({
     name: "Seu personal",
@@ -296,23 +294,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setPendingState(session?.role === "personal"
-      ? { personalId: String(session.id), items: readPendingStudents(session.id) }
-      : { personalId: null, items: [] });
-  }, [session?.id, session?.role]);
-
-  const setPendingStudents = (update) => {
-    const personalId = session?.role === "personal" ? String(session.id) : null;
-    if (!personalId) return;
-    setPendingState((current) => {
-      const items = current.personalId === personalId ? current.items : readPendingStudents(personalId);
-      const next = typeof update === "function" ? update(items) : update;
-      savePendingStudents(personalId, next);
-      return { personalId, items: next };
-    });
-  };
-
-  useEffect(() => {
     if (!session) return;
     let cancelled = false;
     const loadBranding = () => {
@@ -380,9 +361,11 @@ export default function App() {
 
   if (!session) {
     const loginPath = window.location.pathname.toLowerCase();
+    const accessRequestMatch = loginPath.match(/^\/personal\/([^/]+)\/aluno\/cadastro\/?$/);
     const firstAccessMatch = loginPath.match(/^\/personal\/([^/]+)\/aluno\/primeiro-acesso\/?$/);
     const personalLoginMatch = loginPath.match(/^\/personal\/([^/]+)(?:\/aluno)?\/login\/?$/);
     const requestedLoginContext = getRequestedContext(loginPath);
+    if (accessRequestMatch) return <StudentAccessRequest slug={accessRequestMatch[1]} branding={branding}/>;
     if (firstAccessMatch) return <StudentFirstAccess slug={firstAccessMatch[1]} branding={branding}/>;
     return (
       <Login
@@ -390,14 +373,6 @@ export default function App() {
         brandSlug={personalLoginMatch?.[1] || requestedLoginContext?.slug || ""}
         branding={branding}
         onBrandingResolved={setBranding}
-        onSignup={(student, personalId) => {
-          if (!personalLoginMatch?.[1] || !personalId || String(branding?.personal_id) !== String(personalId)) return false;
-          savePendingStudents(personalId, [
-            { ...student, id: crypto.randomUUID(), status: "pending", requestedAt: new Date().toISOString() },
-            ...readPendingStudents(personalId)
-          ]);
-          return true;
-        }}
         onLogin={(user) => {
           const normalizedUser = normalizeSessionUser(user);
           const requestedContext = getRequestedContext(window.location.pathname);
@@ -500,26 +475,6 @@ export default function App() {
     window.history.replaceState(null, "", getPersonalPagePath(branding.slug, "student-progress-detail", { studentId: student.id }));
   };
 
-  const approvePendingStudent = (student) => {
-    if (!student) return;
-    setStudents((current) => [
-      {
-        ...student,
-        avatar: student.avatar || "",
-        adherence: 0,
-        workoutIds: student.workoutIds || [],
-        workoutId: student.workoutId || null,
-        accessApproved: true,
-        status: "active"
-      },
-      ...current
-    ]);
-    setPendingStudents((current) => current.filter((item) => item.id !== student.id));
-    setFocusedPendingStudentId(null);
-    setActivePage("students");
-    window.history.replaceState(null, "", getPersonalPagePath(branding.slug, "students"));
-  };
-
   const deleteStudent = (student) => {
     if (!student) return;
     const confirmed = window.confirm(`Excluir ${student.name}? Essa ação remove o aluno da lista deste ambiente de teste.`);
@@ -529,15 +484,6 @@ export default function App() {
       setSelectedStudentId(students[0]?.id || null);
     }
   };
-
-  const personalNotifications = pendingStudents.map((student) => ({
-    id: `pending-${student.id}`,
-    type: "student-signup",
-    title: "Novo aluno Aguardando aprovação",
-    message: `${student.name} solicitou acesso ao app.`,
-    student,
-    actionLabel: "Ver aluno"
-  }));
 
   const studentNotifications = [
     {
@@ -557,16 +503,7 @@ export default function App() {
     sidebarOpen,
     setSidebarOpen,
     student: students[0],
-    notifications: isStudent ? studentNotifications : personalNotifications,
-    onNotificationAction: (notification) => {
-      if (notification?.type === "student-signup") {
-        setActivePage("students");
-        setFocusedPendingStudentId(notification.student?.id || null);
-        setSidebarOpen(false);
-        window.history.replaceState(null, "", getPersonalPagePath(branding.slug, "students"));
-      }
-    },
-    onApproveStudent: approvePendingStudent,
+    notifications: isStudent ? studentNotifications : [],
     branding,
     theme,
     setTheme,
@@ -773,13 +710,10 @@ export default function App() {
           dataStatus={tenantData.status}
           dataError={tenantData.error}
           onRetry={() => setDataReloadKey((value) => value + 1)}
-          pendingStudents={pendingStudents}
           workouts={workouts}
           onOpenProgress={openStudentProgress}
-          onApproveStudent={approvePendingStudent}
           onDeleteStudent={deleteStudent}
-          focusedPendingStudentId={focusedPendingStudentId}
-          onPendingStudentViewed={() => setFocusedPendingStudentId(null)}
+          onRequestApproved={() => setDataReloadKey((value) => value + 1)}
           onSaveStudent={saveStudent}
           onSendAccess={async (student) => {
             await apiRequest(`/students/${student.id}/access-invite`, { method: "POST" });

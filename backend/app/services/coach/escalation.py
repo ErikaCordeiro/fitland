@@ -1,8 +1,11 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
+from sqlalchemy import select
 
 from app.core.config import settings
+from app.models.audit_log import AuditLog
 from app.schemas.message import ConversationCreate, MessageCreate
 from app.services.message_service import ensure_conversation, send_message
 
@@ -16,6 +19,14 @@ def escalation_token(user, message: str, reason: str) -> str:
 
 
 def send_escalation(db, user, token: str):
+    fingerprint = hashlib.sha256(token.encode()).hexdigest()[:64]
+    existing = db.scalar(select(AuditLog).where(
+        AuditLog.actor_user_id == user.id,
+        AuditLog.action == "coach_escalation_sent",
+        AuditLog.entity_id == fingerprint,
+    ))
+    if existing:
+        return None, fingerprint, True
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError as exc:
@@ -28,4 +39,5 @@ def send_escalation(db, user, token: str):
         raise ValueError("Invalid escalation token")
     conversation = ensure_conversation(db, user, ConversationCreate())
     label = {"pain_or_injury": "Relato de desconforto", "change_workout_request": "Solicitação de alteração", "unknown": "Pergunta não respondida", "contact_personal": "Contato solicitado"}[reason]
-    return send_message(db, user, conversation.id, MessageCreate(body=f"Solicitação enviada pelo Coach Fitland — {label}: {original}"))
+    message = send_message(db, user, conversation.id, MessageCreate(body=f"Solicitação enviada pelo Coach Fitland — {label}: {original}"))
+    return message, fingerprint, False

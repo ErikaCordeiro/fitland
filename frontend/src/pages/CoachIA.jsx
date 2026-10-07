@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Bot, LoaderCircle, MessageCircle, Send } from "lucide-react";
 import { apiRequest } from "../services/api.js";
 
@@ -17,15 +17,24 @@ export default function CoachIA({ onClose, branding, modules = {} }) {
   }]);
   const [input, setInput] = useState("");
   const [contextToken, setContextToken] = useState(null);
+  const [confirmationToken, setConfirmationToken] = useState(null);
   const [sending, setSending] = useState(false);
   const requestInFlight = useRef(false);
+  const conversationEnd = useRef(null);
+  const inputRef = useRef(null);
   const personalName = branding?.display_name || "seu Personal";
   const quickActions = useMemo(() => [
     modules.workouts && ["Meu treino de hoje", "Qual meu treino hoje?"],
     modules.progress && ["Meu progresso", "Como está meu progresso?"],
     modules.diet && ["Minha dieta", "Qual é meu plano alimentar?"],
     modules.messages && ["Falar com meu Personal", "Quero falar com meu Personal"],
+    modules.workouts && ["Próximo treino", "Qual o próximo treino?"],
+    modules.calendar && ["Agenda de hoje", "Qual minha agenda hoje?"],
   ].filter(Boolean), [modules]);
+
+  useEffect(() => {
+    conversationEnd.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [messages, sending]);
 
   const sendMessage = async (value = input) => {
     const clean = value.trim();
@@ -35,14 +44,17 @@ export default function CoachIA({ onClose, branding, modules = {} }) {
     setInput("");
     setMessages((current) => [...current, { from: "user", text: clean }]);
     try {
-      const result = await apiRequest("/coach/messages", { method: "POST", body: JSON.stringify({ message: clean, context_token: contextToken }), timeoutMs: 12000 });
+      const usedConfirmation = confirmationToken;
+      const result = await apiRequest("/coach/messages", { method: "POST", body: JSON.stringify({ message: clean, context_token: contextToken, confirmation_token: usedConfirmation }), timeoutMs: 12000 });
       setContextToken(result.context_token);
+      setConfirmationToken(result.escalation?.available ? result.escalation.token : usedConfirmation && /^(sim|s|pode|pode sim|quero|manda|isso|claro|não|nao|n)$/i.test(clean) ? null : usedConfirmation);
       setMessages((current) => [...current, { from: "coach", text: result.message, options: result.options || [], escalation: result.escalation }]);
     } catch (error) {
       setMessages((current) => [...current, { from: "coach", error: true, text: error.message || "Não foi possível consultar o Coach agora." }]);
     } finally {
       requestInFlight.current = false;
       setSending(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -52,12 +64,14 @@ export default function CoachIA({ onClose, branding, modules = {} }) {
     setSending(true);
     try {
       const result = await apiRequest("/coach/escalations", { method: "POST", body: JSON.stringify({ token }) });
+      setConfirmationToken(null);
       setMessages((current) => [...current, { from: "coach", text: result.message }]);
     } catch (error) {
       setMessages((current) => [...current, { from: "coach", error: true, text: error.message || `Não consegui encaminhar pelo Fitland. Entre em contato diretamente com ${personalName}.` }]);
     } finally {
       requestInFlight.current = false;
       setSending(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -71,8 +85,9 @@ export default function CoachIA({ onClose, branding, modules = {} }) {
         </div>
       </article>)}
       {sending && <article className="coach-bubble coach loading"><LoaderCircle className="spin" size={18} /><p>Consultando seus dados...</p></article>}
+      <span ref={conversationEnd} aria-hidden="true" />
     </div>
     {messages.length === 1 && quickActions.length > 0 && <div className="coach-quick-actions" aria-label="Sugestões rápidas">{quickActions.map(([label, value]) => <button key={label} type="button" onClick={() => sendMessage(value)}>{label}</button>)}</div>}
-    <form className="coach-composer" onSubmit={(event) => { event.preventDefault(); sendMessage(); }}><label htmlFor="coach-message">Pergunte ao Coach Fitland</label><div><textarea id="coach-message" value={input} onChange={(event) => setInput(event.target.value)} maxLength={500} rows={2} placeholder="Ex.: Qual meu treino de hoje?" disabled={sending} /><button type="submit" disabled={sending || !input.trim()} aria-label="Enviar mensagem"><Send size={19} /></button></div><small>O Coach consulta dados do Fitland e não substitui orientação médica ou do seu Personal.</small></form>
+    <form className="coach-composer" onSubmit={(event) => { event.preventDefault(); sendMessage(); }}><label htmlFor="coach-message">Pergunte ao Coach Fitland</label><div><textarea ref={inputRef} id="coach-message" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} maxLength={500} rows={2} placeholder="Ex.: Qual meu treino de hoje?" disabled={sending} /><button type="submit" disabled={sending || !input.trim()} aria-label="Enviar mensagem"><Send size={19} /></button></div><small>Enter envia. Shift+Enter adiciona uma linha. O Coach não substitui orientação médica ou do seu Personal.</small></form>
   </section>;
 }

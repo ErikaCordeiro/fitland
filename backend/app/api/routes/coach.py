@@ -29,9 +29,10 @@ def coach_escalation(payload: CoachEscalationRequest, db: Session = Depends(get_
     if not profile or resolve_modules((branding.modules if branding else None) or {}).get("messages") is not True:
         raise HTTPException(status_code=403, detail={"code": "module_disabled", "module": "messages"})
     try:
-        row = send_escalation(db, student, payload.token)
+        row, fingerprint, duplicate = send_escalation(db, student, payload.token)
     except ValueError:
         raise HTTPException(status_code=422, detail="Encaminhamento inválido ou expirado")
-    db.add(AuditLog(actor_user_id=student.id, action="coach_escalation_sent", entity_type="coach", entity_id=str(row.id), details={"personal_id": str(profile.personal_id), "student_id": str(profile.id)}))
+    if not duplicate:
+        db.add(AuditLog(actor_user_id=student.id, action="coach_escalation_sent", entity_type="coach", entity_id=fingerprint, details={"personal_id": str(profile.personal_id), "student_id": str(profile.id), "message_id": str(row.id)}))
     db.commit()
-    return {"sent": True, "message": "Mensagem encaminhada ao seu Personal."}
+    return {"sent": True, "message": "Mensagem já encaminhada ao seu Personal." if duplicate else "Mensagem encaminhada ao seu Personal."}

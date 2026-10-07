@@ -16,6 +16,16 @@ test("Coach Fitland escalation requires an explicit student action", () => {
   const source = read("pages/CoachIA.jsx");
   assert.match(source, /onClick=\{\(\) => escalate\(message\.escalation\.token\)\}/);
   assert.match(source, /Encaminhar ao Personal/);
+  assert.match(source, /confirmation_token/);
+  assert.match(source, /requestInFlight\.current/);
+});
+
+test("Coach composer supports Enter, Shift+Enter, focus and automatic scroll", () => {
+  const source = read("pages/CoachIA.jsx");
+  assert.match(source, /event\.key === "Enter" && !event\.shiftKey/);
+  assert.match(source, /scrollIntoView/);
+  assert.match(source, /inputRef\.current\?\.focus/);
+  assert.doesNotMatch(source, /dangerouslySetInnerHTML/);
 });
 
 test("Personal surfaces do not expose the student Coach", () => {

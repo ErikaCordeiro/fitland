@@ -1,6 +1,7 @@
 import re
 import uuid
 from datetime import datetime, timedelta
+from difflib import SequenceMatcher
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -51,11 +52,14 @@ class CoachDataResolver:
         return next((row for row in self.workouts() if row.id == workout_id), None)
 
     def today_workout(self) -> Workout | None:
-        day = WEEKDAYS[datetime.now(TZ).weekday()]
+        return self.workout_for_offset(0)
+
+    def workout_for_offset(self, offset: int) -> Workout | None:
+        day = WEEKDAYS[(datetime.now(TZ).weekday() + offset) % 7]
         return next((row for row in self.workouts() if row.day_of_week == day and row.status == "active"), None)
 
-    def next_workout(self) -> tuple[Workout, int] | None:
-        today = datetime.now(TZ).weekday()
+    def next_workout(self, after_offset: int = 0) -> tuple[Workout, int] | None:
+        today = (datetime.now(TZ).weekday() + after_offset) % 7
         rows = self.workouts()
         candidates = []
         for row in rows:
@@ -75,12 +79,25 @@ class CoachDataResolver:
         except ValueError:
             context_id = None
         normalized = normalize_text(text)
+        candidate_ids = {str(value) for value in context.get("candidate_exercise_ids", [])}
+        search_rows = [row for row in rows if str(row.id) in candidate_ids] if candidate_ids else rows
         matches = []
-        for row in rows:
+        for row in search_rows:
             name = normalize_text(row.exercise.name)
             words = [word for word in name.split() if len(word) > 3]
             if name in normalized or any(re.search(rf"\b{re.escape(word)}\b", normalized) for word in words):
                 matches.append(row)
+        if not matches:
+            query_words = [word for word in normalized.split() if len(word) > 3 and word not in {"qual", "quanto", "quantas", "carga", "series", "repeticoes", "descanso", "exercicio"}]
+            scored = []
+            for row in search_rows:
+                name_words = normalize_text(row.exercise.name).split()
+                score = max((SequenceMatcher(None, query, name).ratio() for query in query_words for name in name_words), default=0)
+                if score >= 0.72:
+                    scored.append((score, row))
+            if scored:
+                best = max(score for score, _ in scored)
+                matches = [row for score, row in scored if score >= best - 0.05]
         unique = {row.id: row for row in matches}
         matches = list(unique.values())
         if len(matches) == 1:

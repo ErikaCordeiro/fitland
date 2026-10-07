@@ -8,6 +8,7 @@ class CoachIntent(StrEnum):
     HELP = "help"
     TODAY_WORKOUT = "today_workout"
     WORKOUT_EXERCISES = "workout_exercises"
+    EXERCISE_DETAILS = "exercise_details"
     EXERCISE_SETS = "exercise_sets"
     EXERCISE_REPS = "exercise_reps"
     EXERCISE_LOAD = "exercise_load"
@@ -30,6 +31,7 @@ class CoachMessageRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     message: str = Field(min_length=1, max_length=500)
     context_token: str | None = Field(default=None, max_length=3000)
+    confirmation_token: str | None = Field(default=None, max_length=3000)
 
     @field_validator("message")
     @classmethod

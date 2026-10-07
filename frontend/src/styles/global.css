@@ -9803,7 +9803,135 @@ body,
   }
 }
 
-/* Coach IA and About Personal pages */
+/* Coach Fitland and About Personal pages */
+.coach-page {
+  display: grid;
+  grid-template-rows: auto minmax(280px, 1fr) auto auto;
+  gap: 16px;
+  min-height: min(720px, calc(100vh - 150px));
+  color: var(--tenant-text, #f5f5f5);
+}
+
+.coach-page-header,
+.coach-conversation,
+.coach-composer {
+  border: 1px solid color-mix(in srgb, var(--tenant-text, #f5f5f5) 16%, transparent);
+  border-radius: 16px;
+  background: var(--tenant-surface, #17191b);
+}
+
+.coach-page-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.coach-page-header button,
+.coach-composer button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--tenant-text, #f5f5f5) 18%, transparent);
+  border-radius: 10px;
+  color: inherit;
+  background: transparent;
+}
+
+.coach-page-header h2,
+.coach-page-header p,
+.coach-page-header span,
+.coach-bubble p {
+  margin: 0;
+}
+
+.coach-page-header h2 { font-size: 1.25rem; }
+.coach-page-header span { color: var(--tenant-text-muted, #aeb2b7); }
+
+.coach-conversation {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.coach-bubble {
+  display: flex;
+  gap: 10px;
+  width: fit-content;
+  max-width: min(78%, 680px);
+  padding: 13px 15px;
+  border-radius: 14px;
+  white-space: pre-line;
+  background: color-mix(in srgb, var(--tenant-text, #f5f5f5) 8%, transparent);
+}
+
+.coach-bubble.user {
+  justify-self: end;
+  color: var(--tenant-primary-contrast, #111);
+  background: var(--tenant-accent, #f5f5f5);
+}
+
+.coach-bubble.error { border: 1px solid #d15353; }
+.coach-bubble.loading { color: var(--tenant-text-muted, #aeb2b7); }
+
+.coach-inline-actions,
+.coach-quick-actions,
+.coach-escalation-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.coach-inline-actions button,
+.coach-quick-actions button,
+.coach-escalation-action button {
+  min-height: 44px;
+  padding: 8px 13px;
+  border: 1px solid color-mix(in srgb, var(--tenant-accent, #f5f5f5) 55%, transparent);
+  border-radius: 10px;
+  color: inherit;
+  background: transparent;
+}
+
+.coach-escalation-action button { display: inline-flex; align-items: center; gap: 8px; }
+.coach-escalation-action span { color: var(--tenant-text-muted, #aeb2b7); }
+
+.coach-composer { padding: 14px; }
+.coach-composer > label { display: block; margin-bottom: 8px; font-weight: 800; }
+.coach-composer > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.coach-composer textarea {
+  min-height: 56px;
+  width: 100%;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--tenant-text, #f5f5f5) 18%, transparent);
+  border-radius: 10px;
+  color: inherit;
+  background: color-mix(in srgb, var(--tenant-background, #0d0f10) 82%, transparent);
+}
+.coach-composer small { display: block; margin-top: 8px; color: var(--tenant-text-muted, #aeb2b7); }
+
+@media (max-width: 768px) {
+  .coach-page { min-height: calc(100dvh - 150px); }
+  .coach-page-header { grid-template-columns: 44px minmax(0, 1fr); }
+  .coach-page-header > svg { display: none; }
+  .coach-bubble { max-width: 90%; }
+}
+
+@media (max-width: 390px) {
+  .coach-page { gap: 10px; }
+  .coach-page-header,
+  .coach-conversation,
+  .coach-composer { border-radius: 10px; }
+  .coach-conversation { padding: 12px; }
+  .coach-bubble { max-width: 94%; }
+  .coach-quick-actions { display: grid; grid-template-columns: 1fr; }
+}
+
 .coach-page-premium,
 .about-personal-page {
   display: grid;

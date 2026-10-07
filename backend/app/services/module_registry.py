@@ -39,7 +39,7 @@ MODULE_REGISTRY = (
     ModuleDefinition("workouts", "Treinos", "Criação e acompanhamento de treinos", IMPLEMENTED, 30, True),
     ModuleDefinition("progress", "Progresso", "Evolução baseada nos treinos concluídos", IMPLEMENTED, 40, True, dependencies=("workouts",)),
     ModuleDefinition("calendar", "Agenda", "Calendário, treinos e compromissos", IMPLEMENTED, 50, True),
-    ModuleDefinition("coach", "Coach IA", "Sugestões inteligentes para o Personal", PARTIAL, 60, True, dependencies=("students", "workouts")),
+    ModuleDefinition("coach", "Coach Fitland", "Assistente controlado do Aluno com dados reais do Fitland", PARTIAL, 60, True, dependencies=("students", "workouts")),
     ModuleDefinition("about", "Sobre o Personal", "Identidade e informações públicas do Personal", PARTIAL, 70, True),
     ModuleDefinition("settings", "Configurações e branding", "Identidade visual e preferências essenciais", IMPLEMENTED, 80, True, True, False),
     ModuleDefinition("diet", "Dietas", "Plano alimentar estruturado", IMPLEMENTED, 90, False),

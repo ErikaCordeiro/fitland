@@ -33,7 +33,6 @@ export const personalNavItems = [
   { id: "chat", label: "Mensagens", icon: MessageCircle },
   { id: "files", label: "Arquivos", icon: FileText },
   { id: "reports", label: "Relatórios", icon: FileText },
-  { id: "coach", label: "Coach IA", icon: Bot },
   { id: "about-personal", label: "Sobre o Personal", icon: Info },
   { id: "settings", label: "Configurações", icon: Settings }
 ];
@@ -47,7 +46,7 @@ export const studentNavItems = [
   { id: "finance", label: "Meus Pagamentos", icon: CreditCard },
   { id: "calendar", label: "Agenda", icon: CalendarDays },
   { id: "messages", label: "Mensagens", icon: MessageCircle },
-  { id: "coach", label: "Assistente Fitness", icon: Bot },
+  { id: "coach", label: "Coach Fitland", icon: Bot },
   { id: "files", label: "Arquivos", icon: FileText },
   { id: "about-personal", label: "Sobre o Personal", icon: Info },
   { id: "settings", label: "Configurações", icon: Settings }

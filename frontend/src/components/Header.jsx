@@ -51,9 +51,9 @@ export default function Header({
           <Search size={18} />
           <input placeholder="Buscar aluno, treino ou exercício" />
         </label>
-        <button className="icon-button glow-button" type="button" aria-label="Coach IA" onClick={onCoachClick}>
+        {onCoachClick && <button className="icon-button glow-button" type="button" aria-label="Coach Fitland" onClick={onCoachClick}>
           <Sparkles size={19} />
-        </button>
+        </button>}
         <button
           className="icon-button app-theme-toggle"
           type="button"

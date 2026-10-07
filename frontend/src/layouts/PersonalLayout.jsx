@@ -23,17 +23,6 @@ export default function PersonalLayout({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const handleCoachCapture = (event) => {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const text = button.textContent || "";
-    const coachArea = button.closest(".coach-card, .coach-ia-panel, .coach-admin-actions, .assessment-coach-card, .ai-insights-student");
-    if (coachArea || /coach ia|conversar|perguntar/i.test(text)) {
-      event.preventDefault();
-      onNavigate("coach");
-    }
-  };
-
   return (
     <div className={`app-shell personal-layout ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`} style={tenantThemeStyle(branding)}>
       <Sidebar
@@ -51,7 +40,7 @@ export default function PersonalLayout({
         profileInitials={branding?.initials || (session?.name || "Personal").split(/\s+/).slice(0,2).map(part=>part[0]).join("").toUpperCase()}
         onLogout={onLogout}
       />
-      <main className="main-panel personal-main" onClickCapture={handleCoachCapture}>
+      <main className="main-panel personal-main">
         <Header
           title={meta[0]}
           subtitle={meta[1]}
@@ -60,7 +49,6 @@ export default function PersonalLayout({
           variant="personal"
           onMenuClick={() => setSidebarOpen(true)}
           onLogout={onLogout}
-          onCoachClick={() => onNavigate("coach")}
           notifications={notifications}
           onNotificationAction={onNotificationAction}
           onApproveStudent={onApproveStudent}

@@ -82,7 +82,7 @@ def test_unavailable_and_core_modules_cannot_be_overridden():
 def test_impossible_dependency_configuration_is_rejected():
     with pytest.raises(ValueError, match="Progresso requer: Treinos"):
         validate_module_configuration({"workouts": False, "progress": True, "coach": False})
-    with pytest.raises(ValueError, match="Coach IA requer: Alunos"):
+    with pytest.raises(ValueError, match="Coach Fitland requer: Alunos"):
         validate_module_configuration({"students": False, "workouts": True, "progress": False, "coach": True})
 
 

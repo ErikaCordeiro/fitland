@@ -75,7 +75,7 @@ const pageMeta = {
   settings: ["Configurações", "Gerencie sua conta e preferências."],
   progress: ["Progresso", "Histórico, evolução e indicadores de consistência."],
   "student-progress-detail": ["Progresso individual", "Central individual de performance do aluno."],
-  coach: ["Coach IA", "Seu assistente inteligente para treino, dieta e evolução."],
+  coach: ["Coach Fitland", "Seu assistente de treino baseado nos dados registrados."],
   "about-personal": ["Sobre o Personal", "Identidade e informações profissionais cadastradas."]
 };
 
@@ -103,6 +103,7 @@ function pageFromPath(pathname, role) {
     "/aluno/arquivos": "files",
     "/aluno/configuracoes": "settings",
     "/aluno/coach-ia": "coach",
+    "/aluno/coach": "coach",
     "/aluno/sobre-o-personal": "about-personal"
   };
   const ownerRoutes = {
@@ -413,6 +414,7 @@ export default function App() {
   const isStudent = session.role === "student";
   const isOwner = session.role === "owner";
   const navigate = (page) => {
+    if (page === "coach" && !isStudent) page = "dashboard";
     if (!isOwner && !isPageEnabled(page, branding?.modules)) page = "dashboard";
     setActivePage(page);
     setSidebarOpen(false);
@@ -425,7 +427,7 @@ export default function App() {
     } else if (!isStudent) {
       window.history.replaceState(null, "", getPersonalPagePath(branding.slug, page, { studentId: selectedStudentId }));
     } else if (page === "coach") {
-      window.history.replaceState(null, "", "/aluno/coach-ia");
+      window.history.replaceState(null, "", "/aluno/coach");
     } else if (page === "about-personal") {
       window.history.replaceState(null, "", "/aluno/sobre-o-personal");
     } else if (isStudent && page === "progress") {
@@ -549,11 +551,10 @@ export default function App() {
       {isStudent && activePage === "progress" && (
         <StudentProgress />
       )}
-      {activePage === "coach" && (
+      {isStudent && activePage === "coach" && (
         <CoachIA
-          role={isStudent ? "student" : "personal"}
-          student={students[0]}
           branding={branding}
+          modules={branding?.modules || {}}
           onClose={() => navigate("dashboard")}
         />
       )}

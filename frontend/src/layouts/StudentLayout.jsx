@@ -27,7 +27,7 @@ export default function StudentLayout({
     if (!button) return;
     const text = button.textContent || "";
     const coachArea = button.closest(".coach-card, .student-coach-panel, .food-coach-card, .assessment-coach-card, .student-coach-question, .ai-insights-student");
-    if (coachArea || /coach ia|assistente fitness|conversar|perguntar/i.test(text)) {
+    if (coachArea || /coach fitland|coach ia|assistente fitness|conversar|perguntar/i.test(text)) {
       event.preventDefault();
       onNavigate("coach");
     }

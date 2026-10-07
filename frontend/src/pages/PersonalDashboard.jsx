@@ -14,7 +14,6 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   Sun,
   TrendingUp,
   Users,
@@ -170,21 +169,12 @@ export default function PersonalDashboard({ students = [], workouts = [], dataSt
           <div className="dashboard-inline-empty">As metricas aparecerao quando houver dados reais suficientes.</div>
         </article>
 
-        <article className="admin-panel coach-ia-panel">
-          <div>
-            <p className="eyebrow">Coach IA</p>
-            <h2>Seu assistente inteligente para gestão de alunos.</h2>
-            <button type="button" onClick={() => go("coach")}>Abrir Coach IA</button>
-          </div>
-          <img src={branding?.logo_url || branding?.icon_url || "/fitland-icon.svg"} alt="" />
-        </article>
       </section>
 
       <section className="admin-feature-strip">
         <button type="button" onClick={() => go("settings")}><ShieldCheck size={36} /><span><strong>Gestão completa</strong>Tenha total controle do seu negócio fitness</span></button>
         <button type="button" onClick={() => go("reports")}><LineChart size={36} /><span><strong>Dados inteligentes</strong>Acompanhe métricas e tome decisões melhores</span></button>
         <button type="button" onClick={() => go("progress")}><Users size={36} /><span><strong>Evolução dos alunos</strong>Veja o progresso e resultados dos seus alunos</span></button>
-        <button type="button" onClick={() => go("coach")}><Sparkles size={36} /><span><strong>Coach IA</strong>Assistente para gestão e produtividade</span></button>
       </section>
 
       {modal && (

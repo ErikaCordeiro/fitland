@@ -8,7 +8,6 @@ test("modules without persistence render honest empty states before legacy sampl
   const expectations = {
     "StudentDiet.jsx": "Nenhum plano alimentar disponível",
     "PersonalDiet.jsx": "Nenhum plano alimentar cadastrado",
-    "PersonalReports.jsx": "Nenhum relatório disponível",
     "StudentPayments.jsx": "Nenhuma cobrança registrada",
     "StudentFiles.jsx": "Nenhum arquivo disponível",
   };

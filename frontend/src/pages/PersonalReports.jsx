@@ -1,281 +1,43 @@
-import React, { useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Apple,
-  BarChart3,
-  Bell,
-  CalendarDays,
-  CheckCircle2,
-  ChevronDown,
-  Download,
-  Dumbbell,
-  FileSpreadsheet,
-  FileText,
-  LineChart,
-  Mail,
-  Medal,
-  Send,
-  Sparkles,
-  Trophy,
-  Users,
-  Wallet
-} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { BarChart3, Download, RefreshCw, Users, Dumbbell, ClipboardCheck, CircleDollarSign } from "lucide-react";
+import { apiRequest, getToken } from "../services/api.js";
 
-const quickReports = [
-  ["Relatório mensal", "Visão geral do mes", CalendarDays],
-  ["Relatório de alunos", "Desempenho dos alunos", Users],
-  ["Relatório financeiro", "Receitas e faturamento", Wallet],
-  ["Relatório de treinos", "Adesao e conclusao", Dumbbell],
-  ["Relatório de dietas", "Adesao e evolução", Apple],
-  ["Relatório de avaliações", "Evolução corporal", FileText]
-];
+const PERIODS = [[30, "Últimos 30 dias"], [90, "Últimos 90 dias"], [180, "Últimos 6 meses"], [365, "Últimos 12 meses"]];
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const formatDate = (value) => value ? new Intl.DateTimeFormat("pt-BR").format(new Date(`${String(value).slice(0, 10)}T12:00:00`)) : "—";
 
-const kpis = [
-  ["Alunos ativos", "128", "+12% vs mês anterior", Users, [30, 42, 38, 50, 58, 72]],
-  ["Evolução média", "87%", "+8% vs mês anterior", LineChart, [28, 35, 48, 55, 70, 87]],
-  ["Receita mensal", "R$ 24.580", "+15% vs mês anterior", Wallet, [16, 21, 19, 25, 28, 34]],
-  ["Aderência média", "89%", "+7% vs mês anterior", CheckCircle2, [62, 70, 68, 76, 82, 89]],
-  ["Avaliações realizadas", "42", "+20% vs mês anterior", FileText, [18, 24, 25, 31, 35, 42]]
-];
-
-const recentReports = [
-  ["Relatório Mensal - Maio/2026", "Gerado em 31/05/2026 as 10:42", "PDF", "2.4 MB"],
-  ["Relatório de Alunos - Maio/2026", "Gerado em 30/05/2026 as 16:20", "PDF", "1.8 MB"],
-  ["Relatório Financeiro - Maio/2026", "Gerado em 30/05/2026 as 09:15", "PDF", "1.2 MB"],
-  ["Relatório de Treinos - Maio/2026", "Gerado em 29/05/2026 as 14:30", "PDF", "3.1 MB"],
-  ["Relatório de Avaliações - Maio/2026", "Gerado em 28/05/2026 as 11:05", "PDF", "2.7 MB"]
-];
-
-const ranking = [
-  ["Erika Gomes", "Maior evolução", "+4,2%", "94"],
-  ["Lucas Almeida", "Aumento de carga", "+22 kg", "91"],
-  ["Mariana Costa", "Melhor dieta", "96%", "89"],
-  ["Rafael Santos", "Perda de peso", "-3,8 kg", "86"],
-  ["Camila Ferreira", "Melhor aderência", "92%", "84"]
-];
-
-const insightPrompts = [
-  ["Gerar resumo mensal", "Resumo completo do mês atual", Sparkles],
-  ["Quais alunos mais evoluíram?", "Análise dos melhores resultados", Trophy],
-  ["Quem precisa de atenção?", "Alunos com baixa aderência", AlertTriangle],
-  ["Previsão de resultados", "Projeção para os próximos meses", LineChart],
-  ["Baixa aderência alimentar", "Detectar queda em dieta", Apple],
-  ["Aumento de carga", "Evolução por exercício", Dumbbell]
-];
-
-const performanceData = [52, 61, 68, 64, 72, 79, 75, 88, 91, 86, 94, 96];
-
-export default function PersonalReports({ students = [], branding }) {
-  const personalName = branding?.display_name || "Personal";
-  const personalImage = branding?.logo_url || branding?.icon_url || "/fitland-icon.svg";
-  const [selectedReport, setSelectedReport] = useState("Relatório mensal");
-  const [actionModal, setActionModal] = useState(null);
-  const [period, setPeriod] = useState("Este mês (01/05/2026 - 31/05/2026)");
-  const [reportType, setReportType] = useState("Relatório mensal");
-  const studentCount = students.length;
-  const openReportAction = (title, text) => setActionModal({ title, text });
-
-  const bars = useMemo(() => performanceData.map((value, index) => ({ label: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][index], value })), []);
-
-  return <section className="reports-admin-page"><div className="tenant-data-state"><strong>Nenhum relatório disponível</strong><span>Os relatórios serão gerados quando houver métricas persistidas.</span></div></section>;
-
-  return (
-    <section className="reports-admin-page">
-      <header className="reports-admin-header">
-        <div>
-          <h2>Relatórios</h2>
-          <p>Visão geral dos resultados do seu negócio e da evolução dos seus alunos.</p>
-        </div>
-        <div className="reports-header-actions">
-          <button type="button" aria-label="Notificações"><Bell size={20} /><span>3</span></button>
-          <label>
-            <CalendarDays size={18} />
-            <select value={period} onChange={(event) => setPeriod(event.target.value)}>
-              <option>Este mês (01/05/2026 - 31/05/2026)</option>
-              <option>últimos 30 dias</option>
-              <option>últimos 3 meses</option>
-              <option>últimos 12 meses</option>
-            </select>
-            <ChevronDown size={16} />
-          </label>
-          <button type="button" onClick={() => openReportAction("Exportar relatório", `Seu relatório executivo será preparado em PDF com métricas, gráficos e identidade visual de ${personalName}.`)}><Download size={18} /> Exportar relatório</button>
-        </div>
-      </header>
-
-      <article className="reports-card reports-quick-card">
-        <div className="reports-section-title">
-          <h3>Relatórios rápidos</h3>
-          <p>Atalhos executivos para gerar visões prontas.</p>
-        </div>
-        <div className="reports-quick-grid">
-          {quickReports.map(([title, text, Icon]) => (
-            <button key={title} className={selectedReport === title ? "active" : ""} type="button" onClick={() => { setSelectedReport(title); setReportType(title); }}>
-              <Icon size={27} />
-              <span><strong>{title}</strong><small>{text}</small></span>
-            </button>
-          ))}
-        </div>
-      </article>
-
-      <div className="reports-kpi-grid">
-        {kpis.map(([title, value, delta, Icon, trend]) => (
-          <button key={title} className="reports-kpi-card" type="button" onClick={() => openReportAction(title, `Detalhamento de ${title.toLowerCase()} pronto para análise e exportação.`)}>
-            <div>
-              <span>{title}</span>
-              <strong>{title === "Alunos ativos" ? studentCount : value}</strong>
-              <small>{delta}</small>
-            </div>
-            <div className="reports-kpi-orb"><Icon size={24} /></div>
-            <MiniTrend values={trend} />
-          </button>
-        ))}
-      </div>
-
-      <div className="reports-main-grid">
-        <article className="reports-card reports-performance-card">
-          <div className="reports-section-title horizontal">
-            <div>
-              <h3>Desempenho geral</h3>
-              <p>Evolução de alunos, aderência e resultado financeiro.</p>
-            </div>
-            <select>
-              <option>últimos 6 meses</option>
-              <option>30 dias</option>
-              <option>3 meses</option>
-              <option>12 meses</option>
-            </select>
-          </div>
-          <div className="reports-chart-area">
-            {bars.map((bar) => (
-              <div key={bar.label} className="reports-chart-bar">
-                <i style={{ height: `${bar.value}%` }} />
-                <span>{bar.label}</span>
-              </div>
-            ))}
-          </div>
-          <div className="reports-chart-legend">
-            <span><i /> Alunos</span>
-            <span><i /> Aderência</span>
-            <span><i /> Financeiro</span>
-          </div>
-        </article>
-
-        <article className="reports-card reports-ranking-card">
-          <div className="reports-section-title horizontal">
-            <div>
-              <h3>Ranking premium</h3>
-              <p>Top 5 alunos do mês.</p>
-            </div>
-            <Medal size={26} />
-          </div>
-          <div className="reports-ranking-list">
-            {ranking.map(([name, label, result, score], index) => (
-              <button key={name} type="button">
-                <b>{index + 1}</b>
-                <span><strong>{name}</strong><small>{label}</small></span>
-                <em>{result}</em>
-                <i>{score}</i>
-              </button>
-            ))}
-          </div>
-        </article>
-      </div>
-
-      <div className="reports-lower-grid">
-        <article className="reports-card reports-generator-card">
-          <div className="reports-section-title">
-            <h3>Gerador de relatório</h3>
-            <p>Selecione os filtros abaixo para gerar seu relatório personalizado.</p>
-          </div>
-          <div className="reports-form-grid">
-            <label>Período<input value="01/05/2026 - 31/05/2026" readOnly /></label>
-            <label>Aluno<select><option>Todos os alunos</option><option>Erika Gomes</option><option>Lucas Almeida</option></select></label>
-            <label>Tipo de relatório<select value={reportType} onChange={(event) => setReportType(event.target.value)}>{quickReports.map(([title]) => <option key={title}>{title}</option>)}</select></label>
-            <label>Status<select><option>Todos</option><option>Ativos</option><option>Atenção</option></select></label>
-            <label>Objetivo<select><option>Todos os objetivos</option><option>Hipertrofia</option><option>Emagrecimento</option></select></label>
-            <label>Formato<select><option>PDF</option><option>Excel</option><option>CSV</option></select></label>
-          </div>
-          <div className="reports-export-actions">
-            <button type="button" className="primary" onClick={() => openReportAction("Gerar PDF", `${reportType} será gerado para ${period}.`)}><FileText size={18} /> Gerar PDF</button>
-            <button type="button" onClick={() => openReportAction("Exportar Excel", "A planilha será criada com alunos, treinos, dietas, avaliações e indicadores do período selecionado.")}><FileSpreadsheet size={18} /> Exportar Excel</button>
-            <button type="button" onClick={() => openReportAction("Enviar por e-mail", "Escolha os destinatários e envie o relatório com segurança para o personal ou aluno selecionado.")}><Mail size={18} /> Enviar por e-mail</button>
-          </div>
-        </article>
-
-        <article className="reports-card reports-recent-card">
-          <div className="reports-section-title horizontal">
-            <div>
-              <h3>Relatórios recentes</h3>
-              <p>Arquivos gerados com identidade da marca.</p>
-            </div>
-            <button type="button" onClick={() => openReportAction("Relatórios recentes", "Lista completa de relatórios gerados, com download, reenvio e histórico de auditoria.")}>Ver todos</button>
-          </div>
-          <div className="reports-recent-list">
-            {recentReports.map(([title, date, format, size]) => (
-              <button key={title} type="button" onClick={() => openReportAction(title, `${date} • ${format} • ${size}`)}>
-                <FileText size={22} />
-                <span><strong>{title}</strong><small>{date}</small></span>
-                <em>{format}<small>{size}</small></em>
-                <Download size={18} />
-              </button>
-            ))}
-          </div>
-        </article>
-      </div>
-
-      <article className="reports-card reports-ai-card">
-        <div>
-          <div className="reports-section-title">
-            <h3>Coach IA para relatórios</h3>
-            <p>Use inteligência artificial para gerar insights e análises avançadas.</p>
-          </div>
-          <div className="reports-insight-grid">
-            {insightPrompts.map(([title, text, Icon]) => (
-              <button key={title} type="button" onClick={() => openReportAction(title, text)}>
-                <Icon size={23} />
-                <span><strong>{title}</strong><small>{text}</small></span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="reports-ai-emblem">
-          <img src={personalImage} alt={personalName} />
-        </div>
-      </article>
-      {actionModal && (
-        <div className="admin-action-modal-backdrop" role="dialog" aria-modal="true" aria-label={actionModal.title}>
-          <div className="admin-action-modal">
-            <button type="button" aria-label="Fechar" onClick={() => setActionModal(null)}>×</button>
-            <p className="eyebrow">Relatórios</p>
-            <h3>{actionModal.title}</h3>
-            <p>{actionModal.text}</p>
-            <div>
-              <button className="metal-button inline" type="button" onClick={() => setActionModal(null)}>Concluir</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
+export default function PersonalReports({ students = [], onOpenStudent }) {
+  const [days, setDays] = useState(30);
+  const [studentId, setStudentId] = useState("");
+  const [report, setReport] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [error, setError] = useState("");
+  const load = async () => {
+    setStatus("loading"); setError("");
+    try {
+      const query = new URLSearchParams({ days: String(days), ...(studentId ? { student_id: studentId } : {}) });
+      setReport(await apiRequest(`/reports/overview?${query}`)); setStatus("ready");
+    } catch (reason) { setError(reason.message || "Não foi possível carregar os relatórios."); setStatus("error"); }
+  };
+  useEffect(() => { load(); }, [days, studentId]);
+  const max = useMemo(() => Math.max(1, ...(report?.workout_series || []).map((row) => row.value)), [report]);
+  const exportReport = async () => {
+    const query = new URLSearchParams({ days: String(days), ...(studentId ? { student_id: studentId } : {}) });
+    const response = await fetch(`/api/reports/export.csv?${query}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+    if (!response.ok) { setError("Não foi possível exportar o relatório."); return; }
+    const url = URL.createObjectURL(await response.blob()); const link = document.createElement("a");
+    link.href = url; link.download = "relatorio-fitland.csv"; link.click(); URL.revokeObjectURL(url);
+  };
+  return <section className="reports-admin-page reports-real-page">
+    <header className="reports-admin-header"><div><p className="eyebrow">VISÃO OPERACIONAL</p><h2>Relatórios</h2><p>Indicadores consolidados a partir dos registros reais do período.</p></div><button type="button" className="reports-primary-button" onClick={exportReport} disabled={status !== "ready"}><Download size={18}/> Exportar CSV</button></header>
+    <div className="reports-filters"><label>Período<select value={days} onChange={(event) => setDays(Number(event.target.value))}>{PERIODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Aluno<select value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Todos os alunos</option>{students.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label></div>
+    {status === "loading" && <div className="tenant-data-state"><RefreshCw className="spin"/><strong>Carregando indicadores...</strong></div>}
+    {status === "error" && <div className="tenant-data-state error"><strong>Não foi possível carregar</strong><span>{error}</span><button type="button" onClick={load}>Tentar novamente</button></div>}
+    {status === "ready" && report && <>
+      <div className="reports-kpi-grid">{[["Alunos cadastrados", report.metrics.students_total, Users], ["Novos alunos", report.metrics.new_students, Users], ["Treinos concluídos", report.metrics.completed_workouts, Dumbbell], ["Alunos que treinaram", report.metrics.students_trained, BarChart3], ["Sem treino no período", report.metrics.students_without_training, Dumbbell], ...(report.modules.assessments ? [["Avaliações", report.metrics.assessments_completed, ClipboardCheck]] : [])].map(([label, value, Icon]) => <article className="reports-kpi-card" key={label}><Icon size={20}/><span>{label}</span><strong>{value}</strong></article>)}</div>
+      <article className="reports-card reports-workout-chart"><div className="reports-section-title"><h3>Treinos concluídos ao longo do tempo</h3><p>Somente sessões com conclusão registrada.</p></div>{report.metrics.completed_workouts === 0 ? <div className="reports-empty">Nenhum treino concluído neste período.</div> : <div className="reports-real-chart" role="img" aria-label="Treinos concluídos por dia">{report.workout_series.map((point) => <i key={point.date} style={{ height: `${Math.max(4, point.value / max * 100)}%` }} title={`${formatDate(point.date)}: ${point.value}`} />)}</div>}</article>
+      <article className="reports-card"><div className="reports-section-title"><h3>Atividade dos alunos</h3><p>Status factual baseado em sessões concluídas.</p></div><div className="reports-activity-list">{report.student_activity.length === 0 ? <div className="reports-empty">Nenhum aluno encontrado.</div> : report.student_activity.map((row) => <button type="button" key={row.student_id} onClick={() => onOpenStudent?.(row.student_id)}><span><strong>{row.name}</strong><small>{row.status === "trained" ? "Treinou no período" : "Sem treino registrado no período"}</small></span><span><b>{row.completed_workouts}</b><small>treinos</small></span><span><b>{formatDate(row.last_workout_at)}</b><small>último treino</small></span><span><b>{formatDate(row.last_assessment_date)}</b><small>última avaliação</small></span></button>)}</div></article>
+      {report.modules.finance && <article className="reports-card"><div className="reports-section-title"><h3>Financeiro</h3><p>Recebimentos do período e saldos atuais em aberto.</p></div><div className="reports-finance-grid">{[["Recebido", report.metrics.received], ["Pendente", report.metrics.pending], ["Em atraso", report.metrics.overdue]].map(([label, value]) => <div key={label}><CircleDollarSign size={19}/><span>{label}</span><strong>{brl.format(Number(value || 0))}</strong></div>)}</div></article>}
+    </>}
+  </section>;
 }
-
-function MiniTrend({ values }) {
-  return (
-    <svg className="reports-mini-trend" viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true">
-      <polyline
-        points={values.map((value, index) => `${index * (100 / (values.length - 1))},${42 - (value / 100) * 34}`).join(" ")}
-        fill="none"
-        stroke="rgba(245,245,245,.82)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-
-
-
-
-

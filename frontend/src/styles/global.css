@@ -22673,3 +22673,32 @@ body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :w
 .private-files-empty, .private-files-state { min-height: 190px; display: grid; place-content: center; justify-items: center; gap: 8px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--text-secondary); text-align: center; }
 .private-files-message { padding: 12px 14px; border-left: 3px solid var(--accent-color); background: var(--surface); }
 @media (max-width: 760px) { .private-files-heading { align-items: stretch; flex-direction: column; } .private-files-upload { grid-template-columns: 1fr; } .private-files-upload .wide { grid-column: auto; } .private-file-card { grid-template-columns: 40px minmax(0, 1fr); } .private-file-actions, .private-file-card > .icon-action { grid-column: 1 / -1; justify-content: flex-end; } }
+
+/* Reports uses factual server-side aggregates and the existing tenant tokens. */
+.reports-real-page { display: grid; gap: 18px; }
+.reports-real-page::before { display: none; }
+.reports-real-page .reports-admin-header { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.reports-real-page .reports-admin-header h2 { margin: 3px 0; font-size: 30px; }
+.reports-real-page .reports-admin-header p { margin: 0; }
+.reports-primary-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; border: 1px solid var(--personal-border); border-radius: 7px; background: var(--personal-accent); color: var(--text-on-accent); font-weight: 800; }
+.reports-primary-button:disabled { opacity: .55; }
+.reports-filters { display: grid; grid-template-columns: repeat(2, minmax(180px, 280px)); gap: 12px; }
+.reports-filters label { display: grid; gap: 7px; font-weight: 750; }
+.reports-filters select { min-height: 44px; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--surface); color: var(--text-primary); font: inherit; }
+.reports-real-page .reports-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); }
+.reports-real-page .reports-kpi-card { min-height: 126px; display: grid; align-content: space-between; text-align: left; }
+.reports-real-page .reports-kpi-card strong { font-size: 30px; }
+.reports-real-page .reports-card { padding: 20px; }
+.reports-real-chart { height: 190px; display: flex; align-items: end; gap: clamp(2px, .5vw, 7px); padding-top: 20px; border-bottom: 1px solid var(--border-color); overflow: hidden; }
+.reports-real-chart i { min-width: 2px; flex: 1; max-width: 18px; border-radius: 3px 3px 0 0; background: var(--personal-accent); }
+.reports-empty { min-height: 120px; display: grid; place-items: center; color: var(--text-secondary); text-align: center; }
+.reports-activity-list { display: grid; gap: 8px; }
+.reports-activity-list button { min-height: 64px; display: grid; grid-template-columns: minmax(180px, 1.7fr) repeat(3, minmax(110px, 1fr)); align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--surface-muted); color: var(--text-primary); text-align: left; }
+.reports-activity-list button > span { min-width: 0; display: grid; gap: 3px; }
+.reports-activity-list small { color: var(--text-secondary); overflow-wrap: anywhere; }
+.reports-finance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.reports-finance-grid > div { display: grid; gap: 6px; padding: 16px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--surface-muted); }
+.reports-finance-grid strong { font-size: 23px; }
+@media (max-width: 768px) { .reports-real-page .reports-admin-header { align-items: stretch; flex-direction: column; } .reports-primary-button { width: 100%; } .reports-activity-list button { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .reports-filters, .reports-finance-grid { grid-template-columns: 1fr; } .reports-real-page .reports-kpi-grid { grid-template-columns: 1fr 1fr; } .reports-activity-list button { grid-template-columns: 1fr; } }
+@media (max-width: 340px) { .reports-real-page .reports-kpi-grid { grid-template-columns: 1fr; } .reports-real-page .reports-card { padding: 14px; } }

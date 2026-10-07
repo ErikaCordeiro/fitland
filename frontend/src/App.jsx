@@ -20,6 +20,7 @@ import StudentAssessments from "./pages/StudentAssessments.jsx";
 import PersonalDiet from "./pages/PersonalDiet.jsx";
 import StudentDiet from "./pages/StudentDiet.jsx";
 import PersonalFinance from "./pages/PersonalFinance.jsx";
+import PersonalReports from "./pages/PersonalReports.jsx";
 import StudentPayments from "./pages/StudentPayments.jsx";
 import PersonalMessages from "./pages/PersonalMessages.jsx";
 import StudentMessages from "./pages/StudentMessages.jsx";
@@ -698,7 +699,7 @@ export default function App() {
       {activePage === "agenda" && <PersonalAgenda students={students} />}
       {activePage === "chat" && <PersonalMessages onUnreadChange={setMessageUnreadCount} />}
       {activePage === "files" && <PersonalFiles students={students} />}
-      {activePage === "reports" && <UnavailableDataPage className="reports-admin-page" title="Nenhum relatório disponível" message="Os relatórios serão gerados quando houver métricas persistidas." />}
+      {activePage === "reports" && <PersonalReports students={students} onOpenStudent={(studentId) => { setSelectedStudentId(studentId); navigate("student-progress-detail"); }} />}
       {activePage === "settings" && <PersonalSettings profile={{ ...personalProfile, email: session?.email || "" }} studentCount={students.length} workoutCount={workouts.length} theme={theme} setTheme={setTheme} />}
       {activePage === "assessments" && <PersonalAssessments students={students} />}
       {activePage === "progress" && <PersonalProgressModule students={students} initialStudentId={selectedStudentId} />}

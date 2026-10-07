@@ -46,7 +46,7 @@ MODULE_REGISTRY = (
     ModuleDefinition("assessments", "Avaliações", "Avaliações físicas e registros históricos", IMPLEMENTED, 100, False),
     ModuleDefinition("finance", "Financeiro", "Cobranças e pagamentos dos alunos", IMPLEMENTED, 110, False),
     ModuleDefinition("messages", "Mensagens", "Comunicação entre Personal e aluno", IMPLEMENTED, 140, False),
-    ModuleDefinition("reports", "Relatórios", "Relatórios consolidados", NOT_IMPLEMENTED, 150, False, False, False),
+    ModuleDefinition("reports", "Relatórios", "Indicadores operacionais com dados reais", IMPLEMENTED, 150, False),
     ModuleDefinition("files", "Arquivos", "Documentos privados compartilhados com alunos", IMPLEMENTED, 160, False),
 )
 

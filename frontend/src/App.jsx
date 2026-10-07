@@ -50,6 +50,7 @@ import {
   getRequestedContext,
   isBrandingCompatibleWithContext,
   isAuthLoginPath,
+  isLegacyStudentEntryPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
   readPublicAuthContext,
@@ -127,6 +128,19 @@ function pageFromPath(pathname, role) {
 function pushRoute(role, personalSlug = null) {
   const path = role === "personal" ? getPersonalPagePath(personalSlug) : rolePath[role] || "/personal/login";
   window.history.replaceState(null, "", path);
+}
+
+function LegacyStudentEntry() {
+  return (
+    <main className="login-screen legacy-student-entry">
+      <section className="login-card" aria-labelledby="student-access-title">
+        <p className="eyebrow">Acesso do aluno</p>
+        <h1 id="student-access-title">Use o link enviado pelo seu Personal</h1>
+        <p>O acesso do aluno é exclusivo para cada Personal. Solicite o link correto para entrar com a identidade e os dados da sua academia.</p>
+        <a className="metal-button" href="/fitland/login">Ir para o Fitland</a>
+      </section>
+    </main>
+  );
 }
 
 export default function App() {
@@ -359,6 +373,10 @@ export default function App() {
         <div className="loading-orb" />
       </main>
     );
+  }
+
+  if (isLegacyStudentEntryPath(window.location.pathname)) {
+    return <LegacyStudentEntry />;
   }
 
   if (!session) {

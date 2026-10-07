@@ -207,6 +207,17 @@ for public_area in PUBLIC_UPLOAD_AREAS:
     directory.mkdir(parents=True, exist_ok=True)
     app.mount(f"/uploads/{public_area}", StaticFiles(directory=directory), name=f"uploads_{public_area}")
 
+
+def is_spa_fallback_blocked_path(full_path: str) -> bool:
+    normalized = str(full_path or "").replace("\\", "/").strip("/").lower()
+    segments = [segment for segment in normalized.split("/") if segment]
+    if ".." in segments:
+        return True
+    return any(
+        normalized == prefix or normalized.startswith(f"{prefix}/")
+        for prefix in ("api", "uploads", "private")
+    )
+
 if FRONTEND_DIST.exists():
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
@@ -214,10 +225,14 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_frontend(full_path: str):
-        if full_path.startswith("api/") or full_path.startswith("uploads/"):
+        if is_spa_fallback_blocked_path(full_path):
             raise HTTPException(status_code=404, detail="Not found")
 
-        requested_path = FRONTEND_DIST / full_path
+        requested_path = (FRONTEND_DIST / full_path).resolve()
+        try:
+            requested_path.relative_to(FRONTEND_DIST.resolve())
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Not found")
         if requested_path.is_file():
             return FileResponse(requested_path)
 

@@ -12,6 +12,7 @@ import {
   getRouteBranding,
   applyRouteBranding,
   isAuthLoginPath,
+  isLegacyStudentEntryPath,
   isOwnerLoginPath,
   isSessionCompatibleWithContext,
   isBrandingCompatibleWithContext,
@@ -281,6 +282,26 @@ test("student routes and sessions stay separate from personal context", () => {
   assert.equal(isAuthLoginPath("/personal/thiago-fillipo/aluno/login"), true);
   assert.deepEqual(getRequestedContext("/personal/thiago-fillipo/aluno/login"), { type: "student", slug: "thiago-fillipo" });
   assert.equal(getContextLoginPath({ type: "student", slug: "thiago-fillipo" }), "/personal/thiago-fillipo/aluno/login");
+});
+
+test("student entries without a tenant render neutral guidance instead of generic branding", () => {
+  const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  assert.equal(isLegacyStudentEntryPath("/aluno/login"), true);
+  assert.equal(isLegacyStudentEntryPath("/dashboard/aluno/"), true);
+  assert.equal(isLegacyStudentEntryPath("/personal/thiago-fillipo/aluno/login"), false);
+  assert.equal(isLegacyStudentEntryPath("/personal/hugo/aluno/login"), false);
+  assert.match(appSource, /Use o link enviado pelo seu Personal/);
+  assert.match(appSource, /isLegacyStudentEntryPath\(window\.location\.pathname\)/);
+});
+
+test("short about aliases converge on the existing canonical Personal page", () => {
+  assert.deepEqual(getPersonalRoute("/personal/hugo/sobre"), { slug: "hugo", page: "about-personal" });
+  assert.deepEqual(resolvePersonalNavigation("/personal/hugo/sobre", "hugo"), {
+    page: "about-personal",
+    path: "/personal/hugo/sobre-o-personal",
+    redirect: true,
+  });
+  assert.equal(getPersonalPagePath("thiago-fillipo", "about-personal"), "/personal/thiago-fillipo/sobre-o-personal");
 });
 
 test("branding follows the requested URL", () => {

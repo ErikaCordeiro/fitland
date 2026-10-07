@@ -67,8 +67,14 @@ export function getPersonalRoute(pathname = "") {
     return { slug: detailMatch[1], page: "student-progress-detail", studentId: detailMatch[2] };
   }
   const match = normalized.match(/^\/personal\/([^/]+)\/([^/]+)$/);
-  const page = match ? PERSONAL_SEGMENT_PAGES[match[2]] : null;
+  const segment = match?.[2] === "sobre" ? "sobre-o-personal" : match?.[2];
+  const page = match ? PERSONAL_SEGMENT_PAGES[segment] : null;
   return page && validSlug(match[1]) ? { slug: match[1], page } : null;
+}
+
+export function isLegacyStudentEntryPath(pathname = "") {
+  const normalized = normalizePath(pathname);
+  return normalized === "/aluno/login" || normalized === "/dashboard/aluno";
 }
 
 export function getPersonalPagePath(slug, page = "dashboard", options = {}) {

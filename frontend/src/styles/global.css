@@ -14024,8 +14024,7 @@ body,
   place-items: center;
   background:
     radial-gradient(circle at 50% 40%, rgba(255,255,255,.34), transparent 22%),
-    linear-gradient(135deg, rgba(255,255,255,.16), rgba(0,0,0,.35)),
-    url('/erika-gomes.jpeg') center / cover;
+    linear-gradient(135deg, rgba(255,255,255,.16), rgba(0,0,0,.35));
   overflow: hidden;
 }
 
@@ -14589,8 +14588,7 @@ body,
   border-radius: 16px;
   background:
     radial-gradient(circle at center, rgba(255,255,255,.32), transparent 22%),
-    linear-gradient(135deg, rgba(255,255,255,.13), rgba(0,0,0,.42)),
-    url('/erika-gomes.jpeg') center / cover;
+    linear-gradient(135deg, rgba(255,255,255,.13), rgba(0,0,0,.42));
   border: 1px solid rgba(245,245,245,.12);
 }
 
@@ -22702,3 +22700,29 @@ body.theme-light :where(.personal-layout,.student-layout-shell) .student-card :w
 @media (max-width: 768px) { .reports-real-page .reports-admin-header { align-items: stretch; flex-direction: column; } .reports-primary-button { width: 100%; } .reports-activity-list button { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .reports-filters, .reports-finance-grid { grid-template-columns: 1fr; } .reports-real-page .reports-kpi-grid { grid-template-columns: 1fr 1fr; } .reports-activity-list button { grid-template-columns: 1fr; } }
 @media (max-width: 340px) { .reports-real-page .reports-kpi-grid { grid-template-columns: 1fr; } .reports-real-page .reports-card { padding: 14px; } }
+.dashboard-skeleton {
+  display: grid;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.dashboard-skeleton > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboard-skeleton span {
+  min-height: 132px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface, #17191c) 25%, rgba(127, 127, 127, .18) 50%, var(--surface, #17191c) 75%);
+  background-size: 200% 100%;
+  animation: dashboard-loading 1.25s ease-in-out infinite;
+}
+
+@keyframes dashboard-loading { to { background-position: -200% 0; } }
+
+@media (max-width: 760px) {
+  .dashboard-skeleton > div { grid-template-columns: 1fr; }
+  .dashboard-skeleton span { min-height: 92px; }
+}

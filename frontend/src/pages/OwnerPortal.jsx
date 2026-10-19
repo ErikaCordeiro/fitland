@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, CircleOff, Download, Eye, KeyRound, LockKeyhole, Moon, Pencil, Plus, Search, ShieldCheck, Sun, Trash2, Users, X } from "lucide-react";
 import { apiDownload, apiRequest } from "../services/api.js";
 import { downloadBrowserFile } from "../utils/fileDownload.js";
@@ -22,7 +22,7 @@ function Dashboard({ onNavigate }) {
   return <>{error && <p className="owner-alert error">{error}</p>}<section className="owner-kpis">{cards.map(([label,value,Icon])=><button key={label} onClick={() => onNavigate("personals")}><Icon/><span>{label}</span><strong>{value}</strong><small>Dados atuais do banco</small></button>)}</section><section className="owner-dashboard-grid"><article className="owner-panel"><div className="owner-panel-title"><div><p className="eyebrow">Gestão da plataforma</p><h2>Personais</h2></div><button className="owner-primary" onClick={()=>onNavigate("personals")}>Gerenciar personais</button></div><p>Cadastre, ative e acompanhe os profissionais sem acessar dados clínicos ou privados dos alunos.</p></article><article className="owner-panel"><p className="eyebrow">Alertas</p><h2>Situação administrativa</h2>{data.alerts?.length ? data.alerts.map(item=><p key={item}>{item}</p>) : <div className="owner-empty"><Check/>Nenhum alerta importante no momento.</div>}</article></section></>;
 }
 
-function PersonalModal({ item, onClose, onSaved }) {
+export function PersonalModal({ item, onClose, onSaved }) {
   const editing = Boolean(item?.id);
   const [form, setForm] = useState({ name: item?.name || "", email: item?.email || "", phone: item?.phone || "", password: "", status: item?.status || "active" });
   const [brand, setBrand] = useState({ ...defaultBrand, display_name: item?.brand_name || (item?.name ? `Personal ${item.name}` : ""), slug: "" });
@@ -31,6 +31,26 @@ function PersonalModal({ item, onClose, onSaved }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [moduleCatalog, setModuleCatalog] = useState([]);
+  const dialogRef = useRef(null);
+  const titleId = `personal-modal-title-${item?.id || "new"}`;
+
+  useEffect(() => {
+    const previous = document.activeElement;
+    const dialog = dialogRef.current;
+    const focusable = () => [...dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')];
+    focusable()[0]?.focus();
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0]; const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    dialog.addEventListener("keydown", handleKeyDown);
+    return () => { dialog.removeEventListener("keydown", handleKeyDown); previous?.focus?.(); };
+  }, [onClose]);
 
   useEffect(() => {
     if (editing) apiRequest(`/branding/personal/${item.id}`).then(setBrand).catch(() => {});
@@ -81,12 +101,12 @@ function PersonalModal({ item, onClose, onSaved }) {
   };
 
   return <div className="owner-modal-backdrop" onMouseDown={onClose}>
-    <form className="owner-modal owner-personalization-modal" onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
-      <button className="icon-close" type="button" onClick={onClose}><X/></button>
+    <form ref={dialogRef} className="owner-modal owner-personalization-modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
+      <button className="icon-close" type="button" aria-label="Fechar" onClick={onClose}><X/></button>
       <p className="eyebrow">{editing ? "Editar cadastro" : "Novo acesso"}</p>
-      <h2>{editing ? "Personal e aplicativo" : "Cadastrar personal"}</h2>
-      {error && <p className="owner-alert error">{error}</p>}
-      {message && <p className="owner-alert success">{message}</p>}
+      <h2 id={titleId}>{editing ? "Personal e aplicativo" : "Cadastrar personal"}</h2>
+      {error && <p className="owner-alert error" role="alert">{error}</p>}
+      {message && <p className="owner-alert success" role="status">{message}</p>}
       <label>Nome completo<input required value={form.name} onChange={event=>setForm({...form,name:event.target.value})}/></label>
       <label>E-mail<input required type="email" value={form.email} onChange={event=>setForm({...form,email:event.target.value})}/></label>
       <label>Telefone opcional<input value={form.phone} onChange={event=>setForm({...form,phone:event.target.value})}/></label>
@@ -122,7 +142,7 @@ function Personals() {
   const status=async(item,value)=>{if(!confirm(`Confirmar alteração de ${item.name} para ${statusLabel[value]}?`))return;await apiRequest(`/owner/personals/${item.id}/${value==="active"?"activate":value==="suspended"?"suspend":"block"}`,{method:"POST",body:"{}"});load()};
   const reset=async(item)=>{if(!confirm(`Enviar um link de redefinição para ${item.name}?`))return;const data=await apiRequest(`/owner/personals/${item.id}/reset-access`,{method:"POST"});alert(data.detail)};
   const remove=async(item)=>{if(!confirm(`Excluir logicamente ${item.name}? Os ${item.student_count} alunos vinculados não serão apagados.`))return;await apiRequest(`/owner/personals/${item.id}`,{method:"DELETE"});load()};
-  return <><div className="owner-toolbar"><form onSubmit={e=>{e.preventDefault();setPage(1);load()}}><Search/><input placeholder="Buscar por nome ou e-mail" value={search} onChange={e=>setSearch(e.target.value)}/></form><select value={filter} onChange={e=>{setFilter(e.target.value);setPage(1)}}><option value="">Todos os status</option><option value="active">Ativos</option><option value="suspended">Suspensos</option><option value="blocked">Bloqueados</option></select><button className="owner-primary" onClick={()=>setModal({})}><Plus/> Novo personal</button></div>{error&&<p className="owner-alert error">{error}</p>}<section className="owner-table-panel">{loading?<div className="owner-skeleton">Carregando personais...</div>:items.length===0?<div className="owner-empty">Nenhum personal encontrado.</div>:<><div className="owner-table-head"><span>Personal</span><span>Alunos</span><span>Status</span><span>Cadastro</span><span>Ações</span></div>{items.map(item=><article className="owner-personal-row" key={item.id}><div className="owner-person"><Avatar person={item}/><span><strong>{item.name}</strong><small>{item.email}</small></span></div><span data-label="Alunos">{item.student_count}</span><span data-label="Status" className={`owner-status ${item.status}`}>{statusLabel[item.status]||item.status}</span><span data-label="Cadastro">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span><div className="owner-row-actions"><button title="Visualizar" onClick={()=>setModal(item)}><Eye/></button><button title="Editar" onClick={()=>setModal(item)}><Pencil/></button><button title="Redefinir acesso" onClick={()=>reset(item)}><KeyRound/></button>{item.status!=="active"&&<button title="Ativar" onClick={()=>status(item,"active")}><Check/></button>}{item.status!=="suspended"&&<button title="Suspender" onClick={()=>status(item,"suspended")}><CircleOff/></button>}{item.status!=="blocked"&&<button title="Bloquear" onClick={()=>status(item,"blocked")}><AlertTriangle/></button>}<button title="Excluir" onClick={()=>remove(item)}><Trash2/></button></div></article>)}</>}</section><div className="owner-pagination"><button disabled={page===1} onClick={()=>setPage(v=>v-1)}><ChevronLeft/></button><span>Página {page} de {Math.max(1,Math.ceil(total/8))}</span><button disabled={page>=Math.ceil(total/8)} onClick={()=>setPage(v=>v+1)}><ChevronRight/></button></div>{modal&&<PersonalModal item={modal.id?modal:null} onClose={()=>setModal(null)} onSaved={load}/>}</>;
+  return <><div className="owner-toolbar"><form role="search" onSubmit={e=>{e.preventDefault();setPage(1);load()}}><Search/><label><span className="sr-only">Buscar personal por nome ou e-mail</span><input placeholder="Buscar por nome ou e-mail" aria-label="Buscar personal por nome ou e-mail" value={search} onChange={e=>setSearch(e.target.value)}/></label></form><label><span className="sr-only">Filtrar personais por status</span><select aria-label="Filtrar personais por status" value={filter} onChange={e=>{setFilter(e.target.value);setPage(1)}}><option value="">Todos os status</option><option value="active">Ativos</option><option value="suspended">Suspensos</option><option value="blocked">Bloqueados</option></select></label><button className="owner-primary" onClick={()=>setModal({})}><Plus/> Novo personal</button></div>{error&&<p className="owner-alert error" role="alert">{error}</p>}<section className="owner-table-panel">{loading?<div className="owner-skeleton" role="status">Carregando personais...</div>:items.length===0?<div className="owner-empty">Nenhum personal encontrado.</div>:<><div className="owner-table-head"><span>Personal</span><span>Alunos</span><span>Status</span><span>Cadastro</span><span>Ações</span></div>{items.map(item=><article className="owner-personal-row" key={item.id}><div className="owner-person"><Avatar person={item}/><span><strong>{item.name}</strong><small>{item.email}</small></span></div><span data-label="Alunos">{item.student_count}</span><span data-label="Status" className={`owner-status ${item.status}`}>{statusLabel[item.status]||item.status}</span><span data-label="Cadastro">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span><div className="owner-row-actions"><button aria-label={`Visualizar ${item.name}`} onClick={()=>setModal(item)}><Eye/></button><button aria-label={`Editar ${item.name}`} onClick={()=>setModal(item)}><Pencil/></button><button aria-label={`Redefinir acesso de ${item.name}`} onClick={()=>reset(item)}><KeyRound/></button>{item.status!=="active"&&<button aria-label={`Ativar ${item.name}`} onClick={()=>status(item,"active")}><Check/></button>}{item.status!=="suspended"&&<button aria-label={`Suspender ${item.name}`} onClick={()=>status(item,"suspended")}><CircleOff/></button>}{item.status!=="blocked"&&<button aria-label={`Bloquear ${item.name}`} onClick={()=>status(item,"blocked")}><AlertTriangle/></button>}<button aria-label={`Excluir ${item.name}`} onClick={()=>remove(item)}><Trash2/></button></div></article>)}</>}</section><nav className="owner-pagination" aria-label="Paginação de personais"><button aria-label="Página anterior" disabled={page===1} onClick={()=>setPage(v=>v-1)}><ChevronLeft/></button><span>Página {page} de {Math.max(1,Math.ceil(total/8))}</span><button aria-label="Próxima página" disabled={page>=Math.ceil(total/8)} onClick={()=>setPage(v=>v+1)}><ChevronRight/></button></nav>{modal&&<PersonalModal item={modal.id?modal:null} onClose={()=>setModal(null)} onSaved={load}/>}</>;
 }
 
 function Logs(){const[items,setItems]=useState([]),[loading,setLoading]=useState(true),[exporting,setExporting]=useState(false),[error,setError]=useState("");useEffect(()=>{apiRequest("/owner/audit-logs?size=50").then(d=>setItems(d.items)).catch(()=>setError("Não foi possível carregar os logs.")).finally(()=>setLoading(false))},[]);const download=async()=>{setExporting(true);setError("");try{await downloadBrowserFile(()=>apiDownload("/owner/audit-logs/export"))}catch(err){setError(err.message)}finally{setExporting(false)}};return <><div className="owner-logs-toolbar"><p>Os registros exportados seguem os mesmos dados administrativos desta área.</p><button className="owner-primary" type="button" onClick={download} disabled={exporting}><Download size={18}/>{exporting?"Preparando...":"Exportar CSV"}</button></div>{error&&<p className="owner-alert error" role="alert">{error}</p>}<section className="owner-table-panel owner-logs">{loading?<p>Carregando logs...</p>:items.length===0?<div className="owner-empty">Nenhuma atividade administrativa registrada.</div>:items.map(log=><article key={log.id}><span className={`owner-status ${log.result}`}>{log.result}</span><div><strong>{log.action.replaceAll("_"," ")}</strong><small>{log.actor_name||"Sistema"} · {log.entity_type}</small></div><time>{new Date(log.created_at).toLocaleString("pt-BR")}</time></article>)}</section></>}

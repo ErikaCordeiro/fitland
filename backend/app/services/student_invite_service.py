@@ -1,10 +1,8 @@
 import hashlib
 import secrets
 import smtplib
-import time
 import unicodedata
 import uuid
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -22,11 +20,10 @@ from app.models.user import User, UserRole
 from app.schemas.student import StudentAccessActivation
 from app.services.access import get_owned_student
 from app.services.email_service import send_student_access_invite_email
+from app.services.rate_limit_service import register_attempt
 
 INVITE_HOURS = 24
-INVITE_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
 MAX_INVITES_PER_HOUR = 3
-TOKEN_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
 MAX_TOKEN_ATTEMPTS = 10
 TOKEN_ATTEMPT_WINDOW = 15 * 60
 
@@ -34,13 +31,10 @@ def _now(): return datetime.now(timezone.utc)
 def _digest(token: str) -> str: return hashlib.sha256(token.encode("utf-8")).hexdigest()
 def _aware(value): return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
-def _check_token_rate_limit(token: str) -> None:
+def _check_token_rate_limit(db: Session, token: str) -> None:
     key = _digest(token)
-    now_ts = time.time()
-    TOKEN_ATTEMPTS[key] = [item for item in TOKEN_ATTEMPTS[key] if now_ts - item < TOKEN_ATTEMPT_WINDOW]
-    if len(TOKEN_ATTEMPTS[key]) >= MAX_TOKEN_ATTEMPTS:
+    if register_attempt(db, "student_invite_token", key, TOKEN_ATTEMPT_WINDOW) > MAX_TOKEN_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Muitas tentativas. Aguarde antes de tentar novamente.")
-    TOKEN_ATTEMPTS[key].append(now_ts)
 
 def _normalize_name(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value.strip().casefold())
@@ -60,9 +54,8 @@ def create_invite(db: Session, personal: User, student_id: uuid.UUID, *, commit:
     student = get_owned_student(db, student_id, personal)
     current, _ = access_status(db, student)
     if current == "active": raise HTTPException(status_code=409, detail="Este aluno já possui acesso ativo.")
-    key = f"{personal.id}:{student.id}"; now_ts = time.time()
-    INVITE_ATTEMPTS[key] = [item for item in INVITE_ATTEMPTS[key] if now_ts - item < 3600]
-    if len(INVITE_ATTEMPTS[key]) >= MAX_INVITES_PER_HOUR: raise HTTPException(status_code=429, detail="Aguarde antes de reenviar outro convite.")
+    key = f"{personal.id}:{student.id}"
+    if register_attempt(db, "student_invite_send", key, 3600, commit=commit) > MAX_INVITES_PER_HOUR: raise HTTPException(status_code=429, detail="Aguarde antes de reenviar outro convite.")
     branding = db.scalar(select(PersonalBranding).where(PersonalBranding.personal_id == personal.id))
     if not branding or not branding.slug: raise HTTPException(status_code=409, detail="O Personal precisa de um endereço de acesso configurado.")
     token = secrets.token_urlsafe(32); now = _now(); expires = now + timedelta(hours=INVITE_HOURS)
@@ -80,11 +73,10 @@ def create_invite(db: Session, personal: User, student_id: uuid.UUID, *, commit:
         db.commit()
     else:
         db.flush()
-    INVITE_ATTEMPTS[key].append(now_ts)
     return {"status": "pending", "expires_at": expires, "delivery": "email"}
 
 def _find_invite(db: Session, token: str, slug: str) -> tuple[StudentAccessInvite, Student, PersonalBranding]:
-    _check_token_rate_limit(token)
+    _check_token_rate_limit(db, token)
     invite = db.scalar(select(StudentAccessInvite).where(StudentAccessInvite.token_hash == _digest(token)))
     if not invite or invite.used_at is not None or invite.revoked_at is not None: raise HTTPException(status_code=400, detail="Este convite já foi utilizado ou não é mais válido.")
     if _aware(invite.expires_at) <= _now(): raise HTTPException(status_code=410, detail="Este convite expirou. Peça ao seu Personal um novo convite de acesso.")

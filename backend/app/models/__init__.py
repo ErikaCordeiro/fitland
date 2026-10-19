@@ -2,6 +2,7 @@ from app.models.exercise import Exercise
 from app.models.agenda_event import AgendaEvent
 from app.models.ai_audit import AIAuditLog
 from app.models.audit_log import AuditLog
+from app.models.auth_state import RateLimitBucket, RefreshTokenSession
 from app.models.progress import ProgressLog
 from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
@@ -22,6 +23,8 @@ __all__ = [
     "AgendaEvent",
     "AIAuditLog",
     "AuditLog",
+    "RateLimitBucket",
+    "RefreshTokenSession",
     "ProgressLog",
     "PersonalBranding",
     "Student",

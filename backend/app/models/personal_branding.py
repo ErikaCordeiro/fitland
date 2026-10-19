@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, JSON, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.db.session import Base
 
 
@@ -32,7 +33,7 @@ class PersonalBranding(Base):
     muted_text_color: Mapped[str] = mapped_column(String(7), default="#A7ABB0", nullable=False)
     font_family: Mapped[str] = mapped_column(String(32), default="Inter", nullable=False)
     modules: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     personal = relationship("User", back_populates="branding")

@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.time import utc_now
 from app.models.audit_log import AuditLog
 from app.models.finance import FinancialCharge, FinancialPayment
 from app.models.student import Student
@@ -95,5 +96,5 @@ def add_payment(db: Session, personal: User, charge_id: uuid.UUID, payload: Paym
 def cancel_charge(db: Session, personal: User, charge_id: uuid.UUID) -> dict:
     charge = _owned_charge(db, personal, charge_id, True)
     if _paid(charge) > ZERO: raise HTTPException(status_code=409, detail="Cobrança com pagamento não pode ser cancelada")
-    if not charge.cancelled_at: charge.cancelled_at = datetime.utcnow(); db.add(AuditLog(actor_user_id=personal.id, action="financial_charge_cancelled", entity_type="financial_charge", entity_id=str(charge.id)))
+    if not charge.cancelled_at: charge.cancelled_at = utc_now(); db.add(AuditLog(actor_user_id=personal.id, action="financial_charge_cancelled", entity_type="financial_charge", entity_id=str(charge.id)))
     db.commit(); return serialize(db.scalar(_query().where(FinancialCharge.id == charge.id)))

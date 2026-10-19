@@ -25,12 +25,12 @@ def context():
     Base.metadata.create_all(engine); db = Session(engine)
     personal, other, student_user = user(UserRole.PERSONAL, "A"), user(UserRole.PERSONAL, "B"), user(UserRole.STUDENT, "Student")
     db.add_all([personal, other, student_user]); db.flush()
-    own = Student(personal_id=personal.id, user_id=student_user.id, name="=Own", email=student_user.email, created_at=datetime.utcnow())
+    own = Student(personal_id=personal.id, user_id=student_user.id, name="=Own", email=student_user.email, created_at=datetime.now(timezone.utc).replace(tzinfo=None))
     foreign = Student(personal_id=other.id, name="Foreign", email="foreign@test.dev")
     db.add_all([own, foreign]); db.flush()
     db.add_all([PersonalBranding(personal_id=personal.id, display_name="A", slug="a", modules={"reports": True, "assessments": True, "finance": True}), PersonalBranding(personal_id=other.id, display_name="B", slug="b", modules={"reports": True, "assessments": True, "finance": True})]); db.flush()
     # SQLite stores this PostgreSQL timestamptz fixture without an offset.
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     db.add_all([
         WorkoutSession(client_session_id="done", student_id=own.id, personal_id=personal.id, workout_ref="w", workout_name="Real", status="concluido", completed_at=now, client_updated_at=now),
         WorkoutSession(client_session_id="open", student_id=own.id, personal_id=personal.id, workout_ref="w", workout_name="Open", status="em_andamento", client_updated_at=now),

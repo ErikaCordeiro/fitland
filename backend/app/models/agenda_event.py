@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.db.session import Base
 
 
@@ -19,7 +20,7 @@ class AgendaEvent(Base):
     event_time: Mapped[time] = mapped_column(Time, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
     visible_to_student: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     student = relationship("Student")

@@ -1,38 +1,8 @@
-import React from "react";
-import { useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import PersonalLayout from "./layouts/PersonalLayout.jsx";
 import StudentLayout from "./layouts/StudentLayout.jsx";
 import OwnerLayout from "./layouts/OwnerLayout.jsx";
 import Login from "./pages/Login.jsx";
-import StudentDashboard from "./pages/Dashboard.jsx";
-import PersonalDashboard from "./pages/PersonalDashboard.jsx";
-import Students from "./pages/Students.jsx";
-import WorkoutBuilder from "./pages/WorkoutBuilder.jsx";
-import ExerciseDetail from "./pages/ExerciseDetail.jsx";
-import StudentPortal from "./pages/StudentPortal.jsx";
-import WorkoutExecution from "./pages/WorkoutExecution.jsx";
-import StudentCalendar from "./pages/StudentCalendar.jsx";
-import PersonalAgenda from "./pages/PersonalAgenda.jsx";
-import StudentSettings from "./pages/StudentSettings.jsx";
-import PersonalSettings from "./pages/PersonalSettings.jsx";
-import PersonalAssessments from "./pages/PersonalAssessments.jsx";
-import StudentAssessments from "./pages/StudentAssessments.jsx";
-import PersonalDiet from "./pages/PersonalDiet.jsx";
-import StudentDiet from "./pages/StudentDiet.jsx";
-import PersonalFinance from "./pages/PersonalFinance.jsx";
-import PersonalReports from "./pages/PersonalReports.jsx";
-import StudentPayments from "./pages/StudentPayments.jsx";
-import PersonalMessages from "./pages/PersonalMessages.jsx";
-import StudentMessages from "./pages/StudentMessages.jsx";
-import PersonalFiles from "./pages/PersonalFiles.jsx";
-import StudentFiles from "./pages/StudentFiles.jsx";
-import StudentFirstAccess from "./pages/StudentFirstAccess.jsx";
-import StudentAccessRequest from "./pages/StudentAccessRequest.jsx";
-import { PersonalProgressModule, StudentProgress } from "./pages/ProgressModule.jsx";
-import CoachIA from "./pages/CoachIA.jsx";
-import AboutPersonal from "./pages/AboutPersonal.jsx";
-import OwnerPortal from "./pages/OwnerPortal.jsx";
-import UnavailableDataPage from "./pages/UnavailableDataPage.jsx";
 import { apiRequest, clearToken, getToken, logoutSession, refreshSession } from "./services/api.js";
 import { clearDemoActivityDataOnce } from "./utils/activityData.js";
 import { getRecommendedWorkout } from "./utils/workoutSchedule.js";
@@ -59,10 +29,44 @@ import {
   resolveLogoutContext,
 } from "./utils/authRouting.js";
 
+const StudentDashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const PersonalDashboard = lazy(() => import("./pages/PersonalDashboard.jsx"));
+const Students = lazy(() => import("./pages/Students.jsx"));
+const WorkoutBuilder = lazy(() => import("./pages/WorkoutBuilder.jsx"));
+const ExerciseDetail = lazy(() => import("./pages/ExerciseDetail.jsx"));
+const StudentPortal = lazy(() => import("./pages/StudentPortal.jsx"));
+const WorkoutExecution = lazy(() => import("./pages/WorkoutExecution.jsx"));
+const StudentCalendar = lazy(() => import("./pages/StudentCalendar.jsx"));
+const PersonalAgenda = lazy(() => import("./pages/PersonalAgenda.jsx"));
+const StudentSettings = lazy(() => import("./pages/StudentSettings.jsx"));
+const PersonalSettings = lazy(() => import("./pages/PersonalSettings.jsx"));
+const PersonalAssessments = lazy(() => import("./pages/PersonalAssessments.jsx"));
+const StudentAssessments = lazy(() => import("./pages/StudentAssessments.jsx"));
+const PersonalDiet = lazy(() => import("./pages/PersonalDiet.jsx"));
+const StudentDiet = lazy(() => import("./pages/StudentDiet.jsx"));
+const PersonalFinance = lazy(() => import("./pages/PersonalFinance.jsx"));
+const PersonalReports = lazy(() => import("./pages/PersonalReports.jsx"));
+const StudentPayments = lazy(() => import("./pages/StudentPayments.jsx"));
+const PersonalMessages = lazy(() => import("./pages/PersonalMessages.jsx"));
+const StudentMessages = lazy(() => import("./pages/StudentMessages.jsx"));
+const PersonalFiles = lazy(() => import("./pages/PersonalFiles.jsx"));
+const StudentFiles = lazy(() => import("./pages/StudentFiles.jsx"));
+const StudentFirstAccess = lazy(() => import("./pages/StudentFirstAccess.jsx"));
+const StudentAccessRequest = lazy(() => import("./pages/StudentAccessRequest.jsx"));
+const PersonalProgressModule = lazy(() => import("./pages/ProgressModule.jsx").then((module) => ({ default: module.PersonalProgressModule })));
+const StudentProgress = lazy(() => import("./pages/ProgressModule.jsx").then((module) => ({ default: module.StudentProgress })));
+const CoachIA = lazy(() => import("./pages/CoachIA.jsx"));
+const AboutPersonal = lazy(() => import("./pages/AboutPersonal.jsx"));
+const OwnerPortal = lazy(() => import("./pages/OwnerPortal.jsx"));
+
+function PageLoading() {
+  return <div className="tenant-data-state" role="status">Carregando área...</div>;
+}
+
 const pageMeta = {
   dashboard: ["Dashboard", "Disciplina hoje, liberdade amanhã."],
   students: ["Alunos", "Visualize, encontre e edite seus atletas com rapidez."],
-  "workout-builder": ["Treinos", "Monte protocolos personalizados com víVideo, carga e descanso."],
+  "workout-builder": ["Treinos", "Monte protocolos personalizados com vídeo, carga e descanso."],
   exercise: ["Exercício", "Execução guiada com parâmetros claros e vídeo incorporado."],
   "student-view": ["Treino", "Treino do dia, check-ins e registro de carga."],
   diet: ["Dieta", "Registre sua alimentação, hidratação e metas do dia."],
@@ -385,8 +389,8 @@ export default function App() {
     const firstAccessMatch = loginPath.match(/^\/personal\/([^/]+)\/aluno\/primeiro-acesso\/?$/);
     const personalLoginMatch = loginPath.match(/^\/personal\/([^/]+)(?:\/aluno)?\/login\/?$/);
     const requestedLoginContext = getRequestedContext(loginPath);
-    if (accessRequestMatch) return <StudentAccessRequest slug={accessRequestMatch[1]} branding={branding}/>;
-    if (firstAccessMatch) return <StudentFirstAccess slug={firstAccessMatch[1]} branding={branding}/>;
+    if (accessRequestMatch) return <Suspense fallback={<PageLoading />}><StudentAccessRequest slug={accessRequestMatch[1]} branding={branding}/></Suspense>;
+    if (firstAccessMatch) return <Suspense fallback={<PageLoading />}><StudentFirstAccess slug={firstAccessMatch[1]} branding={branding}/></Suspense>;
     return (
       <Login
         context={isOwnerLoginPath(loginPath) ? "owner" : requestedLoginContext?.type || "personal"}
@@ -680,7 +684,7 @@ export default function App() {
     return (
       <>
         <OwnerLayout session={session} activePage={activePage} onNavigate={navigate} onLogout={() => setLogoutConfirmOpen(true)}>
-          <OwnerPortal activePage={activePage} onNavigate={navigate} session={session} onSession={setSession} />
+          <Suspense fallback={<PageLoading />}><OwnerPortal activePage={activePage} onNavigate={navigate} session={session} onSession={setSession} /></Suspense>
         </OwnerLayout>
         {logoutModal}
       </>
@@ -692,6 +696,7 @@ export default function App() {
     return (
       <>
       <StudentLayout {...commonLayoutProps}>
+        <Suspense fallback={<PageLoading />}>
         {activePage === "dashboard" && <StudentDashboard students={students} workouts={workouts} onNavigate={navigate} onStartWorkout={openWorkoutExecution} branding={branding} modules={branding?.modules} scope={scope} theme={theme} setTheme={setTheme} />}
         {activePage === "diet" && <StudentDiet />}
         {activePage === "assessments" && <StudentAssessments />}
@@ -701,6 +706,7 @@ export default function App() {
         {activePage === "files" && <StudentFiles />}
         {activePage === "settings" && <StudentSettings student={students[0]} branding={branding} theme={theme} setTheme={setTheme} />}
         {sharedPages}
+        </Suspense>
       </StudentLayout>
       {logoutModal}
       {welcome}
@@ -711,6 +717,7 @@ export default function App() {
   return (
     <>
     <PersonalLayout {...commonLayoutProps}>
+      <Suspense fallback={<PageLoading />}>
       {activePage === "dashboard" && <PersonalDashboard students={students} workouts={workouts} dataStatus={tenantData.status} dataError={tenantData.error} onRetry={() => setDataReloadKey((value) => value + 1)} onNavigate={navigate} branding={branding} theme={theme} setTheme={setTheme} />}
       {activePage === "diet" && <PersonalDiet students={students} />}
       {activePage === "finance" && <PersonalFinance students={students} />}
@@ -758,6 +765,7 @@ export default function App() {
         />
       )}
       {sharedPages}
+      </Suspense>
     </PersonalLayout>
     {logoutModal}
     </>

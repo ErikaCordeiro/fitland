@@ -14,7 +14,6 @@ from app.models.student import Student
 from app.models.student_access_invite import StudentAccessInvite
 from app.models.student_access_request import StudentAccessRequest
 from app.models.user import User, UserRole
-from app.services.student_access_request_service import PUBLIC_ATTEMPTS
 
 
 def actor(role, name):
@@ -26,7 +25,6 @@ def context(monkeypatch):
     engine = create_engine("sqlite+pysqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     db = Session(engine)
-    PUBLIC_ATTEMPTS.clear()
     personal, other = actor(UserRole.PERSONAL, "Personal A"), actor(UserRole.PERSONAL, "Personal B")
     student_user, owner = actor(UserRole.STUDENT, "Student"), actor(UserRole.OWNER, "Owner")
     db.add_all([personal, other, student_user, owner]); db.flush()

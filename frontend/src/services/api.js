@@ -2,18 +2,28 @@ import { getLoginEndpoint, getRequestedContext } from "../utils/authRouting.js";
 import { createAuthSessionCoordinator } from "../utils/authSessionCoordinator.js";
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/api" : "http://localhost:8000/api");
-const TOKEN_KEYS = {
+const LEGACY_TOKEN_KEYS = {
   owner: "fitland_owner_token",
   personal: "fitland_personal_token",
   student: "fitland_student_token",
 };
-const SESSION_TOKEN_KEYS = {
+const LEGACY_SESSION_TOKEN_KEYS = {
   owner: "fitland_owner_session_token",
   personal: "fitland_personal_session_token",
   student: "fitland_student_session_token",
 };
 const FRONTEND_BUILD = typeof __APP_BUILD_ID__ !== "undefined" ? __APP_BUILD_ID__ : "unknown";
 const authCoordinator = createAuthSessionCoordinator();
+const memoryTokens = { owner: null, personal: null, student: null };
+
+function removeLegacyTokens() {
+  Object.values(LEGACY_TOKEN_KEYS).forEach((key) => localStorage.removeItem(key));
+  Object.values(LEGACY_SESSION_TOKEN_KEYS).forEach((key) => sessionStorage.removeItem(key));
+  localStorage.removeItem("fitland_token");
+  sessionStorage.removeItem("fitland_session_token");
+}
+
+removeLegacyTokens();
 
 function createRequestId() {
   return globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -27,27 +37,21 @@ function normalizeContext(context) {
 
 export function getToken(context = null) {
   const normalized = normalizeContext(context);
-  return localStorage.getItem(TOKEN_KEYS[normalized]) || sessionStorage.getItem(SESSION_TOKEN_KEYS[normalized]);
+  return memoryTokens[normalized] || null;
 }
 
-export function setToken(token, keepConnected = true, context = null) {
+export function setToken(token, _keepConnected = true, context = null) {
   const normalized = normalizeContext(context);
-  clearToken(normalized);
-  if (keepConnected) {
-    localStorage.setItem(TOKEN_KEYS[normalized], token);
-  } else {
-    sessionStorage.setItem(SESSION_TOKEN_KEYS[normalized], token);
-  }
+  memoryTokens[normalized] = token;
+  removeLegacyTokens();
 }
 
 export function clearToken(context = null) {
-  const contexts = context ? [normalizeContext(context)] : Object.keys(TOKEN_KEYS);
+  const contexts = context ? [normalizeContext(context)] : Object.keys(memoryTokens);
   contexts.forEach((item) => {
-    localStorage.removeItem(TOKEN_KEYS[item]);
-    sessionStorage.removeItem(SESSION_TOKEN_KEYS[item]);
+    memoryTokens[item] = null;
   });
-  localStorage.removeItem("fitland_token");
-  sessionStorage.removeItem("fitland_session_token");
+  removeLegacyTokens();
 }
 
 async function parseResponse(response) {
@@ -158,7 +162,7 @@ export async function refreshSession() {
       skipAuthRefresh: true,
       headers: { "X-Auth-Context": context },
     }),
-    (data) => setToken(data.access_token, true, data.user?.role),
+    (data) => setToken(data.access_token, false, data.user?.role),
   );
 }
 

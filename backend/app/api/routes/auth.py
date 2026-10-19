@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
+from app.core.security import decode_refresh_token
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
@@ -37,7 +38,7 @@ def _refresh_cookie_name(context: str) -> str:
     return f"{settings.REFRESH_COOKIE_NAME}_{context}"
 
 
-def _set_refresh_cookie(response: Response, refresh_token: str | None, context: str) -> None:
+def _set_refresh_cookie(response: Response, refresh_token: str | None, context: str, persistent: bool = True) -> None:
     cookie_name = _refresh_cookie_name(context)
     if not refresh_token:
         response.delete_cookie(cookie_name, path="/api/auth")
@@ -47,8 +48,8 @@ def _set_refresh_cookie(response: Response, refresh_token: str | None, context: 
         value=refresh_token,
         httponly=True,
         secure=_cookie_secure(),
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        samesite="strict",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60 if persistent else None,
         path="/api/auth",
     )
 
@@ -61,14 +62,14 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     token_response, refresh_token = authenticate(db, payload)
-    _set_refresh_cookie(response, refresh_token, token_response.user.role.value)
+    _set_refresh_cookie(response, refresh_token, token_response.user.role.value, payload.keep_connected)
     return token_response
 
 
 @router.post("/owner-login", response_model=TokenResponse)
 def owner_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     token_response, refresh_token = authenticate_owner(db, payload)
-    _set_refresh_cookie(response, refresh_token, "owner")
+    _set_refresh_cookie(response, refresh_token, "owner", payload.keep_connected)
     return token_response
 
 
@@ -109,7 +110,7 @@ def refresh(
         raise HTTPException(status_code=400, detail="Invalid auth context")
     refresh_token = request.cookies.get(_refresh_cookie_name(context), "")
     token_response, rotated_refresh = refresh_session(db, refresh_token, context)
-    _set_refresh_cookie(response, rotated_refresh, context)
+    _set_refresh_cookie(response, rotated_refresh, context, bool(decode_refresh_token(rotated_refresh).get("persistent")))
     return token_response
 
 
@@ -118,10 +119,11 @@ def logout(
     request: Request,
     response: Response,
     auth_context: str | None = Header(default=None, alias="X-Auth-Context"),
+    db: Session = Depends(get_db),
 ):
     context = (auth_context or "").strip().lower()
     refresh_token = request.cookies.get(_refresh_cookie_name(context)) if context else None
-    revoke_refresh_token(refresh_token)
+    revoke_refresh_token(db, refresh_token)
     if context in {"owner", "personal", "student"}:
         response.delete_cookie(_refresh_cookie_name(context), path="/api/auth")
     return None

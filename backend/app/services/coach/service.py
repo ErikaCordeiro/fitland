@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
+from app.core.time import utc_now
 from app.models.audit_log import AuditLog
 from app.schemas.coach import CoachEscalation, CoachIntent, CoachMessageResponse, CoachOption
 from app.services.coach.classifier import AFFIRMATIVE, NEGATIVE, Classification, IntentClassifier, normalize_text
@@ -259,7 +260,7 @@ class CoachService:
         return CoachEscalation(available=True, reason=reason, token=escalation_token(self.user, text, reason))
 
     def _rate_limit(self):
-        since = datetime.utcnow() - timedelta(minutes=1)
+        since = utc_now() - timedelta(minutes=1)
         count = self.db.scalar(select(func.count(AuditLog.id)).where(
             AuditLog.actor_user_id == self.user.id,
             AuditLog.action == "coach_message_received",

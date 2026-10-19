@@ -6,6 +6,7 @@ from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, Index, Integer, 
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.db.session import Base
 
 
@@ -26,8 +27,8 @@ class MealPlan(Base):
     end_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
     status: Mapped[MealPlanStatus] = mapped_column(Enum(MealPlanStatus), default=MealPlanStatus.ACTIVE, index=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     student = relationship("Student", back_populates="meal_plans")
     meals = relationship("MealPlanMeal", back_populates="plan", cascade="all, delete-orphan", order_by="MealPlanMeal.position")

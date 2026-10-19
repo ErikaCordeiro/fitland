@@ -1,6 +1,4 @@
-import time
 import uuid
-from collections import defaultdict
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -15,8 +13,8 @@ from app.models.student_access_request import StudentAccessRequest
 from app.models.user import User, UserRole
 from app.schemas.student_access_request import StudentAccessRequestCreate
 from app.services.student_invite_service import access_status, create_invite
+from app.services.rate_limit_service import register_attempt
 
-PUBLIC_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
 MAX_REQUESTS_PER_IP_HOUR = 10
 MAX_REQUESTS_PER_EMAIL_DAY = 3
 
@@ -29,12 +27,9 @@ def _normalize_email(value: str) -> str:
     return value.strip().lower()
 
 
-def _rate_limit(key: str, limit: int, window: int) -> None:
-    now_ts = time.time()
-    PUBLIC_ATTEMPTS[key] = [attempt for attempt in PUBLIC_ATTEMPTS[key] if now_ts - attempt < window]
-    if len(PUBLIC_ATTEMPTS[key]) >= limit:
+def _rate_limit(db: Session, scope: str, key: str, limit: int, window: int) -> None:
+    if register_attempt(db, scope, key, window) > limit:
         raise HTTPException(status_code=429, detail="Muitas solicitações. Aguarde antes de tentar novamente.")
-    PUBLIC_ATTEMPTS[key].append(now_ts)
 
 
 def _resolve_personal(db: Session, slug: str) -> tuple[User, PersonalBranding]:
@@ -50,8 +45,8 @@ def _resolve_personal(db: Session, slug: str) -> tuple[User, PersonalBranding]:
 def create_request(db: Session, slug: str, payload: StudentAccessRequestCreate, client_key: str) -> dict:
     personal, _ = _resolve_personal(db, slug)
     email = _normalize_email(str(payload.email))
-    _rate_limit(f"ip:{client_key}", MAX_REQUESTS_PER_IP_HOUR, 3600)
-    _rate_limit(f"email:{personal.id}:{email}", MAX_REQUESTS_PER_EMAIL_DAY, 86400)
+    _rate_limit(db, "student_access_ip", client_key, MAX_REQUESTS_PER_IP_HOUR, 3600)
+    _rate_limit(db, "student_access_email", f"{personal.id}:{email}", MAX_REQUESTS_PER_EMAIL_DAY, 86400)
 
     existing_student = db.scalar(select(Student).where(
         Student.personal_id == personal.id,

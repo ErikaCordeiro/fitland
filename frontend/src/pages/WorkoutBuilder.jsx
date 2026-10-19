@@ -237,7 +237,9 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
                 </div>
                 <div className="form-grid compact">
                   <div className="exercise-search-field">
+                    <label htmlFor={`exercise-name-${exercise.id}`}>Nome do exercício</label>
                     <input
+                      id={`exercise-name-${exercise.id}`}
                       placeholder="Nome do exercício"
                       value={exercise.name}
                       onFocus={() => setActiveSuggestId(exercise.id)}
@@ -258,20 +260,20 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
                       </div>
                     )}
                   </div>
-                  <input placeholder="Séries" type="number" value={exercise.sets} onChange={(event) => updateExercise(exercise.id, "sets", Number(event.target.value))} />
-                  <input placeholder="Repetições" value={exercise.reps} onChange={(event) => updateExercise(exercise.id, "reps", event.target.value)} />
-                  <input placeholder="Descanso" value={exercise.rest} onChange={(event) => updateExercise(exercise.id, "rest", event.target.value)} />
-                  <input placeholder="Carga" value={exercise.load} onChange={(event) => updateExercise(exercise.id, "load", event.target.value)} />
+                  <label><span>Séries</span><input placeholder="Ex.: 4" min="1" required type="number" value={exercise.sets} onChange={(event) => updateExercise(exercise.id, "sets", Number(event.target.value))} /></label>
+                  <label><span>Repetições</span><input placeholder="Ex.: 8-10" required value={exercise.reps} onChange={(event) => updateExercise(exercise.id, "reps", event.target.value)} /></label>
+                  <label><span>Descanso</span><input placeholder="Ex.: 90s" value={exercise.rest} onChange={(event) => updateExercise(exercise.id, "rest", event.target.value)} /></label>
+                  <label><span>Carga</span><input placeholder="Ex.: 20 kg" value={exercise.load} onChange={(event) => updateExercise(exercise.id, "load", event.target.value)} /></label>
                   <label><span>Técnica</span><select value={exercise.setType} onChange={(event) => updateExercise(exercise.id, "setType", event.target.value)}><option value="standard">Standard</option><option value="biset">Biset</option><option value="drop_set">Drop set</option></select></label>
                   {exercise.setType === "biset" && <>
-                    <input placeholder="Segundo exercício do biset" value={exercise.partnerName} onChange={(event) => updateExercise(exercise.id, "partnerName", event.target.value)} required />
-                    <input placeholder="Repetições do segundo exercício" value={exercise.partnerReps} onChange={(event) => updateExercise(exercise.id, "partnerReps", event.target.value)} />
-                    <input placeholder="Carga do segundo exercício" value={exercise.partnerLoad} onChange={(event) => updateExercise(exercise.id, "partnerLoad", event.target.value)} />
+                    <label><span>Segundo exercício do biset</span><input value={exercise.partnerName} onChange={(event) => updateExercise(exercise.id, "partnerName", event.target.value)} required /></label>
+                    <label><span>Repetições do segundo exercício</span><input value={exercise.partnerReps} onChange={(event) => updateExercise(exercise.id, "partnerReps", event.target.value)} /></label>
+                    <label><span>Carga do segundo exercício</span><input value={exercise.partnerLoad} onChange={(event) => updateExercise(exercise.id, "partnerLoad", event.target.value)} /></label>
                   </>}
                   {exercise.setType === "drop_set" && <>
-                    <input aria-label="Quantidade de etapas do drop set" type="number" min="1" max="6" value={exercise.dropCount} onChange={(event) => updateExercise(exercise.id, "dropCount", Number(event.target.value))} />
-                    <input placeholder="Cargas por etapa, separadas por vírgula" value={exercise.dropLoads} onChange={(event) => updateExercise(exercise.id, "dropLoads", event.target.value)} />
-                    <input placeholder="Repetições por etapa, separadas por vírgula" value={exercise.dropReps} onChange={(event) => updateExercise(exercise.id, "dropReps", event.target.value)} />
+                    <label><span>Etapas do drop set</span><input type="number" min="1" max="6" value={exercise.dropCount} onChange={(event) => updateExercise(exercise.id, "dropCount", Number(event.target.value))} /></label>
+                    <label><span>Cargas por etapa</span><input placeholder="Separadas por vírgula" value={exercise.dropLoads} onChange={(event) => updateExercise(exercise.id, "dropLoads", event.target.value)} /></label>
+                    <label><span>Repetições por etapa</span><input placeholder="Separadas por vírgula" value={exercise.dropReps} onChange={(event) => updateExercise(exercise.id, "dropReps", event.target.value)} /></label>
                   </>}
                   <label className="vivideo-input">
                     <span><Link size={15} /> Link do YouTube</span>
@@ -282,7 +284,7 @@ export default function WorkoutBuilder({ students, workouts, availableExercises 
                       </a>
                     )}
                   </label>
-                  <textarea placeholder="Observações e execução" value={exercise.explanation} onChange={(event) => updateExercise(exercise.id, "explanation", event.target.value)} />
+                  <label><span>Observações e execução</span><textarea placeholder="Orientações técnicas para o aluno" value={exercise.explanation} onChange={(event) => updateExercise(exercise.id, "explanation", event.target.value)} /></label>
                 </div>
               </article>
             );

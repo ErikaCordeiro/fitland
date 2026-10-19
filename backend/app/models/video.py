@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.db.session import Base
 
 
@@ -17,6 +18,6 @@ class Video(Base):
     provider: Mapped[str] = mapped_column(String(40), default="youtube", nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     embed_url: Mapped[str] = mapped_column(String(500), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     exercise = relationship("Exercise", back_populates="videos")

@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import asynccontextmanager
 import logging
 import os
 import socket
@@ -17,12 +18,28 @@ from app.core.errors import register_error_handlers
 from app.core.observability import build_identity, request_id_context
 from app.core.owner_bootstrap import normalize_owner_email, normalize_owner_password
 from app.core.security import verify_password
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, get_db
 from app.models.user import User, UserRole
 from sqlalchemy import func, select
 from sqlalchemy.engine import make_url
 
 logger = logging.getLogger("uvicorn.error")
+
+
+def apply_security_headers(response_headers: MutableHeaders) -> None:
+    response_headers["X-Content-Type-Options"] = "nosniff"
+    response_headers["X-Frame-Options"] = "DENY"
+    response_headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response_headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(), payment=()"
+    response_headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+        "form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob: https:; media-src 'self' blob: https:; "
+        "font-src 'self' data:; connect-src 'self'; "
+        "frame-src https://www.youtube.com https://www.youtube-nocookie.com"
+    )
+    if settings.ENVIRONMENT.lower() in {"production", "prod"}:
+        response_headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
 class RequestObservabilityMiddleware:
     def __init__(self, app: ASGIApp) -> None:
@@ -64,6 +81,7 @@ class RequestObservabilityMiddleware:
                 response_headers["X-Backend-Deployment"] = identity["deployment"]
                 response_headers["X-Fitland-Service"] = "backend"
                 response_headers["X-Fitland-Build"] = identity["version"]
+                apply_security_headers(response_headers)
             await send(message)
 
         try:
@@ -82,7 +100,13 @@ class RequestObservabilityMiddleware:
             request_id_context.reset(token)
 
 
-app = FastAPI(title=settings.APP_NAME, version="1.0.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    startup_diagnostics()
+    yield
+
+
+app = FastAPI(title=settings.APP_NAME, version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -118,7 +142,6 @@ app.include_router(coach.router, prefix="/api/coach", tags=["coach"])
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 
 
-@app.on_event("startup")
 def startup_diagnostics() -> None:
     login_registered = any(
         getattr(route, "path", None) == "/api/auth/login" and "POST" in getattr(route, "methods", set())
@@ -144,6 +167,9 @@ def startup_diagnostics() -> None:
 
     owner_email = normalize_owner_email(settings.OWNER_INITIAL_EMAIL)
     owner_password = normalize_owner_password(settings.OWNER_INITIAL_PASSWORD)
+    if get_db in app.dependency_overrides:
+        print("[diagnostic] owner_runtime_check unavailable=true reason=test_dependency_override", flush=True)
+        return
     db = SessionLocal()
     try:
         owners = db.scalars(
@@ -161,8 +187,7 @@ def startup_diagnostics() -> None:
             f"user_count={len(owners)} role_owner={str(bool(owner and owner.role == UserRole.OWNER)).lower()} "
             f"active={str(bool(owner and owner.is_active)).lower()} "
             f"status={owner.account_status if owner else 'none'} "
-            f"password_valid={str(password_valid).lower()} "
-            f"configured_password_len={len(owner_password)}",
+            f"password_valid={str(password_valid).lower()}",
             flush=True,
         )
     except Exception as exc:

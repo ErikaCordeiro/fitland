@@ -6,6 +6,7 @@ from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyCo
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.db.session import Base
 
 
@@ -25,8 +26,8 @@ class FinancialCharge(Base):
     due_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     payments = relationship("FinancialPayment", back_populates="charge", cascade="all, delete-orphan", order_by="FinancialPayment.paid_at")
 
@@ -51,6 +52,6 @@ class FinancialPayment(Base):
     paid_at: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     payment_method: Mapped[str | None] = mapped_column(String(32))
     notes: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     charge = relationship("FinancialCharge", back_populates="payments")

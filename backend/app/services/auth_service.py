@@ -1,12 +1,13 @@
+import hashlib
 import time
 import uuid
 import secrets
 import smtplib
 from urllib.parse import urlencode
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
-from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -24,16 +25,20 @@ from app.core.security import (
     verify_password,
 )
 from app.models.audit_log import AuditLog
+from app.models.auth_state import RefreshTokenSession
 from app.models.user import User, UserRole
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.user import UserCreate
 from app.services.email_service import send_password_reset_email
+from app.services.rate_limit_service import clear_attempts, is_limited, register_attempt
 
 LOCKOUT_WINDOW_SECONDS = 15 * 60
 MAX_FAILED_ATTEMPTS = 5
+LOGIN_HISTORY: list[dict[str, str]] = []
+# Compatibility state is used only by lightweight unit-test doubles that do
+# not implement SQLAlchemy transactions. Runtime Sessions always use PostgreSQL.
 FAILED_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
 REVOKED_REFRESH_JTIS: set[str] = set()
-LOGIN_HISTORY: list[dict[str, str]] = []
 
 
 def register_user(db: Session, payload: UserCreate) -> User:
@@ -53,18 +58,29 @@ def register_user(db: Session, payload: UserCreate) -> User:
     return user
 
 
-def _is_locked(email: str) -> bool:
-    now = time.time()
-    FAILED_ATTEMPTS[email] = [moment for moment in FAILED_ATTEMPTS[email] if now - moment < LOCKOUT_WINDOW_SECONDS]
-    return len(FAILED_ATTEMPTS[email]) >= MAX_FAILED_ATTEMPTS
+def _is_locked(db: Session, email: str) -> bool:
+    if not hasattr(db, "execute"):
+        now = time.time()
+        FAILED_ATTEMPTS[email] = [item for item in FAILED_ATTEMPTS[email] if now - item < LOCKOUT_WINDOW_SECONDS]
+        return len(FAILED_ATTEMPTS[email]) >= MAX_FAILED_ATTEMPTS
+    return is_limited(db, "auth_login", email, MAX_FAILED_ATTEMPTS)
 
 
-def _register_failure(email: str) -> None:
-    FAILED_ATTEMPTS[email].append(time.time())
+def _register_failure(db: Session, email: str) -> None:
+    if not hasattr(db, "execute"):
+        FAILED_ATTEMPTS[email].append(time.time())
+        if len(FAILED_ATTEMPTS[email]) > MAX_FAILED_ATTEMPTS:
+            raise DomainError("Muitas tentativas. Aguarde alguns minutos e tente novamente.", status.HTTP_429_TOO_MANY_REQUESTS)
+        return
+    if register_attempt(db, "auth_login", email, LOCKOUT_WINDOW_SECONDS) > MAX_FAILED_ATTEMPTS:
+        raise DomainError("Muitas tentativas. Aguarde alguns minutos e tente novamente.", status.HTTP_429_TOO_MANY_REQUESTS)
 
 
-def _register_success(email: str, user: User) -> None:
-    FAILED_ATTEMPTS.pop(email, None)
+def _register_success(db: Session, email: str, user: User) -> None:
+    if not hasattr(db, "execute"):
+        FAILED_ATTEMPTS.pop(email, None)
+    else:
+        clear_attempts(db, "auth_login", email)
     LOGIN_HISTORY.append(
         {
             "user_id": str(user.id),
@@ -94,8 +110,30 @@ def build_token_response(user: User) -> TokenResponse:
     )
 
 
-def build_refresh_token(user: User) -> str:
-    return create_refresh_token(str(user.id), {**_token_payload(user), "jti": str(uuid.uuid4())})
+def _jti_hash(jti: str) -> str:
+    return hashlib.sha256(jti.encode("utf-8")).hexdigest()
+
+
+def _aware(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def build_refresh_token(db: Session, user: User, persistent: bool) -> str:
+    now = datetime.now(timezone.utc)
+    jti = str(uuid.uuid4())
+    token = create_refresh_token(
+        str(user.id),
+        {**_token_payload(user), "jti": jti, "persistent": persistent},
+    )
+    db.add(RefreshTokenSession(
+        jti_hash=_jti_hash(jti),
+        user_id=user.id,
+        context=user.role.value,
+        persistent=persistent,
+        expires_at=now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        created_at=now,
+    ))
+    return token
 
 
 def request_password_reset(db: Session, email_value: str) -> None:
@@ -154,7 +192,7 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
         flush=True,
     )
 
-    if _is_locked(email):
+    if _is_locked(db, email):
         print(f"[auth] login_failed request_id={correlation_id} reason=blocked_account", flush=True)
         raise DomainError("Muitas tentativas. Aguarde alguns minutos e tente novamente.", status.HTTP_429_TOO_MANY_REQUESTS)
 
@@ -162,11 +200,11 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
         print(f"[auth] login_failed request_id={correlation_id} reason=internal_auth_error duplicate_accounts=true", flush=True)
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
     if not user:
-        _register_failure(email)
+        _register_failure(db, email)
         print(f"[auth] login_failed request_id={correlation_id} reason=user_not_found", flush=True)
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
     if user.role == UserRole.OWNER:
-        _register_failure(email)
+        _register_failure(db, email)
         print(f"[auth] login_failed request_id={correlation_id} reason=owner_context_required", flush=True)
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
 
@@ -180,7 +218,7 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
         flush=True,
     )
     if not password_valid:
-        _register_failure(email)
+        _register_failure(db, email)
         print(f"[auth] login_failed request_id={correlation_id} reason=invalid_credentials", flush=True)
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
     if user.deleted_at is not None or not user.is_active:
@@ -194,13 +232,13 @@ def authenticate(db: Session, payload: LoginRequest) -> tuple[TokenResponse, str
     try:
         token_response = build_token_response(user)
         print(f"[auth] access_token_created request_id={correlation_id}", flush=True)
-        refresh_token = build_refresh_token(user) if payload.keep_connected else None
+        refresh_token = build_refresh_token(db, user, payload.keep_connected)
         print(
             f"[auth] refresh_session_created request_id={correlation_id} "
-            f"persistent={str(bool(refresh_token)).lower()}",
+            f"persistent={str(bool(payload.keep_connected)).lower()}",
             flush=True,
         )
-        _register_success(email, user)
+        _register_success(db, email, user)
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -253,7 +291,7 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
             flush=True,
         )
 
-    if _is_locked(email) and not owner_recovery_matches:
+    if _is_locked(db, email) and not owner_recovery_matches:
         log_decision("rejected_rate_limit", locked=True)
         raise DomainError("Muitas tentativas. Aguarde alguns minutos e tente novamente.", status.HTTP_429_TOO_MANY_REQUESTS)
 
@@ -294,7 +332,7 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
                 password_valid = False
 
     if not user or owner_count != 1 or not password_valid:
-        _register_failure(email)
+        _register_failure(db, email)
         reason = "owner_not_found" if not user or owner_count != 1 else "password_mismatch"
         log_decision(f"rejected_{reason}")
         raise DomainError("Invalid email or password", status.HTTP_401_UNAUTHORIZED)
@@ -304,7 +342,7 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
         raise DomainError("Inactive user", status.HTTP_403_FORBIDDEN)
 
     try:
-        _register_success(email, user)
+        _register_success(db, email, user)
         db.add(AuditLog(
             actor_user_id=user.id,
             action="owner_login",
@@ -313,14 +351,13 @@ def authenticate_owner(db: Session, payload: LoginRequest) -> tuple[TokenRespons
             details={"entrypoint": "fitland"},
         ))
         token_response = build_token_response(user)
-        refresh_token = build_refresh_token(user) if payload.keep_connected else None
+        refresh_token = build_refresh_token(db, user, payload.keep_connected)
         db.commit()
     except Exception as exc:
         db.rollback()
         log_decision("failed_session_creation")
         raise DomainError("Unable to create session", status.HTTP_500_INTERNAL_SERVER_ERROR) from exc
 
-    FAILED_ATTEMPTS.pop(email, None)
     log_decision("accepted")
     return token_response, refresh_token
 
@@ -348,7 +385,7 @@ def change_required_owner_password(
         db.commit()
         db.refresh(owner)
         token_response = build_token_response(owner)
-        refresh_token = build_refresh_token(owner)
+        refresh_token = build_refresh_token(db, owner, True)
         return token_response, refresh_token
     except Exception as exc:
         db.rollback()
@@ -362,7 +399,28 @@ def refresh_session(db: Session, refresh_token: str, expected_context: str | Non
         raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
 
     jti = str(payload.get("jti") or "")
-    if not jti or jti in REVOKED_REFRESH_JTIS:
+    if not jti:
+        raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
+
+    if not hasattr(db, "execute"):
+        if jti in REVOKED_REFRESH_JTIS:
+            raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
+        user = db.get(User, user_id)
+        if not user or not user.is_active or int(payload.get("token_version", 0)) != int(user.token_version or 0):
+            raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
+        expected_roles = {"owner": {UserRole.OWNER}, "personal": {UserRole.PERSONAL}, "student": {UserRole.STUDENT}}
+        if expected_context and user.role not in expected_roles.get(expected_context, set()):
+            raise DomainError("Sessão incompatível com este acesso.", status.HTTP_401_UNAUTHORIZED)
+        REVOKED_REFRESH_JTIS.add(jti)
+        return build_token_response(user), build_refresh_token(db, user, bool(payload.get("persistent", True)))
+
+    now = datetime.now(timezone.utc)
+    session = db.scalar(
+        select(RefreshTokenSession)
+        .where(RefreshTokenSession.jti_hash == _jti_hash(jti))
+        .with_for_update()
+    )
+    if not session or session.consumed_at or session.revoked_at or _aware(session.expires_at) <= now:
         raise DomainError("Sessão expirada. Entre novamente.", status.HTTP_401_UNAUTHORIZED)
 
     user = db.get(User, user_id)
@@ -377,12 +435,21 @@ def refresh_session(db: Session, refresh_token: str, expected_context: str | Non
     }
     if expected_context and user.role not in expected_roles.get(expected_context, set()):
         raise DomainError("Sessão incompatível com este acesso.", status.HTTP_401_UNAUTHORIZED)
+    if session.user_id != user.id or session.context != user.role.value:
+        raise DomainError("Sessão incompatível com este acesso.", status.HTTP_401_UNAUTHORIZED)
 
-    REVOKED_REFRESH_JTIS.add(jti)
-    return build_token_response(user), build_refresh_token(user)
+    session.consumed_at = now
+    rotated = build_refresh_token(db, user, bool(session.persistent))
+    db.execute(
+        delete(RefreshTokenSession)
+        .where(RefreshTokenSession.expires_at <= now)
+        .execution_options(synchronize_session=False)
+    )
+    db.commit()
+    return build_token_response(user), rotated
 
 
-def revoke_refresh_token(refresh_token: str | None) -> None:
+def revoke_refresh_token(db: Session, refresh_token: str | None) -> None:
     if not refresh_token:
         return
     try:
@@ -390,8 +457,16 @@ def revoke_refresh_token(refresh_token: str | None) -> None:
     except ValueError:
         return
     jti = str(payload.get("jti") or "")
-    if jti:
-        REVOKED_REFRESH_JTIS.add(jti)
+    if not jti:
+        return
+    session = db.scalar(
+        select(RefreshTokenSession)
+        .where(RefreshTokenSession.jti_hash == _jti_hash(jti))
+        .with_for_update()
+    )
+    if session and session.revoked_at is None:
+        session.revoked_at = datetime.now(timezone.utc)
+        db.commit()
 
 
 def get_connected_devices(user: User) -> list[dict[str, str | bool]]:

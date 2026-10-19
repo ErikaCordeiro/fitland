@@ -15,7 +15,8 @@ from app.models.personal_branding import PersonalBranding
 from app.models.student import Student
 from app.models.student_access_invite import StudentAccessInvite
 from app.models.user import User, UserRole
-from app.services.student_invite_service import INVITE_ATTEMPTS, MAX_TOKEN_ATTEMPTS, TOKEN_ATTEMPTS
+from app.models.auth_state import RateLimitBucket
+from app.services.student_invite_service import MAX_TOKEN_ATTEMPTS
 
 
 def actor(role, name):
@@ -25,7 +26,7 @@ def actor(role, name):
 @pytest.fixture()
 def context(monkeypatch):
     engine = create_engine("sqlite+pysqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    Base.metadata.create_all(engine); db = Session(engine); INVITE_ATTEMPTS.clear(); TOKEN_ATTEMPTS.clear()
+    Base.metadata.create_all(engine); db = Session(engine)
     personal, other = actor(UserRole.PERSONAL, "Personal"), actor(UserRole.PERSONAL, "Other")
     db.add_all([personal, other]); db.flush()
     student = Student(personal_id=personal.id, name="Ana da Silva", email="ana@example.com", age=30, weight=70, height=1.7, objective="Saúde")
@@ -36,7 +37,7 @@ def context(monkeypatch):
     monkeypatch.setattr("app.services.student_invite_service.send_student_access_invite_email", lambda email, url, name: sent.append((email, url, name)))
     app.dependency_overrides[get_db] = lambda: db
     yield db, personal, other, student, foreign, sent
-    app.dependency_overrides.clear(); db.close(); engine.dispose(); INVITE_ATTEMPTS.clear()
+    app.dependency_overrides.clear(); db.close(); engine.dispose()
 
 
 def client(user=None):
@@ -109,5 +110,5 @@ def test_invite_validation_is_rate_limited_without_storing_plain_token(context):
         assert client().get(f"/api/auth/student-invites/validate?token={token}&slug=personal-a").status_code == 400
     response = client().get(f"/api/auth/student-invites/validate?token={token}&slug=personal-a")
     assert response.status_code == 429
-    assert token not in TOKEN_ATTEMPTS
+    assert token not in " ".join(row.bucket_hash for row in context[0].scalars(select(RateLimitBucket)))
     assert token not in response.text

@@ -1,7 +1,7 @@
 import os
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -70,7 +70,7 @@ def make_user(role=UserRole.OWNER, **changes):
         "account_status": "active",
         "must_change_password": False,
         "token_version": 0,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "deleted_at": None,
         "avatar_url": None,
         "theme_preference": "auto",
@@ -572,9 +572,10 @@ def test_duplicate_normalized_accounts_are_rejected():
     assert error.value.status_code == 401
 
 
-def test_non_persistent_login_does_not_create_refresh_token():
+def test_non_persistent_login_creates_session_only_refresh_token():
     _, refresh = authenticate(FakeSession([make_user(role=UserRole.PERSONAL)]), payload(keep=False))
-    assert refresh is None
+    assert refresh
+    assert auth_service.decode_refresh_token(refresh)["persistent"] is False
 
 
 def test_http_login_endpoint_creates_session_cookie():

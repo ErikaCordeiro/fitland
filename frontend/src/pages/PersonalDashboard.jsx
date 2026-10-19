@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CheckSquare,
   CircleDollarSign,
-  ClipboardCheck,
   Dumbbell,
   LineChart,
   MessageSquare,
@@ -44,7 +43,6 @@ export default function PersonalDashboard({ students = [], workouts = [], dataSt
     { label: "Alunos ativos", value: String(studentCount), detail: studentCount ? "Dados atuais" : "Sem alunos ainda", icon: Users, page: "students" },
     { label: "Adesão média", value: "—", detail: "Sem dados ainda", icon: TrendingUp, page: "progress" },
     { label: "Treinos cadastrados", value: String(workoutCount), detail: workoutCount ? "Dados atuais" : "Sem treinos ainda", icon: Dumbbell, page: "workout-builder" },
-    { label: "Avaliações pendentes", value: "0", detail: "Sem dados ainda", icon: ClipboardCheck, page: "assessments" },
     { label: "Faturamento mensal", value: "—", detail: "Sem dados ainda", icon: CircleDollarSign, page: "finance" },
     { label: "Retenção (30 dias)", value: "—", detail: "Sem dados ainda", icon: RefreshCw, page: "progress" }
   ], [studentCount, workoutCount]);
@@ -64,11 +62,11 @@ export default function PersonalDashboard({ students = [], workouts = [], dataSt
         <button className="ghost-button compact" type="button" onClick={() => go("reports")}><BarChart3 size={17} /> Relatórios</button>
       </div>
 
-      {dataStatus === "loading" ? <div className="tenant-data-state" role="status"><strong>Carregando dados...</strong><span>Buscando informacoes deste Personal.</span></div> : null}
+      {dataStatus === "loading" ? <div className="dashboard-skeleton" role="status" aria-live="polite"><strong>Carregando dados do Personal...</strong><div aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <span key={index} />)}</div></div> : null}
       {dataStatus === "error" ? <div className="tenant-data-state error" role="alert"><strong>Nao foi possivel carregar o dashboard</strong><span>{dataError || "Tente novamente."}</span><button className="ghost-button inline" type="button" onClick={onRetry}>Tentar novamente</button></div> : null}
       {dataStatus === "partial" ? <div className="tenant-data-warning" role="status">Alguns dados nao puderam ser carregados. As informacoes disponiveis continuam sendo exibidas.</div> : null}
 
-      <section className="admin-kpis">
+      {dataStatus !== "loading" && dataStatus !== "error" ? <><section className="admin-kpis">
         {kpis.map(({ label, value, detail, icon: Icon, page }) => (
           <button className="admin-kpi-card" key={label} type="button" onClick={() => go(page)}>
             <div>
@@ -175,7 +173,7 @@ export default function PersonalDashboard({ students = [], workouts = [], dataSt
         <button type="button" onClick={() => go("settings")}><ShieldCheck size={36} /><span><strong>Gestão completa</strong>Tenha total controle do seu negócio fitness</span></button>
         <button type="button" onClick={() => go("reports")}><LineChart size={36} /><span><strong>Dados inteligentes</strong>Acompanhe métricas e tome decisões melhores</span></button>
         <button type="button" onClick={() => go("progress")}><Users size={36} /><span><strong>Evolução dos alunos</strong>Veja o progresso e resultados dos seus alunos</span></button>
-      </section>
+      </section></> : null}
 
       {modal && (
         <div className="admin-action-modal-backdrop" role="dialog" aria-modal="true" aria-label={modal.title}>

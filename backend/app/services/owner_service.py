@@ -6,6 +6,7 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session
 from starlette import status
 
+from app.core.time import utc_now
 from app.core.errors import DomainError
 from app.core.owner_bootstrap import normalize_owner_email, normalize_owner_password
 from app.core.security import hash_password, verify_password
@@ -197,7 +198,7 @@ def reset_access(db: Session, actor: User, user: User):
 
 
 def soft_delete(db: Session, actor: User, user: User):
-    user.deleted_at = datetime.utcnow(); user.account_status = "deleted"; user.is_active = False
+    user.deleted_at = utc_now(); user.account_status = "deleted"; user.is_active = False
     audit(db, actor, "personal_deleted", "user", user.id); db.commit()
 
 

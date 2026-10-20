@@ -12,7 +12,6 @@ import {
   Plus,
   Save,
   Star,
-  Video,
   Volume2,
   X
 } from "lucide-react";
@@ -198,15 +197,30 @@ function youtubeThumbnail(videoUrl) {
 }
 
 function ExerciseVideoPreview({ exercise, onOpen }) {
-  if (!exercise?.videoUrl) return <span className="exercise-video-unavailable">Vídeo não disponível</span>;
+  if (!exercise?.videoUrl) return null;
   const thumbnail = youtubeThumbnail(exercise.videoUrl);
+  const previewLabel = exercise.videoProvider === "upload" ? "Vídeo do Personal" : "Ver execução";
   return (
-    <button className={`exercise-video-preview ${thumbnail ? "has-thumbnail" : "uploaded-video"}`} type="button" onClick={onOpen} aria-label={`Ver execução de ${exercise.name}`}>
+    <button className={`exercise-video-preview ${thumbnail ? "has-thumbnail" : "uploaded-video"}`} type="button" onClick={onOpen} aria-label={`${previewLabel} de ${exercise.name}`}>
       {thumbnail && <img src={thumbnail} alt="" loading="lazy" />}
+      {!thumbnail && <video src={exercise.videoUrl} muted preload="metadata" playsInline aria-hidden="true" />}
       <span className="exercise-video-play"><Play size={20} fill="currentColor" /></span>
-      <small>{exercise.videoProvider === "upload" ? "Vídeo do Personal" : "Ver execução"}</small>
+      <small>{previewLabel}</small>
     </button>
   );
+}
+
+function ExerciseVideoPlayer({ exercise }) {
+  const [failed, setFailed] = useState(false);
+  const youtube = youtubeThumbnail(exercise.videoUrl);
+
+  if (failed) {
+    return <p className="exercise-video-error" role="alert">Não foi possível carregar este vídeo. Tente novamente mais tarde.</p>;
+  }
+  if (youtube) {
+    return <iframe src={toYoutubeEmbedUrl(exercise.videoUrl)} title={`Execução de ${exercise.name}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />;
+  }
+  return <video src={exercise.videoUrl} controls preload="metadata" playsInline onError={() => setFailed(true)} />;
 }
 
 function buildInitialExecution(workout) {
@@ -411,6 +425,7 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
   const [tick, setTick] = useState(Date.now());
   const [setModal, setSetModal] = useState(null);
   const [videoExercise, setVideoExercise] = useState(null);
+  const videoTriggerRef = React.useRef(null);
   const [finishOpen, setFinishOpen] = useState(false);
   const [confirmIncomplete, setConfirmIncomplete] = useState(false);
   const [saving, setSaving] = useState("Salvo");
@@ -428,6 +443,17 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
     painIntensity: "0",
     observation: ""
   });
+
+  function openExerciseVideo(exercise, event) {
+    if (!exercise?.videoUrl) return;
+    videoTriggerRef.current = event?.currentTarget || null;
+    setVideoExercise(exercise);
+  }
+
+  function closeExerciseVideo() {
+    setVideoExercise(null);
+    window.requestAnimationFrame(() => videoTriggerRef.current?.focus());
+  }
 
   useEffect(() => {
     const restored = loadExecution(workout, scope);
@@ -803,7 +829,7 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
   const currentTechnique = workoutTechniqueDetails(currentExercise);
 
   return (
-    <main className="workout-execution-v2 app-page student-mobile-safe">
+    <div className="workout-execution-v2 app-page student-mobile-safe">
       <section className="execution-v2-shell">
         <header className="execution-v2-header premium-panel">
           <button className="icon-button" type="button" onClick={onBack} aria-label="Voltar"><ArrowLeft size={18} /></button>
@@ -837,7 +863,7 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
           <aside className="execution-v2-current premium-panel">
             <div className="current-exercise-heading">
               <div><span className="eyebrow">Exercício atual</span><h3>{currentExecution?.position || 1} de {workout.exercises.length}</h3></div>
-              <ExerciseVideoPreview exercise={currentExercise} onOpen={() => setVideoExercise(currentExercise)} />
+              <ExerciseVideoPreview exercise={currentExercise} onOpen={(event) => openExerciseVideo(currentExercise, event)} />
             </div>
             <h2>{currentExercise?.name}</h2>
             <span className={`technique-badge technique-${currentTechnique.type}`}>{currentTechnique.label}</span>
@@ -901,7 +927,7 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
                           </div>
                           <p>{source?.explanation || "Execute com controle, postura e amplitude segura."}</p>
                         </div>
-                        <ExerciseVideoPreview exercise={source} onOpen={() => setVideoExercise(source)} />
+                        <ExerciseVideoPreview exercise={source} onOpen={(event) => openExerciseVideo(source, event)} />
                       </div>
                       {technique.items.length > 0 && (
                         <div className="technique-summary" aria-label={`Estrutura ${technique.label}`}>
@@ -914,7 +940,6 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
                           ))}
                         </div>
                       )}
-                      {source?.videoUrl && <button className="video-link-button" type="button" onClick={() => setVideoExercise(source)}><Video size={16} /> Ver execução</button>}
                       <button className="exercise-start-button" type="button" onClick={() => startSet(exerciseExecution.exerciseId, exerciseExecution.sets.find((set) => set.status !== "concluida")?.setNumber)} disabled={complete || execution.status === "pausado" || execution.rest?.status === "em_andamento"}>
                         <Play size={17} /> {exerciseExecution.status === "em_andamento" ? "Continuar" : complete ? "Concluído" : "Iniciar"}
                       </button>
@@ -1091,19 +1116,17 @@ export default function WorkoutExecution({ workout, scope, onBack, onToggleExerc
       )}
 
       {videoExercise && (
-        <div className="modal-backdrop exercise-video-backdrop" role="dialog" aria-modal="true" aria-labelledby="exercise-video-title" onMouseDown={() => setVideoExercise(null)}>
+        <div className="modal-backdrop exercise-video-backdrop" role="dialog" aria-modal="true" aria-labelledby="exercise-video-title" onMouseDown={closeExerciseVideo} onKeyDown={(event) => { if (event.key === "Escape") closeExerciseVideo(); }}>
           <article className="form-modal premium-panel vivideo-modal" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="icon-button modal-close" type="button" onClick={() => setVideoExercise(null)} aria-label="Fechar"><X size={18} /></button>
+            <button className="icon-button modal-close" type="button" onClick={closeExerciseVideo} aria-label="Fechar vídeo" autoFocus><X size={18} /></button>
             <span className="eyebrow">Execução</span>
             <h3 id="exercise-video-title">{videoExercise.name}</h3>
-            {youtubeThumbnail(videoExercise.videoUrl) ? (
-              <iframe src={toYoutubeEmbedUrl(videoExercise.videoUrl)} title={videoExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-            ) : <video src={videoExercise.videoUrl} controls preload="metadata" playsInline />}
+            <ExerciseVideoPlayer exercise={videoExercise} />
             {youtubeThumbnail(videoExercise.videoUrl) && <a className="metal-button light" href={toYoutubeWatchUrl(videoExercise.videoUrl)} target="_blank" rel="noreferrer">Abrir no YouTube</a>}
           </article>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

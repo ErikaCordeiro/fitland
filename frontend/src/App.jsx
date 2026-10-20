@@ -379,7 +379,7 @@ export default function App() {
     );
   }
 
-  if (isLegacyStudentEntryPath(window.location.pathname)) {
+  if (!session && isLegacyStudentEntryPath(window.location.pathname)) {
     return <LegacyStudentEntry />;
   }
 

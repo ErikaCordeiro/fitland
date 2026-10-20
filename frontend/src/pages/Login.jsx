@@ -166,6 +166,7 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
 
   return (
     <main className="login-screen">
+      <h1 className="sr-only">{visualBranding.display_name || "Fitland"}</h1>
       <div className="login-orbit" aria-hidden="true" />
       <section className="login-showcase">
         <LionLogo hero branding={visualBranding} platform={isOwnerContext} />

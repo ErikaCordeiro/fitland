@@ -290,6 +290,7 @@ test("student entries without a tenant render neutral guidance instead of generi
   assert.equal(isLegacyStudentEntryPath("/dashboard/aluno/"), true);
   assert.equal(isLegacyStudentEntryPath("/personal/thiago-fillipo/aluno/login"), false);
   assert.equal(isLegacyStudentEntryPath("/personal/hugo/aluno/login"), false);
+  assert.match(appSource, /!session && isLegacyStudentEntryPath\(window\.location\.pathname\)/);
   assert.match(appSource, /Use o link enviado pelo seu Personal/);
   assert.match(appSource, /isLegacyStudentEntryPath\(window\.location\.pathname\)/);
 });

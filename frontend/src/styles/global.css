@@ -22081,13 +22081,14 @@ body.theme-light :where(.personal-layout,.student-layout-shell) :where(.metal-bu
   background: #25282b;
   cursor: pointer;
 }
-.exercise-video-preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.exercise-video-preview img,
+.exercise-video-preview > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .exercise-video-preview.has-thumbnail::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+.exercise-video-preview.uploaded-video::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.2); }
 .exercise-video-preview span,
 .exercise-video-preview small { position: relative; z-index: 1; color: #fff; }
 .exercise-video-play { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(0,0,0,.76); }
 .exercise-video-preview small { font-size: .76rem; font-weight: 800; }
-.exercise-video-unavailable { align-self: center; color: #b8bdc2; font-size: .82rem; }
 .exercise-start-button {
   min-height: 44px;
   display: inline-flex;
@@ -22110,6 +22111,7 @@ body.theme-light :where(.personal-layout,.student-layout-shell) :where(.metal-bu
 .workout-set-modal textarea { min-height: 92px; }
 .vivideo-modal { width: min(94vw, 820px); padding: 22px; border-radius: 12px; }
 .vivideo-modal video { width: 100%; max-height: 68vh; border-radius: 8px; background: #000; }
+.exercise-video-error { margin: 0; padding: 18px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; color: #f2f3f4; background: #202225; text-align: center; }
 
 /* Workout history remains readable in both personal themes. */
 .personal-layout .workout-list .workout-card { border: 1px solid var(--line); }

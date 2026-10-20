@@ -67,12 +67,12 @@ export default function Header({
           <button
             className="icon-button"
             type="button"
-            aria-label="Notificações"
+            aria-label={notifications.length > 0 ? `Notificações: ${notifications.length}` : "Notificações"}
             aria-expanded={notificationsOpen}
             onClick={() => setNotificationsOpen((value) => !value)}
           >
             <Bell size={19} />
-            {notifications.length > 0 ? <span className="notification-dot">{notifications.length}</span> : null}
+            {notifications.length > 0 ? <span className="notification-dot" aria-hidden="true">{notifications.length}</span> : null}
           </button>
           {notificationsOpen && (
             <div className="notification-popover" role="dialog" aria-label="Notificações">

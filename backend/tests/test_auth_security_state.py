@@ -1,6 +1,10 @@
+import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
+import pytest
 from sqlalchemy import create_engine, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
@@ -14,6 +18,15 @@ from app.services.rate_limit_service import is_limited, register_attempt
 
 
 def database():
+    integration_url = os.getenv("TEST_POSTGRESQL_URL")
+    if integration_url:
+        parsed = make_url(integration_url)
+        assert parsed.host in {"127.0.0.1", "localhost"}
+        assert (parsed.database or "").startswith("fitland_qa")
+        engine = create_engine(integration_url, pool_pre_ping=True)
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+        return engine
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -88,3 +101,41 @@ def test_security_headers_are_added_without_exposing_credentials():
     assert headers["x-frame-options"] == "DENY"
     assert "frame-ancestors 'none'" in headers["content-security-policy"]
     assert set(headers).isdisjoint({"authorization", "cookie", "set-cookie"})
+
+
+@pytest.mark.skipif(not os.getenv("TEST_POSTGRESQL_URL"), reason="requires isolated PostgreSQL")
+def test_postgresql_serializes_refresh_replay_and_rate_limit_updates():
+    engine = database()
+    with Session(engine) as db:
+        actor = user()
+        db.add(actor)
+        db.flush()
+        original = build_refresh_token(db, actor, True)
+        db.commit()
+
+    def rotate_once():
+        with Session(engine) as db:
+            try:
+                refresh_session(db, original, "personal")
+                return "rotated"
+            except Exception as exc:
+                return getattr(exc, "status_code", None)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(lambda _: rotate_once(), range(2)))
+    assert sorted(results, key=str) == [401, "rotated"]
+
+    sensitive_key = "concurrent-person@example.test"
+    with Session(engine) as db:
+        register_attempt(db, "auth_login", sensitive_key, 900)
+
+    def add_attempt():
+        with Session(engine) as db:
+            return register_attempt(db, "auth_login", sensitive_key, 900)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        list(executor.map(lambda _: add_attempt(), range(2)))
+    with Session(engine) as db:
+        bucket = db.scalar(select(RateLimitBucket))
+        assert bucket.attempts == 3
+        assert sensitive_key not in bucket.bucket_hash

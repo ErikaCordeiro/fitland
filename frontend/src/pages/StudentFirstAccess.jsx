@@ -6,7 +6,7 @@ import { firstAccessBrandingEndpoint, resolveFirstAccessBranding } from "../util
 import { tenantThemeStyle } from "../utils/tenantBranding.js";
 
 export default function StudentFirstAccess({ slug, branding: initialBranding }) {
-  const token = new URLSearchParams(window.location.search).get("token") || "";
+  const [token] = useState(() => new URLSearchParams(window.location.search).get("token") || "");
   const [branding, setBranding] = useState(() => resolveFirstAccessBranding(initialBranding, slug));
   const [brandingReady, setBrandingReady] = useState(initialBranding?.slug === slug);
   const [status, setStatus] = useState("loading");

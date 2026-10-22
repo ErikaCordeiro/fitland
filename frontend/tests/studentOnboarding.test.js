@@ -40,6 +40,8 @@ test("first access is contextual, accessible, and never stores its token", () =>
   assert.match(routing, /primeiro-acesso\|cadastro/);
   assert.match(app, /onboarding_completed_at/);
   assert.match(app, /\/users\/me\/onboarding/);
+  assert.match(firstAccess, /const \[token\] = useState\(\(\) => new URLSearchParams/);
+  assert.doesNotMatch(firstAccess, /const token = new URLSearchParams/);
 });
 
 test("first access branding stays contextual independently of token state", () => {

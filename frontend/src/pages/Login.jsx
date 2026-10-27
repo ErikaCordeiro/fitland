@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Apple, Chrome, Download, Eye, EyeOff, Lock, Mail, X } from "lucide-react";
+import { Apple, ArrowRight, Chrome, Download, Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import LionLogo from "../components/LionLogo.jsx";
 import { apiRequest, confirmPasswordReset, login as apiLogin, requestPasswordReset } from "../services/api.js";
 import { applyRouteBranding } from "../utils/authRouting.js";
@@ -13,6 +13,7 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installMessage, setInstallMessage] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [keepConnected, setKeepConnected] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -89,7 +90,6 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
       setInstallPrompt(event);
-      setInstallMessage("Instalação disponível no Android/Chrome. Toque em Instalar app para adicionar na tela inicial.");
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -141,6 +141,7 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
   const submit = async (event) => {
     event.preventDefault();
     setLoginError("");
+    setIsSubmitting(true);
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email"));
     const password = String(form.get("password"));
@@ -155,6 +156,8 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
           ? "E-mail ou senha inválidos."
           : message
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -162,6 +165,68 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
     return brandingLoadError
       ? <main className="login-screen login-loading-screen" role="alert"><p>Não foi possível carregar a identidade visual.</p><button type="button" onClick={() => setBrandingRetry((current) => current + 1)}>Tentar novamente</button></main>
       : <main className="login-screen login-loading-screen" role="status" aria-label="Carregando identidade visual" />;
+  }
+
+  const resetDialog = resetOpen && (
+    <div className="signup-modal-backdrop" onMouseDown={() => setResetOpen(false)}>
+      <form className="signup-modal password-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onSubmit={requestReset} onMouseDown={(event) => event.stopPropagation()}>
+        <div className="section-heading">
+          <div><p className="eyebrow">Segurança</p><h2 id="reset-title">Redefinir senha por e-mail</h2><span>Enviaremos um link temporário para o e-mail cadastrado.</span></div>
+          <button className="icon-button signup-close-button" type="button" onClick={() => setResetOpen(false)} aria-label="Fechar"><X size={22} /></button>
+        </div>
+        <label><span>E-mail</span><div className="input-shell"><Mail size={16} /><input name="email" type="email" defaultValue={credentials.email} autoComplete="email" required /></div></label>
+        {resetMessage ? <p className="signup-success-message">{resetMessage}</p> : null}
+        {resetError ? <p className="login-error">{resetError}</p> : null}
+        <button className="metal-button inline" type="submit">Enviar link</button>
+      </form>
+    </div>
+  );
+
+  if (isOwnerContext) {
+    return (
+      <main className="owner-login-screen">
+        <h1 className="sr-only">Acesso Fitland</h1>
+        <section className="owner-login-visual" aria-labelledby="owner-login-title">
+          <div className="sr-only">
+            <h2 id="owner-login-title">Performance, gestão e evolução.</h2>
+            <p>Tudo o que você precisa para acompanhar seus treinos, alunos e resultados em um só lugar.</p>
+            <ul><li>Acompanhe seus resultados.</li><li>Gerencie seus alunos.</li><li>Mais disciplina e evolução.</li></ul>
+          </div>
+        </section>
+
+        <section className="owner-login-auth" aria-label="Acesso à plataforma Fitland">
+          <div className="owner-login-card">
+            {resetToken ? <form className="owner-login-form" onSubmit={completeReset}>
+              <div className="owner-login-brand-lockup"><img src="/fitland-owner-symbol.png" alt="" /><strong>FITLAND</strong><span>PLATAFORMA DE GESTÃO FITNESS</span></div>
+              <div className="owner-login-heading"><h2>Redefinir senha</h2><p>Crie uma nova senha segura para continuar.</p></div>
+              <label><span>Nova senha</span><div className="input-shell"><Lock size={18} /><input name="new_password" type="password" minLength={10} autoComplete="new-password" required /></div></label>
+              <label><span>Confirmar nova senha</span><div className="input-shell"><Lock size={18} /><input name="confirm_password" type="password" minLength={10} autoComplete="new-password" required /></div></label>
+              {resetError ? <p className="login-error" role="alert">{resetError}</p> : null}
+              <button className="owner-login-submit" type="submit">Redefinir senha</button>
+            </form> : <form className="owner-login-form" onSubmit={submit} aria-busy={isSubmitting}>
+              <div className="owner-login-brand-lockup"><img src="/fitland-owner-symbol.png" alt="" /><strong>FITLAND</strong><span>PLATAFORMA DE GESTÃO FITNESS</span></div>
+              <label>
+                <span className="sr-only">E-mail</span>
+                <div className="input-shell"><Mail size={18} /><input name="email" type="email" placeholder="seu@email.com" value={credentials.email} onChange={(event) => setCredentials((current) => ({ ...current, email: event.target.value }))} autoComplete="email" required /></div>
+              </label>
+              <label>
+                <span className="sr-only">Senha</span>
+                <div className="input-shell"><Lock size={18} /><input name="password" type={showPassword ? "text" : "password"} placeholder="Digite sua senha" value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} minLength={8} autoComplete="current-password" required /><button className="password-toggle" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
+              </label>
+              <div className="login-options-row">
+                <label className="keep-connected-option"><input type="checkbox" checked={keepConnected} onChange={(event) => setKeepConnected(event.target.checked)} /><span>Lembrar de mim</span></label>
+                <button className="forgot-link" type="button" onClick={() => { setResetOpen(true); setResetMessage(""); setResetError(""); }}>Esqueci minha senha</button>
+              </div>
+              {loginError ? <p className="login-error" role="alert">{loginError}</p> : null}
+              <button className="owner-login-submit" type="submit" disabled={isSubmitting}><span>{isSubmitting ? "ENTRANDO..." : "ENTRAR"}</span><ArrowRight size={22} aria-hidden="true" /></button>
+              <button className="owner-login-install" type="button" onClick={installApp}><Download size={17} />Instalar app</button>
+              {installMessage ? <p className="install-app-hint" role="status">{installMessage}</p> : null}
+            </form>}
+          </div>
+        </section>
+        {resetDialog}
+      </main>
+    );
   }
 
   return (
@@ -233,7 +298,7 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
             <button className="forgot-link" type="button" onClick={() => { setResetOpen(true); setResetMessage(""); setResetError(""); }}>Esqueci minha senha</button>
           </div>
           {loginError ? <p className="login-error">{loginError}</p> : null}
-          <button className="metal-button" type="submit">Entrar</button>
+          <button className="metal-button" type="submit" disabled={isSubmitting}>{isSubmitting ? "Entrando..." : "Entrar"}</button>
           <button className="install-app-button" type="button" onClick={installApp}>
             <Download size={15} />
             Instalar app
@@ -250,20 +315,7 @@ export default function Login({ onLogin, onBrandingResolved, context = "platform
           </small>}
         </form>}
       </section>
-      {resetOpen && (
-        <div className="signup-modal-backdrop" onMouseDown={() => setResetOpen(false)}>
-          <form className="signup-modal password-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onSubmit={requestReset} onMouseDown={(event) => event.stopPropagation()}>
-            <div className="section-heading">
-              <div><p className="eyebrow">Seguranca</p><h2 id="reset-title">Redefinir senha por e-mail</h2><span>Enviaremos um link temporario para o e-mail cadastrado.</span></div>
-              <button className="icon-button signup-close-button" type="button" onClick={() => setResetOpen(false)} aria-label="Fechar"><X size={22} /></button>
-            </div>
-            <label><span>E-mail</span><div className="input-shell"><Mail size={16} /><input name="email" type="email" defaultValue={credentials.email} autoComplete="email" required /></div></label>
-            {resetMessage ? <p className="signup-success-message">{resetMessage}</p> : null}
-            {resetError ? <p className="login-error">{resetError}</p> : null}
-            <button className="metal-button inline" type="submit">Enviar link</button>
-          </form>
-        </div>
-      )}
+      {resetDialog}
     </main>
   );
 }

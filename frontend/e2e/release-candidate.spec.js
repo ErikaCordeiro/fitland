@@ -82,6 +82,91 @@ test.describe("public branding and responsive quality", () => {
   }
 });
 
+test.describe("premium Fitland owner login", () => {
+  for (const width of [320, 360, 375, 390, 430, 768, 1024, 1280, 1440, 1740, 1920]) {
+    test(`owner login is accessible and responsive at ${width}px`, async ({ page }, testInfo) => {
+      await mockApi(page);
+      await page.setViewportSize({ width, height: width === 1740 ? 864 : width === 1920 ? 1080 : width < 600 ? 780 : 900 });
+      await page.goto("/fitland/login");
+
+      await expect(page.locator(".owner-login-brand-lockup")).toBeVisible();
+      await expect(page.getByLabel("E-mail")).toBeVisible();
+      await expect(page.getByLabel("Senha", { exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^ENTRAR$/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Instalar app" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Google|Apple/ })).toHaveCount(0);
+
+      if (width > 820) await expect(page.locator(".owner-login-visual")).toBeVisible();
+      else await expect(page.locator(".owner-login-visual")).toBeHidden();
+
+      const dimensions = await page.evaluate(() => ({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+      expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.viewport);
+      const results = await new AxeBuilder({ page }).analyze();
+      expect(results.violations).toEqual([]);
+
+      if ([390, 1740].includes(width)) {
+        await page.screenshot({ path: testInfo.outputPath(`owner-login-${width}.png`), fullPage: true });
+      }
+    });
+  }
+
+  test("owner login supports keyboard focus and reduced motion", async ({ page }) => {
+    await mockApi(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/fitland/login");
+    for (let step = 0; step < 5; step += 1) {
+      if (await page.getByLabel("E-mail").evaluate((element) => element === document.activeElement)) break;
+      await page.keyboard.press("Tab");
+    }
+    await expect(page.getByLabel("E-mail")).toBeFocused();
+    const transitionDuration = await page.getByRole("button", { name: /^ENTRAR$/i }).evaluate((element) => getComputedStyle(element).transitionDuration);
+    expect(["0s", "0.00001s", "1e-05s"]).toContain(transitionDuration);
+  });
+
+  test("owner login controls work without console errors", async ({ page }) => {
+    const pageErrors = [];
+    const serverErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    page.on("response", (response) => { if (response.status() >= 500) serverErrors.push(`${response.status()} ${response.url()}`); });
+    await mockApi(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/fitland/login");
+
+    const password = page.getByLabel("Senha", { exact: true });
+    await expect(password).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: "Mostrar senha" }).click();
+    await expect(password).toHaveAttribute("type", "text");
+
+    await page.getByRole("button", { name: "Esqueci minha senha" }).click();
+    await expect(page.getByRole("dialog", { name: "Redefinir senha por e-mail" })).toBeVisible();
+    await page.getByRole("button", { name: "Fechar" }).click();
+
+    await page.getByRole("button", { name: "Instalar app" }).click();
+    await expect(page.getByRole("status")).toBeVisible();
+    expect(pageErrors).toEqual([]);
+    expect(serverErrors).toEqual([]);
+  });
+
+  for (const viewport of [{ width: 1366, height: 650 }, { width: 1024, height: 600 }, { width: 390, height: 640 }]) {
+    test(`owner card remains complete at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await mockApi(page);
+      await page.setViewportSize(viewport);
+      await page.goto("/fitland/login");
+      const geometry = await page.locator(".owner-login-card").evaluate((card) => ({
+        top: card.getBoundingClientRect().top,
+        bottom: card.getBoundingClientRect().bottom,
+        viewportHeight: innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        viewportWidth: innerWidth,
+      }));
+      expect(geometry.top).toBeGreaterThanOrEqual(0);
+      if (viewport.width > 820) expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight);
+      expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth);
+      await expect(page.getByRole("button", { name: "INSTALAR APP" })).toBeVisible();
+    });
+  }
+});
+
 test("student video cards support YouTube, uploads, missing video and state-safe close", async ({ page }, testInfo) => {
   await mockApi(page, { authenticated: true });
   await page.setViewportSize({ width: 390, height: 844 });

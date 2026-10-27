@@ -86,6 +86,11 @@ export function getPersonalPagePath(slug, page = "dashboard", options = {}) {
   return `/personal/${safeSlug}/${PERSONAL_PAGE_SEGMENTS[page] || PERSONAL_PAGE_SEGMENTS.dashboard}`;
 }
 
+export function getStudentDashboardPath(slug) {
+  const safeSlug = validSlug(slug);
+  return safeSlug ? `/personal/${safeSlug}/aluno/dashboard` : "/dashboard/aluno";
+}
+
 export function resolvePersonalNavigation(pathname, authenticatedSlug) {
   const currentRoute = getPersonalRoute(pathname);
   const legacyPage = getLegacyPersonalPage(pathname);
@@ -170,6 +175,10 @@ export function getRequestedContext(pathname = "") {
   const brandedStudentMatch = normalized.match(/^\/personal\/([^/]+)\/aluno\/(?:login|primeiro-acesso|cadastro)$/);
   if (brandedStudentMatch) {
     return { type: "student", slug: brandedStudentMatch[1] };
+  }
+  const brandedStudentAppMatch = normalized.match(/^\/personal\/([^/]+)\/aluno(?:\/|$)/);
+  if (brandedStudentAppMatch) {
+    return { type: "student", slug: brandedStudentAppMatch[1] };
   }
   if (normalized === "/aluno/login") return { type: "student", slug: null };
   if (normalized === "/personal/login") return { type: "personal", slug: null };

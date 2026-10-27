@@ -7,6 +7,7 @@ import {
   getLegacyPersonalPage,
   getLoginEndpoint,
   getPersonalPagePath,
+  getStudentDashboardPath,
   getPersonalRoute,
   getRequestedContext,
   getRouteBranding,
@@ -282,6 +283,11 @@ test("student routes and sessions stay separate from personal context", () => {
   assert.equal(isAuthLoginPath("/personal/thiago-fillipo/aluno/login"), true);
   assert.deepEqual(getRequestedContext("/personal/thiago-fillipo/aluno/login"), { type: "student", slug: "thiago-fillipo" });
   assert.equal(getContextLoginPath({ type: "student", slug: "thiago-fillipo" }), "/personal/thiago-fillipo/aluno/login");
+  assert.equal(getStudentDashboardPath("thiago-fillipo"), "/personal/thiago-fillipo/aluno/dashboard");
+  assert.equal(getStudentDashboardPath(""), "/dashboard/aluno");
+  assert.deepEqual(getRequestedContext("/personal/thiago-fillipo/aluno/dashboard"), { type: "student", slug: "thiago-fillipo" });
+  assert.equal(isSessionCompatibleWithContext(student, getRequestedContext("/personal/thiago-fillipo/aluno/dashboard")), true);
+  assert.equal(isSessionCompatibleWithContext(personal, getRequestedContext("/personal/thiago-fillipo/aluno/dashboard")), false);
 });
 
 test("student entries without a tenant render neutral guidance instead of generic branding", () => {

@@ -16,6 +16,7 @@ import {
   getContextLoginPath,
   getLegacyPersonalPage,
   getPersonalPagePath,
+  getStudentDashboardPath,
   getPersonalRoute,
   getRequestedContext,
   isBrandingCompatibleWithContext,
@@ -126,11 +127,18 @@ function pageFromPath(pathname, role) {
     "/owner/seguranca": "security"
   };
   if (role === "owner") return ownerRoutes[path] || "dashboard";
-  if (role === "student") return studentRoutes[path] || "dashboard";
+  if (role === "student") {
+    if (/^\/personal\/[^/]+\/aluno\/dashboard\/?$/.test(path)) return "dashboard";
+    return studentRoutes[path] || "dashboard";
+  }
   return getPersonalRoute(path)?.page || getLegacyPersonalPage(path) || "dashboard";
 }
 function pushRoute(role, personalSlug = null) {
-  const path = role === "personal" ? getPersonalPagePath(personalSlug) : rolePath[role] || "/personal/login";
+  const path = role === "personal"
+    ? getPersonalPagePath(personalSlug)
+    : role === "student"
+      ? getStudentDashboardPath(personalSlug)
+      : rolePath[role] || "/personal/login";
   window.history.replaceState(null, "", path);
 }
 
@@ -298,7 +306,9 @@ export default function App() {
         const requestedPage = pageFromPath(window.location.pathname, normalizedUser.role);
         setActivePage(requestedPage);
         if (isAuthLoginPath(pathname) || pathname === "/" || pathname === "/fitland/change-password") {
-          if (normalizedUser.role !== "personal") pushRoute(normalizedUser.role);
+          if (normalizedUser.role !== "personal") {
+            pushRoute(normalizedUser.role, requestedContext?.slug || normalizedUser.personal_slug || normalizedUser.tenant_slug);
+          }
         }
       } catch {
         clearToken(requestedContext?.type);
@@ -367,7 +377,7 @@ export default function App() {
     if (!session || session.role === "owner" || !branding?.modules) return;
     if (!isPageEnabled(activePage, branding.modules)) {
       setActivePage("dashboard");
-      window.history.replaceState(null, "", session.role === "personal" ? getPersonalPagePath(branding.slug) : rolePath[session.role]);
+      window.history.replaceState(null, "", session.role === "personal" ? getPersonalPagePath(branding.slug) : session.role === "student" ? getStudentDashboardPath(branding.slug) : rolePath[session.role]);
     }
   }, [activePage, branding?.modules, branding?.slug, session?.role]);
 
@@ -470,7 +480,7 @@ export default function App() {
     } else if (isStudent && page === "settings") {
       window.history.replaceState(null, "", "/aluno/configuracoes");
     } else {
-      pushRoute("student");
+      pushRoute("student", branding.slug);
     }
   };
 

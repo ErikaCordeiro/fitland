@@ -10,6 +10,8 @@ def test_private_and_dynamic_paths_never_receive_the_spa_shell():
         "private/../uploads/branding/logo.png",
         "uploads/private/nonexistent.pdf",
         "api/users/me",
+        "erika-gomes.jpeg",
+        "jessica-gomes.png",
     ):
         assert is_spa_fallback_blocked_path(path) is True
 

@@ -235,6 +235,8 @@ for public_area in PUBLIC_UPLOAD_AREAS:
 
 def is_spa_fallback_blocked_path(full_path: str) -> bool:
     normalized = str(full_path or "").replace("\\", "/").strip("/").lower()
+    if normalized in {"erika-gomes.jpeg", "jessica-gomes.png"}:
+        return True
     segments = [segment for segment in normalized.split("/") if segment]
     if ".." in segments:
         return True

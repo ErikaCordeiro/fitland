@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from urllib import error
 
 import pytest
 
@@ -52,12 +53,16 @@ class FakeSMTP:
 
 @pytest.fixture(autouse=True)
 def smtp_settings(monkeypatch):
+    monkeypatch.setattr(settings, "EMAIL_PROVIDER", "smtp")
     monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example.test")
     monkeypatch.setattr(settings, "SMTP_PORT", 587)
     monkeypatch.setattr(settings, "SMTP_USERNAME", "mailer@example.test")
     monkeypatch.setattr(settings, "SMTP_PASSWORD", "synthetic-app-password")
     monkeypatch.setattr(settings, "SMTP_FROM_EMAIL", "mailer@example.test")
     monkeypatch.setattr(settings, "SMTP_USE_TLS", True)
+    monkeypatch.setattr(settings, "GMAIL_CLIENT_ID", None)
+    monkeypatch.setattr(settings, "GMAIL_CLIENT_SECRET", None)
+    monkeypatch.setattr(settings, "GMAIL_REFRESH_TOKEN", None)
     FakeSMTP.error = None
     FakeSMTP.refused = {}
     FakeSMTP.instance = None
@@ -134,3 +139,79 @@ def test_connection_failure_is_raised_without_sensitive_context(caplog):
 
     assert "result=transport_failed error_type=OSError" in caplog.text
     assert "network detail" not in caplog.text
+
+
+class FakeHTTPResponse:
+    def __init__(self, payload):
+        self.payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def read(self):
+        return self.payload
+
+
+def test_gmail_api_sends_over_https_and_logs_provider_acceptance(monkeypatch, caplog):
+    caplog.set_level(logging.INFO)
+    monkeypatch.setattr(settings, "EMAIL_PROVIDER", "gmail_api")
+    monkeypatch.setattr(settings, "GMAIL_CLIENT_ID", "synthetic-client")
+    monkeypatch.setattr(settings, "GMAIL_CLIENT_SECRET", "synthetic-secret")
+    monkeypatch.setattr(settings, "GMAIL_REFRESH_TOKEN", "synthetic-refresh")
+    responses = iter(
+        [
+            FakeHTTPResponse(b'{"access_token":"synthetic-access"}'),
+            FakeHTTPResponse(b'{"id":"provider-message-id"}'),
+        ]
+    )
+    requests = []
+
+    def fake_urlopen(http_request, timeout):
+        requests.append(http_request)
+        assert timeout == 15
+        return next(responses)
+
+    monkeypatch.setattr(email_service.request, "urlopen", fake_urlopen)
+
+    result = email_service.send_password_reset_email(
+        "owner@example.test", "https://fitland.test/reset?token=synthetic"
+    )
+
+    assert result == "accepted_by_provider"
+    assert requests[0].full_url == "https://oauth2.googleapis.com/token"
+    assert requests[1].full_url == "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+    assert requests[1].get_header("Authorization") == "Bearer synthetic-access"
+    assert "result=accepted_by_provider" in caplog.text
+    assert "provider_message_id_present=True" in caplog.text
+    assert "owner@example.test" not in caplog.text
+    assert "synthetic-access" not in caplog.text
+    assert "synthetic-refresh" not in caplog.text
+
+
+def test_gmail_api_http_failure_is_sanitized(monkeypatch, caplog):
+    monkeypatch.setattr(settings, "EMAIL_PROVIDER", "gmail_api")
+    monkeypatch.setattr(settings, "GMAIL_CLIENT_ID", "synthetic-client")
+    monkeypatch.setattr(settings, "GMAIL_CLIENT_SECRET", "synthetic-secret")
+    monkeypatch.setattr(settings, "GMAIL_REFRESH_TOKEN", "synthetic-refresh")
+
+    def fail_urlopen(*_args, **_kwargs):
+        raise error.HTTPError("https://oauth2.googleapis.com/token", 401, "private detail", {}, None)
+
+    monkeypatch.setattr(email_service.request, "urlopen", fail_urlopen)
+
+    with pytest.raises(error.HTTPError):
+        email_service.send_password_reset_email("owner@example.test", "https://fitland.test/reset")
+
+    assert "provider=gmail_api result=http_failed status=401" in caplog.text
+    assert "owner@example.test" not in caplog.text
+    assert "private detail" not in caplog.text
+
+
+def test_gmail_api_requires_all_oauth_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "EMAIL_PROVIDER", "gmail_api")
+
+    with pytest.raises(RuntimeError, match="Gmail API email provider is not configured"):
+        email_service.send_password_reset_email("owner@example.test", "https://fitland.test/reset")

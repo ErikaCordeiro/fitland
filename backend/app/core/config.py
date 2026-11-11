@@ -28,12 +28,16 @@ class Settings(BaseSettings):
     OWNER_FORCE_PASSWORD_RESET: bool = False
     PASSWORD_RESET_EXPIRE_MINUTES: int = 30
     FRONTEND_URL: str = "http://localhost:4173"
+    EMAIL_PROVIDER: str = "smtp"
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USERNAME: str | None = None
     SMTP_PASSWORD: str | None = None
     SMTP_FROM_EMAIL: str | None = None
     SMTP_USE_TLS: bool = True
+    GMAIL_CLIENT_ID: str | None = None
+    GMAIL_CLIENT_SECRET: str | None = None
+    GMAIL_REFRESH_TOKEN: str | None = None
     UPLOADS_DIR: Path = Path(__file__).resolve().parents[2] / "uploads"
     AI_PROVIDER: str = "openai"
     OPENAI_API_KEY: str | None = None
@@ -42,6 +46,9 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     AI_TIMEOUT_SECONDS: float = Field(default=20.0, ge=1.0, le=120.0)
     AI_DAILY_LIMIT: int = Field(default=50, ge=1, le=10000)
+    EXERCISE_PROVIDER_TIMEOUT_SECONDS: float = Field(default=12.0, ge=2.0, le=30.0)
+    EXERCISE_PROVIDER_CACHE_SECONDS: int = Field(default=21600, ge=300, le=86400)
+    EXERCISE_PROVIDER_RATE_LIMIT: int = Field(default=10, ge=1, le=120)
 
     @field_validator("DATABASE_URL")
     @classmethod
